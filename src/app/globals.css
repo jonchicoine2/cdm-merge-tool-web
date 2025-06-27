@@ -40,3 +40,8 @@ a {
     color-scheme: dark;
   }
 }
+
+.MuiDataGrid-row.row-a-only { background-color: #ffe0e0 !important; }
+.MuiDataGrid-row.row-b-only { background-color: #e0f7ff !important; }
+.MuiDataGrid-row.row-changed { background-color: #fff9c4 !important; }
+.MuiDataGrid-row.row-unchanged { background-color: #e8f5e9 !important; }

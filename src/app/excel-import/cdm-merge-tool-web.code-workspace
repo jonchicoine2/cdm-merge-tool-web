@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../../.."
+		},
+		{
+			"path": "../../../../../AIC/Main_New/SourceCode/OtherApps/ChargeMasterMerge"
+		}
+	],
+	"settings": {
+		"dotnet.preferCSharpExtension": true,
+		"powershell.cwd": "cdm-merge-tool-web"
+	}
+}
