@@ -1,5 +1,4 @@
 # Tasks
 
 - [x] DONE - Publish repository to GitHub
-- [ ] TODO - ...
-- [ ] ... 
+- [x] DONE - Fix TypeScript errors in excel-import page (GridValidRowModel vs ExcelRow type mismatch)

@@ -1,23 +1,21 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { Button, Box, Typography, MenuItem, Select, SelectChangeEvent, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox } from "@mui/material";
-import { DataGrid, GridColDef, GridRowsProp } from "@mui/x-data-grid";
+import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox } from "@mui/material";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import * as XLSX from "xlsx";
 
-// Define a type for Excel rows with dynamic fields, plus id, _diff, and _source
+// Define a type for Excel rows with dynamic fields, plus id
 interface ExcelRow {
   id: number;
-  _diff: string;
-  _source: "A" | "B" | "None";
   [key: string]: string | number | undefined;
 }
 
 export default function ExcelImportPage() {
-  const [rowsA, setRowsA] = useState<GridRowsProp>([]);
+  const [rowsA, setRowsA] = useState<ExcelRow[]>([]);
   const [columnsA, setColumnsA] = useState<GridColDef[]>([]);
-  const [rowsB, setRowsB] = useState<GridRowsProp>([]);
+  const [rowsB, setRowsB] = useState<ExcelRow[]>([]);
   const [columnsB, setColumnsB] = useState<GridColDef[]>([]);
-  const [mergedRows, setMergedRows] = useState<GridRowsProp>([]);
+  const [mergedRows, setMergedRows] = useState<ExcelRow[]>([]);
   const [mergedColumns, setMergedColumns] = useState<GridColDef[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const [lastFileA, setLastFileA] = useState<string>("");
@@ -83,20 +81,24 @@ export default function ExcelImportPage() {
         headerName: header || `Column ${idx + 1}`,
         width: 150,
       }));
-      const rows: GridRowsProp = json.slice(1).map((row, idx) => {
+      const rows: ExcelRow[] = Array.from(json.slice(1)).map((row, idx) => {
         const rowArr = row as unknown[];
         const rowObj: ExcelRow = { id: idx };
         headers.forEach((header, colIdx) => {
-          rowObj[header || `col${colIdx}`] = rowArr[colIdx] || "";
+          let value = rowArr[colIdx];
+          if (typeof value === "object" && value !== null) {
+            value = JSON.stringify(value) as string;
+          }
+          rowObj[header || `col${colIdx}`] = (value === undefined || value === null) ? "" : (value as string | number);
         });
         return rowObj;
       });
       if (which === "A") {
         setColumnsA(columns);
-        setRowsA(rows);
+        setRowsA(Array.from(rows));
       } else {
         setColumnsB(columns);
-        setRowsB(rows);
+        setRowsB(Array.from(rows));
       }
     };
     reader.readAsBinaryString(file);
@@ -187,7 +189,7 @@ export default function ExcelImportPage() {
       return key;
     }
 
-    function filterTrauma(rows: GridRowsProp, descCol: string | null, hcpcsCol: string): GridRowsProp {
+    function filterTrauma(rows: ExcelRow[], descCol: string | null, hcpcsCol: string): ExcelRow[] {
       if (!modifierCriteria.ignoreTrauma || !descCol) return rows;
       return rows.filter(row => {
         const code = String(row[hcpcsCol] || "");
@@ -217,7 +219,7 @@ export default function ExcelImportPage() {
     ];
     setMergedColumns(allColumns);
     // Build merged rows: for each match, use B's data, keep A's id
-    const merged: GridRowsProp = matchedKeys.map((key: string, idx: number) => {
+    const merged: ExcelRow[] = matchedKeys.map((key: string, idx: number) => {
       const rowA = mapA.get(key);
       const rowB = mapB.get(key);
       const mergedRow: ExcelRow = { id: rowA?.id ?? idx };
@@ -400,9 +402,11 @@ export default function ExcelImportPage() {
             }}
           >
             <Typography variant="subtitle1" sx={{ pointerEvents: dragOverA ? "none" : "auto" }}>File A</Typography>
-            <Box sx={{ height: 400, width: "100%", mb: 2, pointerEvents: dragOverA ? "none" : "auto" }}>
-              <DataGrid rows={rowsA} columns={columnsA} pageSize={20} />
-            </Box>
+            {rowsA.length > 0 && columnsA.length > 0 && (
+              <Box sx={{ height: 400, width: "100%", mb: 2, pointerEvents: dragOverA ? "none" : "auto" }}>
+                <DataGrid rows={rowsA} columns={columnsA} />
+              </Box>
+            )}
             <Button variant="contained" component="label" sx={{ pointerEvents: dragOverA ? "none" : "auto" }}>
               Upload File A
               <input
@@ -449,9 +453,11 @@ export default function ExcelImportPage() {
             }}
           >
             <Typography variant="subtitle1" sx={{ pointerEvents: dragOverB ? "none" : "auto" }}>File B</Typography>
-            <Box sx={{ height: 400, width: "100%", mb: 2, pointerEvents: dragOverB ? "none" : "auto" }}>
-              <DataGrid rows={rowsB} columns={columnsB} pageSize={20} />
-            </Box>
+            {rowsB.length > 0 && columnsB.length > 0 && (
+              <Box sx={{ height: 400, width: "100%", mb: 2, pointerEvents: dragOverB ? "none" : "auto" }}>
+                <DataGrid rows={rowsB} columns={columnsB} />
+              </Box>
+            )}
             <Button variant="contained" component="label" sx={{ pointerEvents: dragOverB ? "none" : "auto" }}>
               Upload File B
               <input
@@ -502,16 +508,7 @@ export default function ExcelImportPage() {
             <DataGrid
               rows={mergedRows}
               columns={mergedColumns}
-              pageSize={20}
-              getRowClassName={(params) => {
-                switch (params.row._diff) {
-                  case "A only": return "MuiDataGrid-row row-a-only";
-                  case "B only": return "MuiDataGrid-row row-b-only";
-                  case "Changed": return "MuiDataGrid-row row-changed";
-                  case "Unchanged": return "MuiDataGrid-row row-unchanged";
-                  default: return "";
-                }
-              }}
+              getRowClassName={() => ""}
             />
           </Box>
         </Box>
