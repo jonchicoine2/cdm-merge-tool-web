@@ -17,6 +17,7 @@ export default function ExcelImportPage() {
   const [rowsClient, setRowsClient] = useState<ExcelRow[]>([]);
   const [columnsClient, setColumnsClient] = useState<GridColDef[]>([]);
   const [mergedRows, setMergedRows] = useState<ExcelRow[]>([]);
+  const [mergedColumns, setMergedColumns] = useState<GridColDef[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const fileMasterInputRef = useRef<HTMLInputElement>(null);
   const fileClientInputRef = useRef<HTMLInputElement>(null);
@@ -65,6 +66,7 @@ export default function ExcelImportPage() {
   // Search state for each grid
   const [searchMaster, setSearchMaster] = useState("");
   const [searchClient, setSearchClient] = useState("");
+  const [searchMerged, setSearchMerged] = useState("");
 
   // Tab state for errors and duplicates
   const [errorsTabValue, setErrorsTabValue] = useState(0);
@@ -84,6 +86,7 @@ export default function ExcelImportPage() {
   // Filtered data for each grid
   const filteredRowsMaster = filterRows(rowsMaster, searchMaster);
   const filteredRowsClient = filterRows(rowsClient, searchClient);
+  const filteredMergedRows = filterRows(mergedRows, searchMerged);
   const filteredUnmatchedClient = filterRows(unmatchedClient, "");
   const filteredDupsClient = filterRows(dupsClient, "");
 
@@ -234,6 +237,7 @@ export default function ExcelImportPage() {
       ...columnsMaster,
       ...columnsClient.filter((col) => !columnsMaster.some((c) => c.field === col.field)),
     ];
+    setMergedColumns(allColumns);
     // Build merged rows: for each match, use Client's data, keep Master's id
     const merged: ExcelRow[] = matchedKeys.map((key: string, idx: number) => {
       const rowMaster = mapMaster.get(key);
@@ -372,6 +376,7 @@ export default function ExcelImportPage() {
     setRowsClient([]);
     setColumnsClient([]);
     setMergedRows([]);
+    setMergedColumns([]);
     setShowCompare(false);
     if (fileMasterInputRef.current) fileMasterInputRef.current.value = "";
     if (fileClientInputRef.current) fileClientInputRef.current.value = "";
@@ -660,6 +665,55 @@ export default function ExcelImportPage() {
           <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
             Compare Results
           </Typography>
+          
+          {/* Merged Results */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" gutterBottom>Merged Data ({mergedRows.length} records)</Typography>
+            <TextField
+              fullWidth
+              variant="outlined"
+              placeholder="Search merged data..."
+              value={searchMerged}
+              onChange={(e) => setSearchMerged(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ 
+                mb: 2,
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'white',
+                  '& fieldset': {
+                    borderColor: '#ccc',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#999',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#1976d2',
+                  },
+                },
+                '& .MuiInputBase-input': {
+                  color: 'black',
+                },
+                '& .MuiInputBase-input::placeholder': {
+                  color: '#666',
+                  opacity: 1,
+                }
+              }}
+            />
+            <Box sx={{ height: 400, width: "100%" }}>
+              <DataGrid 
+                rows={filteredMergedRows} 
+                columns={mergedColumns}
+                density="compact"
+                disableRowSelectionOnClick
+              />
+            </Box>
+          </Box>
           
           {/* Errors and Duplicates Tabs */}
           <Box sx={{ display: 'flex', gap: 1, borderBottom: 1, borderColor: 'divider', mb: 2 }}>
