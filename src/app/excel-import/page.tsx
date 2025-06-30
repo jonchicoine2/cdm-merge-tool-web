@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab } from "@mui/material";
+import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
 import * as XLSX from "xlsx";
@@ -17,13 +17,11 @@ export default function ExcelImportPage() {
   const [rowsClient, setRowsClient] = useState<ExcelRow[]>([]);
   const [columnsClient, setColumnsClient] = useState<GridColDef[]>([]);
   const [mergedRows, setMergedRows] = useState<ExcelRow[]>([]);
-  const [mergedColumns, setMergedColumns] = useState<GridColDef[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const fileMasterInputRef = useRef<HTMLInputElement>(null);
   const fileClientInputRef = useRef<HTMLInputElement>(null);
   const [dragOverMaster, setDragOverMaster] = useState(false);
   const [dragOverClient, setDragOverClient] = useState(false);
-  const [compareError, setCompareError] = useState("");
   const [lastMasterFile, setLastMasterFile] = useState<string | null>(null);
   const [lastClientFile, setLastClientFile] = useState<string | null>(null);
   const [lastMasterData, setLastMasterData] = useState<string | null>(null);
@@ -67,9 +65,6 @@ export default function ExcelImportPage() {
   // Search state for each grid
   const [searchMaster, setSearchMaster] = useState("");
   const [searchClient, setSearchClient] = useState("");
-  const [searchMerged, setSearchMerged] = useState("");
-  const [searchUnmatched, setSearchUnmatched] = useState("");
-  const [searchDuplicates, setSearchDuplicates] = useState("");
 
   // Tab state for errors and duplicates
   const [errorsTabValue, setErrorsTabValue] = useState(0);
@@ -89,9 +84,8 @@ export default function ExcelImportPage() {
   // Filtered data for each grid
   const filteredRowsMaster = filterRows(rowsMaster, searchMaster);
   const filteredRowsClient = filterRows(rowsClient, searchClient);
-  const filteredMergedRows = filterRows(mergedRows, searchMerged);
-  const filteredUnmatchedClient = filterRows(unmatchedClient, searchUnmatched);
-  const filteredDupsClient = filterRows(dupsClient, searchDuplicates);
+  const filteredUnmatchedClient = filterRows(unmatchedClient, "");
+  const filteredDupsClient = filterRows(dupsClient, "");
 
   const handleFileUpload = (
     e: React.ChangeEvent<HTMLInputElement> | File,
@@ -177,10 +171,9 @@ export default function ExcelImportPage() {
     const modifierColClient = getModifierColumnClient();
     if (!hcpcsColMaster || !hcpcsColClient) {
       setShowCompare(false);
-      setCompareError('Both files must have a "HCPCS" column to compare.');
+      console.error('Both files must have a "HCPCS" column to compare.');
       return;
     }
-    setCompareError("");
     const descColMaster = getDescriptionCol(columnsMaster);
     const descColClient = getDescriptionCol(columnsClient);
 
@@ -241,7 +234,6 @@ export default function ExcelImportPage() {
       ...columnsMaster,
       ...columnsClient.filter((col) => !columnsMaster.some((c) => c.field === col.field)),
     ];
-    setMergedColumns(allColumns);
     // Build merged rows: for each match, use Client's data, keep Master's id
     const merged: ExcelRow[] = matchedKeys.map((key: string, idx: number) => {
       const rowMaster = mapMaster.get(key);
@@ -380,11 +372,9 @@ export default function ExcelImportPage() {
     setRowsClient([]);
     setColumnsClient([]);
     setMergedRows([]);
-    setMergedColumns([]);
     setShowCompare(false);
     if (fileMasterInputRef.current) fileMasterInputRef.current.value = "";
     if (fileClientInputRef.current) fileClientInputRef.current.value = "";
-    setCompareError("");
   };
 
   return (
