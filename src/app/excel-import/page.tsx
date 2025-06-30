@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Card, CardContent, Chip, Grid, Divider } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
@@ -133,7 +133,7 @@ export default function ExcelImportPage() {
       console.log('[DEBUG] Auto-triggering comparison - rowsMaster:', rowsMaster.length, 'rowsClient:', rowsClient.length);
       handleCompare();
     }
-  }, [rowsMaster.length, rowsClient.length]);
+  }, [rowsMaster.length, rowsClient.length, showCompare, handleCompare]);
   
   // Debug tab state
   useEffect(() => {
@@ -520,7 +520,7 @@ export default function ExcelImportPage() {
     return mapping;
   }
 
-  const handleCompare = () => {
+  const handleCompare = useCallback(() => {
     // Start timing the comparison
     const startTime = performance.now();
     setComparisonStartTime(startTime);
@@ -677,7 +677,7 @@ export default function ExcelImportPage() {
     console.log(`[DIAG] dupsClient count: ${dupsClient.length}`);
     if (unmatchedClient.length > 0) console.log("[DIAG] Sample unmatched Client record:", unmatchedClient[0]);
     if (dupsClient.length > 0) console.log("[DIAG] Sample duplicate Client record:", dupsClient[0]);
-  };
+  }, [rowsMaster, rowsClient, columnsMaster, columnsClient, masterSheetNames, clientSheetNames, activeMasterTab, activeClientTab, modifierCriteria]);
 
   const handleExport = () => {
     if (mergedForExport.length === 0) return;
@@ -770,7 +770,7 @@ export default function ExcelImportPage() {
     }
   };
   
-  const processSheetData = (worksheet: any) => {
+  const processSheetData = (worksheet: unknown) => {
     const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
     if (json.length === 0) return { rows: [], columns: [] };
     
@@ -797,7 +797,7 @@ export default function ExcelImportPage() {
     return { rows: Array.from(rows), columns };
   };
   
-  const processFileData = (data: string, which: "Master" | "Client", sheetName?: string) => {
+  const processFileData = (data: string, which: "Master" | "Client") => {
     const workbook = XLSX.read(data, { type: "binary" });
     const sheets = workbook.SheetNames;
     processAllSheets(data, which, sheets);
@@ -1413,7 +1413,7 @@ export default function ExcelImportPage() {
                 📊 Merged:
               </Typography>
               <Typography variant="body2" sx={{ color: '#424242' }}>
-                "{mergedSheetInfo.masterSheet}" ↔ "{mergedSheetInfo.clientSheet}"
+                &quot;{mergedSheetInfo.masterSheet}&quot; ↔ &quot;{mergedSheetInfo.clientSheet}&quot;
               </Typography>
             </Box>
           )}
