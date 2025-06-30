@@ -208,6 +208,90 @@ export default function ExcelImportPage() {
     const descCol = cols.find(col => col.field.toLowerCase() === "description");
     return descCol ? descCol.field : null;
   }
+  
+  // Advanced column matching with multiple fallback strategies
+  function findMatchingColumn(masterField: string, clientColumns: GridColDef[]): string | null {
+    const clientFields = clientColumns.map(col => col.field);
+    
+    // Strategy 1: Exact match
+    if (clientFields.includes(masterField)) {
+      console.log(`[COLUMN MATCH] Exact match: ${masterField}`);
+      return masterField;
+    }
+    
+    // Strategy 2: Case-insensitive match
+    const caseInsensitiveMatch = clientFields.find(field => 
+      field.toLowerCase() === masterField.toLowerCase()
+    );
+    if (caseInsensitiveMatch) {
+      console.log(`[COLUMN MATCH] Case-insensitive match: ${masterField} -> ${caseInsensitiveMatch}`);
+      return caseInsensitiveMatch;
+    }
+    
+    // Strategy 3: Normalized match (remove spaces, underscores, special chars)
+    const normalizeField = (field: string) => field.toLowerCase().replace(/[\s_-]+/g, '');
+    const normalizedMaster = normalizeField(masterField);
+    const normalizedMatch = clientFields.find(field => 
+      normalizeField(field) === normalizedMaster
+    );
+    if (normalizedMatch) {
+      console.log(`[COLUMN MATCH] Normalized match: ${masterField} -> ${normalizedMatch}`);
+      return normalizedMatch;
+    }
+    
+    // Strategy 4: Partial match (master field contains client field or vice versa)
+    const partialMatch = clientFields.find(field => {
+      const masterLower = masterField.toLowerCase();
+      const fieldLower = field.toLowerCase();
+      return masterLower.includes(fieldLower) || fieldLower.includes(masterLower);
+    });
+    if (partialMatch) {
+      console.log(`[COLUMN MATCH] Partial match: ${masterField} -> ${partialMatch}`);
+      return partialMatch;
+    }
+    
+    // Strategy 5: Fuzzy match for common variations
+    const fuzzyMatches: {[key: string]: string[]} = {
+      'hcpcs': ['hcpc', 'code', 'procedure_code', 'proc_code', 'cpt'],
+      'modifier': ['mod', 'modif', 'modifier_code'],
+      'description': ['desc', 'procedure_desc', 'proc_desc', 'name', 'procedure_name'],
+      'quantity': ['qty', 'units', 'unit', 'count'],
+      'price': ['amount', 'cost', 'charge', 'rate', 'fee'],
+      'date': ['service_date', 'dos', 'date_of_service']
+    };
+    
+    const masterLower = masterField.toLowerCase();
+    for (const [standard, variations] of Object.entries(fuzzyMatches)) {
+      if (masterLower.includes(standard) || variations.some(v => masterLower.includes(v))) {
+        const fuzzyMatch = clientFields.find(field => {
+          const fieldLower = field.toLowerCase();
+          return fieldLower.includes(standard) || variations.some(v => fieldLower.includes(v));
+        });
+        if (fuzzyMatch) {
+          console.log(`[COLUMN MATCH] Fuzzy match: ${masterField} -> ${fuzzyMatch} (via ${standard})`);
+          return fuzzyMatch;
+        }
+      }
+    }
+    
+    console.log(`[COLUMN MATCH] No match found for: ${masterField}`);
+    return null;
+  }
+  
+  // Create column mapping between master and client
+  function createColumnMapping(masterColumns: GridColDef[], clientColumns: GridColDef[]): {[masterField: string]: string} {
+    const mapping: {[masterField: string]: string} = {};
+    
+    masterColumns.forEach(masterCol => {
+      const matchingClientField = findMatchingColumn(masterCol.field, clientColumns);
+      if (matchingClientField) {
+        mapping[masterCol.field] = matchingClientField;
+      }
+    });
+    
+    console.log('[COLUMN MAPPING] Final mapping:', mapping);
+    return mapping;
+  }
 
   const handleCompare = () => {
     // Save which sheets are being used for this merge
@@ -279,18 +363,35 @@ export default function ExcelImportPage() {
     // Only include records from Master that have a match in Client
     const matchedKeys = Array.from(mapClient.keys()).filter((key: string) => mapMaster.has(key));
     console.log(`[DIAG] matchedKeys count: ${matchedKeys.length}`);
-    const allColumns = [
-      ...columnsMaster,
-      ...columnsClient.filter((col) => !columnsMaster.some((c) => c.field === col.field)),
-    ];
-    setMergedColumns(allColumns);
-    // Build merged rows: for each match, use Client's data, keep Master's id
+    
+    // Create column mapping and merged columns with only matching fields
+    const columnMapping = createColumnMapping(columnsMaster, columnsClient);
+    const matchingMasterColumns = columnsMaster.filter(col => columnMapping[col.field]);
+    const matchingClientColumns = columnsClient.filter(col => 
+      Object.values(columnMapping).includes(col.field) && 
+      !matchingMasterColumns.some(masterCol => masterCol.field === col.field)
+    );
+    
+    const mergedColumns = [...matchingMasterColumns, ...matchingClientColumns];
+    setMergedColumns(mergedColumns);
+    // Build merged rows: for each match, use mapped columns
     const merged: ExcelRow[] = matchedKeys.map((key: string, idx: number) => {
       const rowMaster = mapMaster.get(key);
       const rowClient = mapClient.get(key);
       const mergedRow: ExcelRow = { id: rowMaster?.id ?? idx };
-      allColumns.forEach((col) => {
-        mergedRow[col.field] = rowClient?.[col.field] ?? rowMaster?.[col.field] ?? "";
+      
+      mergedColumns.forEach((col) => {
+        if (columnMapping[col.field]) {
+          // This is a master column with a mapped client column
+          const clientField = columnMapping[col.field];
+          mergedRow[col.field] = rowClient?.[clientField] ?? rowMaster?.[col.field] ?? "";
+        } else if (Object.values(columnMapping).includes(col.field)) {
+          // This is a client column that was mapped
+          mergedRow[col.field] = rowClient?.[col.field] ?? "";
+        } else {
+          // Fallback for unmapped columns
+          mergedRow[col.field] = rowMaster?.[col.field] ?? rowClient?.[col.field] ?? "";
+        }
       });
       return mergedRow;
     });
@@ -789,7 +890,7 @@ export default function ExcelImportPage() {
               color="success"
               onClick={handleRestoreSession}
             >
-              Restore Session
+              Restore Last Session
             </Button>
           )}
           <Button 
