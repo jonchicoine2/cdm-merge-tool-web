@@ -167,80 +167,61 @@ export default function ExcelImportPage() {
     console.log(`[DEBUG] Rendering ${type} FileInfoCard with metadata:`, metadata);
     
     return (
-      <Card sx={{ 
-        mb: 3, 
-        backgroundColor: '#ffffff', 
-        border: '4px solid #2196f3',
-        borderRadius: 3,
-        boxShadow: '0 8px 24px rgba(33, 150, 243, 0.3)',
-        '&:hover': {
-          boxShadow: '0 12px 32px rgba(33, 150, 243, 0.4)'
-        }
+      <Box sx={{ 
+        mb: 1, 
+        p: 1.5,
+        backgroundColor: '#f8fbff', 
+        border: '2px solid #2196f3',
+        borderRadius: 1,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        flexWrap: 'wrap'
       }}>
-        <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ 
-            fontWeight: 'bold', 
-            color: '#1976d2', 
-            mb: 2,
-            textAlign: 'center'
-          }}>
-            📄 {metadata.name}
-          </Typography>
-          <Grid container spacing={2} alignItems="center" justifyContent="center">
-            <Grid item xs={6} sm={3}>
-              <Chip 
-                size="medium" 
-                label={formatFileSize(metadata.size)} 
-                sx={{ 
-                  backgroundColor: '#1976d2', 
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '0.875rem',
-                  height: '36px'
-                }}
-              />
-            </Grid>
-            <Grid item xs={6} sm={3}>
-              <Chip 
-                size="medium" 
-                label={`${metadata.sheetCount} sheet${metadata.sheetCount !== 1 ? 's' : ''}`}
-                sx={{ 
-                  backgroundColor: '#4caf50', 
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '0.875rem',
-                  height: '36px'
-                }}
-              />
-            </Grid>
-            <Grid item xs={6} sm={3}>
-              <Chip 
-                size="medium" 
-                label={`${metadata.recordCount.toLocaleString()} records`}
-                sx={{ 
-                  backgroundColor: '#ff9800', 
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '0.875rem',
-                  height: '36px'
-                }}
-              />
-            </Grid>
-            <Grid item xs={6} sm={3}>
-              <Typography variant="body1" sx={{ 
-                color: '#424242', 
-                fontWeight: 'bold',
-                textAlign: 'center',
-                backgroundColor: '#f5f5f5',
-                padding: '8px',
-                borderRadius: 1
-              }}>
-                {metadata.uploadTime.toLocaleTimeString()}
-              </Typography>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
+        <Typography variant="body2" sx={{ 
+          fontWeight: 'bold', 
+          color: '#1976d2',
+          minWidth: '120px'
+        }}>
+          📄 {metadata.name}
+        </Typography>
+        <Chip 
+          size="small" 
+          label={formatFileSize(metadata.size)} 
+          sx={{ 
+            backgroundColor: '#1976d2', 
+            color: 'white',
+            fontSize: '0.75rem',
+            height: '24px'
+          }}
+        />
+        <Chip 
+          size="small" 
+          label={`${metadata.sheetCount} sheet${metadata.sheetCount !== 1 ? 's' : ''}`}
+          sx={{ 
+            backgroundColor: '#4caf50', 
+            color: 'white',
+            fontSize: '0.75rem',
+            height: '24px'
+          }}
+        />
+        <Chip 
+          size="small" 
+          label={`${metadata.recordCount.toLocaleString()} records`}
+          sx={{ 
+            backgroundColor: '#ff9800', 
+            color: 'white',
+            fontSize: '0.75rem',
+            height: '24px'
+          }}
+        />
+        <Typography variant="caption" sx={{ 
+          color: '#666',
+          ml: 'auto'
+        }}>
+          {metadata.uploadTime.toLocaleTimeString()}
+        </Typography>
+      </Box>
     );
   };
   
@@ -249,140 +230,38 @@ export default function ExcelImportPage() {
     if (!stats) return null;
     
     return (
-      <Card sx={{
-        mb: 3,
-        backgroundColor: 'white',
-        border: '3px solid #4caf50',
-        borderRadius: 3,
-        boxShadow: '0 8px 24px rgba(76, 175, 80, 0.3)'
+      <Box sx={{
+        mb: 2,
+        p: 2,
+        backgroundColor: '#f8fbff',
+        border: '2px solid #4caf50',
+        borderRadius: 1,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 3,
+        flexWrap: 'wrap'
       }}>
-        <CardContent sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{
-            fontWeight: 'bold',
-            color: '#2e7d32',
-            textAlign: 'center',
-            mb: 3
-          }}>
-            📊 Comparison Statistics
-          </Typography>
-          
-          <Grid container spacing={3}>
-            {/* Processing Info */}
-            <Grid item xs={12} md={6}>
-              <Box sx={{ 
-                backgroundColor: '#e8f5e8', 
-                padding: 2, 
-                borderRadius: 2,
-                border: '2px solid #4caf50'
-              }}>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#2e7d32', mb: 1 }}>
-                  ⚡ Processing
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                      Time: {stats.processingTime}ms
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                      Match Rate: {stats.matchRate}%
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </Box>
-            </Grid>
-            
-            {/* Record Counts */}
-            <Grid item xs={12} md={6}>
-              <Box sx={{ 
-                backgroundColor: '#e3f2fd', 
-                padding: 2, 
-                borderRadius: 2,
-                border: '2px solid #2196f3'
-              }}>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1976d2', mb: 1 }}>
-                  📝 Records
-                </Typography>
-                <Grid container spacing={1}>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                      Master: {stats.totalMasterRecords.toLocaleString()}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                      Client: {stats.totalClientRecords.toLocaleString()}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#4caf50' }}>
-                      Matched: {stats.matchedRecords.toLocaleString()}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#f44336' }}>
-                      Unmatched: {stats.unmatchedRecords.toLocaleString()}
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </Box>
-            </Grid>
-            
-            {/* Column Mapping */}
-            <Grid item xs={12} md={6}>
-              <Box sx={{ 
-                backgroundColor: '#fff3e0', 
-                padding: 2, 
-                borderRadius: 2,
-                border: '2px solid #ff9800'
-              }}>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#f57c00', mb: 1 }}>
-                  🔗 Columns
-                </Typography>
-                <Grid container spacing={1}>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                      Master: {stats.totalMasterColumns}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                      Client: {stats.totalClientColumns}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#4caf50' }}>
-                      Mapped: {stats.columnsMatched} columns
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </Box>
-            </Grid>
-            
-            {/* Issues */}
-            <Grid item xs={12} md={6}>
-              <Box sx={{ 
-                backgroundColor: stats.duplicateRecords > 0 ? '#ffebee' : '#f1f8e9', 
-                padding: 2, 
-                borderRadius: 2,
-                border: stats.duplicateRecords > 0 ? '2px solid #f44336' : '2px solid #8bc34a'
-              }}>
-                <Typography variant="h6" sx={{ 
-                  fontWeight: 'bold', 
-                  color: stats.duplicateRecords > 0 ? '#d32f2f' : '#689f38', 
-                  mb: 1 
-                }}>
-                  {stats.duplicateRecords > 0 ? '⚠️ Issues' : '✅ Quality'}
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                  Duplicates: {stats.duplicateRecords.toLocaleString()}
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
+        <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#2e7d32' }}>
+          📊 Results:
+        </Typography>
+        
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Chip size="small" label={`${stats.matchedRecords.toLocaleString()} matched`} 
+                sx={{ backgroundColor: '#4caf50', color: 'white', fontSize: '0.75rem' }} />
+          <Chip size="small" label={`${stats.unmatchedRecords.toLocaleString()} unmatched`} 
+                sx={{ backgroundColor: '#f44336', color: 'white', fontSize: '0.75rem' }} />
+          <Chip size="small" label={`${stats.duplicateRecords.toLocaleString()} duplicates`} 
+                sx={{ backgroundColor: '#ff9800', color: 'white', fontSize: '0.75rem' }} />
+          <Chip size="small" label={`${stats.matchRate}% match rate`} 
+                sx={{ backgroundColor: '#2196f3', color: 'white', fontSize: '0.75rem' }} />
+          <Chip size="small" label={`${stats.columnsMatched} columns mapped`} 
+                sx={{ backgroundColor: '#9c27b0', color: 'white', fontSize: '0.75rem' }} />
+        </Box>
+        
+        <Typography variant="caption" sx={{ color: '#666', ml: 'auto' }}>
+          {stats.processingTime}ms
+        </Typography>
+      </Box>
     );
   };
 
@@ -802,6 +681,18 @@ export default function ExcelImportPage() {
 
   const handleExport = () => {
     if (mergedForExport.length === 0) return;
+    
+    // Use client filename, add sheet name if multiple sheets, add datetime suffix
+    const clientName = lastClientFile ? lastClientFile.replace('.xlsx', '').replace('.xls', '') : 'merged_data';
+    const clientSheetCount = clientFileMetadata?.sheetCount || 1;
+    const timestamp = new Date().toISOString().slice(0, 16).replace('T', '_').replace(/:/g, '');
+    
+    let filename = `${clientName}_${timestamp}.xlsx`;
+    if (clientSheetCount > 1 && mergedSheetInfo?.clientSheet) {
+      const sheetName = mergedSheetInfo.clientSheet.replace(/[^a-zA-Z0-9\s-_]/g, '').replace(/\s+/g, '_');
+      filename = `${clientName}_${sheetName}_${timestamp}.xlsx`;
+    }
+    
     const wb = XLSX.utils.book_new();
     const clean = (rows: ExcelRow[]) => rows.map(row => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -818,7 +709,7 @@ export default function ExcelImportPage() {
     // Always include Duplicate_Client sheet, even if empty
     const wsDups = XLSX.utils.json_to_sheet(clean(dupsClient));
     XLSX.utils.book_append_sheet(wb, wsDups, "Duplicate_Client");
-    XLSX.writeFile(wb, "merged_data.xlsx");
+    XLSX.writeFile(wb, filename);
   };
 
   const handleDragEnter = (which: "Master" | "Client") => (e: React.DragEvent<HTMLDivElement>) => {
@@ -1078,7 +969,7 @@ export default function ExcelImportPage() {
         mb: 4,
         textShadow: '0 2px 4px rgba(25, 118, 210, 0.2)'
       }}>
-        📊 Excel File Merge Tool
+        🚀 VIC HCPCS Fusion Reactor
       </Typography>
       
       {/* Upload/Grid Areas */}
@@ -1099,18 +990,6 @@ export default function ExcelImportPage() {
             // Show tabs and grid when data is loaded
             <>
               <FileInfoCard metadata={masterFileMetadata} type="Master" />
-              <Typography variant="h5" gutterBottom sx={{
-                color: '#1976d2',
-                fontWeight: 'bold',
-                backgroundColor: 'white',
-                padding: '12px 16px',
-                border: '2px solid #2196f3',
-                borderRadius: 1,
-                textAlign: 'center',
-                mb: 2
-              }}>
-                📊 Master Data ({rowsMaster.length} records)
-              </Typography>
               
               {masterSheetNames.length > 0 && (
                 <Tabs 
@@ -1250,18 +1129,6 @@ export default function ExcelImportPage() {
             // Show tabs and grid when data is loaded
             <>
               <FileInfoCard metadata={clientFileMetadata} type="Client" />
-              <Typography variant="h5" gutterBottom sx={{
-                color: '#1976d2',
-                fontWeight: 'bold',
-                backgroundColor: 'white',
-                padding: '12px 16px',
-                border: '2px solid #2196f3',
-                borderRadius: 1,
-                textAlign: 'center',
-                mb: 2
-              }}>
-                📋 Client Data ({rowsClient.length} records)
-              </Typography>
               
               {clientSheetNames.length > 0 && (
                 <Tabs 
@@ -1532,21 +1399,21 @@ export default function ExcelImportPage() {
         <Box sx={{ mt: 4 }}>
           {mergedSheetInfo && (
             <Box sx={{ 
-              mb: 3, 
-              p: 3, 
-              backgroundColor: 'white', 
-              border: '3px solid #2196f3', 
-              borderRadius: 2,
-              boxShadow: '0 4px 12px rgba(33, 150, 243, 0.2)',
+              mb: 1, 
+              p: 1.5,
+              backgroundColor: '#f0f8ff', 
+              border: '2px solid #2196f3', 
+              borderRadius: 1,
               display: 'flex',
               alignItems: 'center',
-              gap: 2
+              gap: 2,
+              flexWrap: 'wrap'
             }}>
-              <Typography variant="h6" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
-                📊 Merge Source:
+              <Typography variant="body2" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+                📊 Merged:
               </Typography>
-              <Typography variant="h6" sx={{ color: '#424242', fontWeight: 'medium' }}>
-                Master: "{mergedSheetInfo.masterSheet}" ↔ Client: "{mergedSheetInfo.clientSheet}"
+              <Typography variant="body2" sx={{ color: '#424242' }}>
+                "{mergedSheetInfo.masterSheet}" ↔ "{mergedSheetInfo.clientSheet}"
               </Typography>
             </Box>
           )}
@@ -1555,17 +1422,6 @@ export default function ExcelImportPage() {
           
           {/* Merged Results */}
           <Box sx={{ mb: 4 }}>
-            <Typography variant="h4" gutterBottom sx={{
-              color: '#1976d2',
-              fontWeight: 'bold',
-              backgroundColor: 'white',
-              padding: '16px 20px',
-              border: '3px solid #2196f3',
-              borderRadius: 2,
-              textAlign: 'center',
-              mb: 3,
-              boxShadow: '0 4px 8px rgba(33, 150, 243, 0.2)'
-            }}>🔗 Merged Data ({mergedRows.length} records)</Typography>
             <TextField
               fullWidth
               variant="outlined"
