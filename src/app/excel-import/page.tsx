@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab } from "@mui/material";
+import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Card, CardContent, Chip, Grid, Divider } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
 import * as XLSX from "xlsx";
@@ -9,6 +9,28 @@ import * as XLSX from "xlsx";
 interface ExcelRow {
   id: number;
   [key: string]: string | number | undefined;
+}
+
+interface FileMetadata {
+  name: string;
+  size: number;
+  uploadTime: Date;
+  sheetCount: number;
+  recordCount: number;
+  columnCount: number;
+}
+
+interface ComparisonStats {
+  totalMasterRecords: number;
+  totalClientRecords: number;
+  matchedRecords: number;
+  unmatchedRecords: number;
+  duplicateRecords: number;
+  matchRate: number;
+  processingTime: number;
+  columnsMatched: number;
+  totalMasterColumns: number;
+  totalClientColumns: number;
 }
 
 export default function ExcelImportPage() {
@@ -38,10 +60,29 @@ export default function ExcelImportPage() {
   const [lastMasterSheet, setLastMasterSheet] = useState<string | null>(null);
   const [lastClientSheet, setLastClientSheet] = useState<string | null>(null);
   const [mergedSheetInfo, setMergedSheetInfo] = useState<{masterSheet: string, clientSheet: string} | null>(null);
+  
+  // File metadata state
+  const [masterFileMetadata, setMasterFileMetadata] = useState<FileMetadata | null>(null);
+  const [clientFileMetadata, setClientFileMetadata] = useState<FileMetadata | null>(null);
+  
+  // Comparison statistics state
+  const [comparisonStats, setComparisonStats] = useState<ComparisonStats | null>(null);
+  const [comparisonStartTime, setComparisonStartTime] = useState<number | null>(null);
+  
+  // Client-side hydration state
+  const [isClient, setIsClient] = useState(false);
+  
+  // Initialize client-side state
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
+  useEffect(() => {
+    if (!isClient) return;
     const lastMaster = localStorage.getItem("lastMasterFile");
     const lastMasterData = localStorage.getItem("lastMasterData");
     const lastMasterSheet = localStorage.getItem("lastMasterSheet");
+    const lastMasterMetadata = localStorage.getItem("lastMasterMetadata");
     if (lastMaster) {
       setLastMasterFile(lastMaster);
     }
@@ -51,9 +92,20 @@ export default function ExcelImportPage() {
     if (lastMasterSheet) {
       setLastMasterSheet(lastMasterSheet);
     }
+    if (lastMasterMetadata) {
+      try {
+        const metadata = JSON.parse(lastMasterMetadata);
+        // Convert uploadTime back to Date object
+        metadata.uploadTime = new Date(metadata.uploadTime);
+        setMasterFileMetadata(metadata);
+      } catch (e) {
+        console.error('Failed to parse master metadata:', e);
+      }
+    }
     const lastClient = localStorage.getItem("lastClientFile");
     const lastClientData = localStorage.getItem("lastClientData");
     const lastClientSheet = localStorage.getItem("lastClientSheet");
+    const lastClientMetadata = localStorage.getItem("lastClientMetadata");
     if (lastClient) {
       setLastClientFile(lastClient);
     }
@@ -63,11 +115,22 @@ export default function ExcelImportPage() {
     if (lastClientSheet) {
       setLastClientSheet(lastClientSheet);
     }
-  }, []);
+    if (lastClientMetadata) {
+      try {
+        const metadata = JSON.parse(lastClientMetadata);
+        // Convert uploadTime back to Date object
+        metadata.uploadTime = new Date(metadata.uploadTime);
+        setClientFileMetadata(metadata);
+      } catch (e) {
+        console.error('Failed to parse client metadata:', e);
+      }
+    }
+  }, [isClient]);
   
   // Auto-trigger comparison when both files are loaded
   useEffect(() => {
     if (rowsMaster.length > 0 && rowsClient.length > 0 && !showCompare) {
+      console.log('[DEBUG] Auto-triggering comparison - rowsMaster:', rowsMaster.length, 'rowsClient:', rowsClient.length);
       handleCompare();
     }
   }, [rowsMaster.length, rowsClient.length]);
@@ -77,6 +140,251 @@ export default function ExcelImportPage() {
     console.log('[DEBUG] Master sheets:', masterSheetNames, 'Active tab:', activeMasterTab);
     console.log('[DEBUG] Client sheets:', clientSheetNames, 'Active tab:', activeClientTab);
   }, [masterSheetNames, clientSheetNames, activeMasterTab, activeClientTab]);
+  
+  // Helper function to format file size
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+  
+  // File information card component with consistent theming
+  const FileInfoCard = ({ metadata, type }: { metadata: FileMetadata | null, type: 'Master' | 'Client' }) => {
+    console.log(`[DEBUG] FileInfoCard render - ${type}:`, metadata, 'isClient:', isClient);
+    
+    if (!isClient) {
+      console.log(`[DEBUG] Not client-side yet, not rendering ${type} card`);
+      return null;
+    }
+    
+    if (!metadata) {
+      console.log(`[DEBUG] No metadata for ${type}, not rendering card`);
+      return null;
+    }
+    
+    console.log(`[DEBUG] Rendering ${type} FileInfoCard with metadata:`, metadata);
+    
+    return (
+      <Card sx={{ 
+        mb: 3, 
+        backgroundColor: '#ffffff', 
+        border: '4px solid #2196f3',
+        borderRadius: 3,
+        boxShadow: '0 8px 24px rgba(33, 150, 243, 0.3)',
+        '&:hover': {
+          boxShadow: '0 12px 32px rgba(33, 150, 243, 0.4)'
+        }
+      }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ 
+            fontWeight: 'bold', 
+            color: '#1976d2', 
+            mb: 2,
+            textAlign: 'center'
+          }}>
+            📄 {metadata.name}
+          </Typography>
+          <Grid container spacing={2} alignItems="center" justifyContent="center">
+            <Grid item xs={6} sm={3}>
+              <Chip 
+                size="medium" 
+                label={formatFileSize(metadata.size)} 
+                sx={{ 
+                  backgroundColor: '#1976d2', 
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem',
+                  height: '36px'
+                }}
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Chip 
+                size="medium" 
+                label={`${metadata.sheetCount} sheet${metadata.sheetCount !== 1 ? 's' : ''}`}
+                sx={{ 
+                  backgroundColor: '#4caf50', 
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem',
+                  height: '36px'
+                }}
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Chip 
+                size="medium" 
+                label={`${metadata.recordCount.toLocaleString()} records`}
+                sx={{ 
+                  backgroundColor: '#ff9800', 
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem',
+                  height: '36px'
+                }}
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Typography variant="body1" sx={{ 
+                color: '#424242', 
+                fontWeight: 'bold',
+                textAlign: 'center',
+                backgroundColor: '#f5f5f5',
+                padding: '8px',
+                borderRadius: 1
+              }}>
+                {metadata.uploadTime.toLocaleTimeString()}
+              </Typography>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+    );
+  };
+  
+  // Comparison statistics panel component
+  const ComparisonStatsPanel = ({ stats }: { stats: ComparisonStats | null }) => {
+    if (!stats) return null;
+    
+    return (
+      <Card sx={{
+        mb: 3,
+        backgroundColor: 'white',
+        border: '3px solid #4caf50',
+        borderRadius: 3,
+        boxShadow: '0 8px 24px rgba(76, 175, 80, 0.3)'
+      }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h5" sx={{
+            fontWeight: 'bold',
+            color: '#2e7d32',
+            textAlign: 'center',
+            mb: 3
+          }}>
+            📊 Comparison Statistics
+          </Typography>
+          
+          <Grid container spacing={3}>
+            {/* Processing Info */}
+            <Grid item xs={12} md={6}>
+              <Box sx={{ 
+                backgroundColor: '#e8f5e8', 
+                padding: 2, 
+                borderRadius: 2,
+                border: '2px solid #4caf50'
+              }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#2e7d32', mb: 1 }}>
+                  ⚡ Processing
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                      Time: {stats.processingTime}ms
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                      Match Rate: {stats.matchRate}%
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Box>
+            </Grid>
+            
+            {/* Record Counts */}
+            <Grid item xs={12} md={6}>
+              <Box sx={{ 
+                backgroundColor: '#e3f2fd', 
+                padding: 2, 
+                borderRadius: 2,
+                border: '2px solid #2196f3'
+              }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1976d2', mb: 1 }}>
+                  📝 Records
+                </Typography>
+                <Grid container spacing={1}>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                      Master: {stats.totalMasterRecords.toLocaleString()}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                      Client: {stats.totalClientRecords.toLocaleString()}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#4caf50' }}>
+                      Matched: {stats.matchedRecords.toLocaleString()}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#f44336' }}>
+                      Unmatched: {stats.unmatchedRecords.toLocaleString()}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Box>
+            </Grid>
+            
+            {/* Column Mapping */}
+            <Grid item xs={12} md={6}>
+              <Box sx={{ 
+                backgroundColor: '#fff3e0', 
+                padding: 2, 
+                borderRadius: 2,
+                border: '2px solid #ff9800'
+              }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#f57c00', mb: 1 }}>
+                  🔗 Columns
+                </Typography>
+                <Grid container spacing={1}>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                      Master: {stats.totalMasterColumns}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                      Client: {stats.totalClientColumns}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#4caf50' }}>
+                      Mapped: {stats.columnsMatched} columns
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Box>
+            </Grid>
+            
+            {/* Issues */}
+            <Grid item xs={12} md={6}>
+              <Box sx={{ 
+                backgroundColor: stats.duplicateRecords > 0 ? '#ffebee' : '#f1f8e9', 
+                padding: 2, 
+                borderRadius: 2,
+                border: stats.duplicateRecords > 0 ? '2px solid #f44336' : '2px solid #8bc34a'
+              }}>
+                <Typography variant="h6" sx={{ 
+                  fontWeight: 'bold', 
+                  color: stats.duplicateRecords > 0 ? '#d32f2f' : '#689f38', 
+                  mb: 1 
+                }}>
+                  {stats.duplicateRecords > 0 ? '⚠️ Issues' : '✅ Quality'}
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                  Duplicates: {stats.duplicateRecords.toLocaleString()}
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+    );
+  };
 
   // Modifier criteria state
   const [modifierDialogOpen, setModifierDialogOpen] = useState(false);
@@ -124,7 +432,8 @@ export default function ExcelImportPage() {
 
   const handleFileUpload = (
     e: React.ChangeEvent<HTMLInputElement> | File,
-    which: "Master" | "Client"
+    which: "Master" | "Client",
+    isRestore = false
   ) => {
     let file: File | undefined;
     if (e instanceof File) {
@@ -153,17 +462,56 @@ export default function ExcelImportPage() {
       const sheets = workbook.SheetNames;
       console.log(`[DEBUG] File ${which} has ${sheets.length} sheets:`, sheets);
       
-      // Save file data to localStorage for reload functionality
-      if (which === "Master") {
-        localStorage.setItem("lastMasterData", data as string);
-        setLastMasterData(data as string);
-        localStorage.setItem("lastMasterSheet", sheets[0]);
-        setLastMasterSheet(sheets[0]);
+      // Calculate total record count across all sheets
+      let totalRecords = 0;
+      let totalColumns = 0;
+      sheets.forEach(sheetName => {
+        const worksheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        if (json.length > 0) {
+          totalRecords += Math.max(0, json.length - 1); // Subtract header row
+          totalColumns = Math.max(totalColumns, (json[0] as any[]).length);
+        }
+      });
+      
+      // Create file metadata only for new uploads, not for restores
+      if (!isRestore) {
+        const metadata: FileMetadata = {
+          name: file.name,
+          size: file.size,
+          uploadTime: new Date(),
+          sheetCount: sheets.length,
+          recordCount: totalRecords,
+          columnCount: totalColumns
+        };
+        
+        // Save file data and metadata
+        if (which === "Master") {
+          localStorage.setItem("lastMasterData", data as string);
+          setLastMasterData(data as string);
+          localStorage.setItem("lastMasterSheet", sheets[0]);
+          setLastMasterSheet(sheets[0]);
+          localStorage.setItem("lastMasterMetadata", JSON.stringify(metadata));
+          setMasterFileMetadata(metadata);
+          console.log('[DEBUG] Master metadata set:', metadata);
+        } else {
+          localStorage.setItem("lastClientData", data as string);
+          setLastClientData(data as string);
+          localStorage.setItem("lastClientSheet", sheets[0]);
+          setLastClientSheet(sheets[0]);
+          localStorage.setItem("lastClientMetadata", JSON.stringify(metadata));
+          setClientFileMetadata(metadata);
+          console.log('[DEBUG] Client metadata set:', metadata);
+        }
       } else {
-        localStorage.setItem("lastClientData", data as string);
-        setLastClientData(data as string);
-        localStorage.setItem("lastClientSheet", sheets[0]);
-        setLastClientSheet(sheets[0]);
+        // For restore operations, only update the data and sheet info
+        if (which === "Master") {
+          setLastMasterData(data as string);
+          setLastMasterSheet(sheets[0]);
+        } else {
+          setLastClientData(data as string);
+          setLastClientSheet(sheets[0]);
+        }
       }
       
       // Process all sheets and store them
@@ -294,6 +642,10 @@ export default function ExcelImportPage() {
   }
 
   const handleCompare = () => {
+    // Start timing the comparison
+    const startTime = performance.now();
+    setComparisonStartTime(startTime);
+    
     // Save which sheets are being used for this merge
     const currentMasterSheet = masterSheetNames[activeMasterTab] || 'Unknown';
     const currentClientSheet = clientSheetNames[activeClientTab] || 'Unknown';
@@ -418,6 +770,28 @@ export default function ExcelImportPage() {
     const duplicateKeys = Object.keys(rawKeyCount).filter(key => rawKeyCount[key] > 1);
     const dupsClient = filteredClient.filter(row => duplicateKeys.includes(getRawKey(row, hcpcsColClient, modifierColClient)));
     setDupsClient(dupsClient);
+    
+    // Calculate comparison statistics
+    const endTime = performance.now();
+    const processingTime = startTime ? endTime - startTime : 0;
+    const matchRate = filteredMaster.length > 0 ? (merged.length / filteredMaster.length) * 100 : 0;
+    
+    const stats: ComparisonStats = {
+      totalMasterRecords: filteredMaster.length,
+      totalClientRecords: filteredClient.length,
+      matchedRecords: merged.length,
+      unmatchedRecords: unmatchedClient.length,
+      duplicateRecords: dupsClient.length,
+      matchRate: Math.round(matchRate * 100) / 100,
+      processingTime: Math.round(processingTime),
+      columnsMatched: Object.keys(columnMapping).length,
+      totalMasterColumns: columnsMaster.length,
+      totalClientColumns: columnsClient.length
+    };
+    
+    setComparisonStats(stats);
+    console.log('[STATS] Comparison statistics:', stats);
+    
     setShowCompare(true);
     // Diagnostics: log unmatched and duplicates
     console.log(`[DIAG] unmatchedClient count: ${unmatchedClient.length}`);
@@ -537,6 +911,45 @@ export default function ExcelImportPage() {
     const sheets = workbook.SheetNames;
     processAllSheets(data, which, sheets);
   };
+  
+  const restoreFileData = (data: string, which: "Master" | "Client", filename: string, restoreMetadata = false) => {
+    console.log(`[DEBUG] Starting restoreFileData for ${which}`);
+    // For restore operations, process the data directly without creating a File object
+    const workbook = XLSX.read(data, { type: "binary" });
+    const sheets = workbook.SheetNames;
+    console.log(`[DEBUG] ${which} sheets found:`, sheets);
+    processAllSheets(data, which, sheets);
+    console.log(`[DEBUG] processAllSheets completed for ${which}`);
+    
+    // Restore metadata AFTER processing sheets if requested
+    console.log(`[DEBUG] restoreMetadata flag for ${which}:`, restoreMetadata);
+    if (restoreMetadata) {
+      const metadataKey = which === "Master" ? "lastMasterMetadata" : "lastClientMetadata";
+      const storedMetadata = localStorage.getItem(metadataKey);
+      console.log(`[DEBUG] ${which} stored metadata from localStorage:`, storedMetadata ? 'FOUND' : 'NOT FOUND');
+      if (storedMetadata) {
+        try {
+          const metadata = JSON.parse(storedMetadata);
+          metadata.uploadTime = new Date(metadata.uploadTime);
+          
+          // Set metadata immediately
+          if (which === "Master") {
+            setMasterFileMetadata(metadata);
+            console.log('[DEBUG] Master metadata restored AFTER processing:', metadata);
+          } else {
+            setClientFileMetadata(metadata);
+            console.log('[DEBUG] Client metadata restored AFTER processing:', metadata);
+          }
+        } catch (e) {
+          console.error(`Failed to restore ${which.toLowerCase()} metadata after processing:`, e);
+        }
+      } else {
+        console.log(`[DEBUG] No stored metadata found for ${which} with key:`, metadataKey);
+      }
+    } else {
+      console.log(`[DEBUG] restoreMetadata is false for ${which}, skipping metadata restore`);
+    }
+  };
 
   const handleMasterTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveMasterTab(newValue);
@@ -563,17 +976,24 @@ export default function ExcelImportPage() {
   };
   
   const handleLoadLastFile = (which: "Master" | "Client") => {
-    if (which === "Master" && lastMasterData) {
-      processFileData(lastMasterData, "Master", lastMasterSheet || undefined);
-    } else if (which === "Client" && lastClientData) {
-      processFileData(lastClientData, "Client", lastClientSheet || undefined);
+    if (which === "Master" && lastMasterData && lastMasterFile) {
+      console.log('[DEBUG] Loading last master file with metadata restore');
+      restoreFileData(lastMasterData, "Master", lastMasterFile, true);
+    } else if (which === "Client" && lastClientData && lastClientFile) {
+      console.log('[DEBUG] Loading last client file with metadata restore');
+      restoreFileData(lastClientData, "Client", lastClientFile, true);
     }
   };
   
   const handleRestoreSession = () => {
-    if (lastMasterData && lastClientData) {
-      processFileData(lastMasterData, "Master", lastMasterSheet || undefined);
-      processFileData(lastClientData, "Client", lastClientSheet || undefined);
+    if (lastMasterData && lastClientData && lastMasterFile && lastClientFile) {
+      console.log('[DEBUG] Starting restore session - processing sheets first, then metadata');
+      
+      // Process file data first, then restore metadata AFTER processing
+      restoreFileData(lastMasterData, "Master", lastMasterFile, true);
+      restoreFileData(lastClientData, "Client", lastClientFile, true);
+      
+      console.log('[DEBUG] Restore session initiated');
     }
   };
 
@@ -596,14 +1016,69 @@ export default function ExcelImportPage() {
     setActiveMasterTab(0);
     setActiveClientTab(0);
     setMergedSheetInfo(null);
+    setMasterFileMetadata(null);
+    setClientFileMetadata(null);
+    setComparisonStats(null);
+    setComparisonStartTime(null);
     if (fileMasterInputRef.current) fileMasterInputRef.current.value = "";
     if (fileClientInputRef.current) fileClientInputRef.current.value = "";
   };
 
+  const handleClearAllData = () => {
+    // First do a normal reset
+    handleReset();
+    
+    // Then clear all localStorage data
+    localStorage.removeItem("lastMasterFile");
+    localStorage.removeItem("lastMasterData");
+    localStorage.removeItem("lastMasterSheet");
+    localStorage.removeItem("lastMasterMetadata");
+    localStorage.removeItem("lastClientFile");
+    localStorage.removeItem("lastClientData");
+    localStorage.removeItem("lastClientSheet");
+    localStorage.removeItem("lastClientMetadata");
+    
+    // Clear the state variables too
+    setLastMasterFile(null);
+    setLastMasterData(null);
+    setLastMasterSheet(null);
+    setLastClientFile(null);
+    setLastClientData(null);
+    setLastClientSheet(null);
+  };
+
+  // Don't render anything on server side to prevent hydration mismatch
+  if (!isClient) {
+    return (
+      <Box sx={{ 
+        p: 4, 
+        background: 'linear-gradient(135deg, #f8fbff 0%, #e3f2fd 50%, #f0f8ff 100%)',
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <Typography variant="h4" sx={{ color: '#1976d2' }}>
+          Loading...
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Excel File Merge Tool
+    <Box sx={{ 
+      p: 4, 
+      background: 'linear-gradient(135deg, #f8fbff 0%, #e3f2fd 50%, #f0f8ff 100%)',
+      minHeight: '100vh' 
+    }}>
+      <Typography variant="h3" gutterBottom sx={{ 
+        color: '#1976d2', 
+        fontWeight: 'bold', 
+        textAlign: 'center',
+        mb: 4,
+        textShadow: '0 2px 4px rgba(25, 118, 210, 0.2)'
+      }}>
+        📊 Excel File Merge Tool
       </Typography>
       
       {/* Upload/Grid Areas */}
@@ -623,8 +1098,18 @@ export default function ExcelImportPage() {
           {masterSheetNames.length > 0 ? (
             // Show tabs and grid when data is loaded
             <>
-              <Typography variant="h6" gutterBottom>
-                Master Data ({rowsMaster.length} records)
+              <FileInfoCard metadata={masterFileMetadata} type="Master" />
+              <Typography variant="h5" gutterBottom sx={{
+                color: '#1976d2',
+                fontWeight: 'bold',
+                backgroundColor: 'white',
+                padding: '12px 16px',
+                border: '2px solid #2196f3',
+                borderRadius: 1,
+                textAlign: 'center',
+                mb: 2
+              }}>
+                📊 Master Data ({rowsMaster.length} records)
               </Typography>
               
               {masterSheetNames.length > 0 && (
@@ -635,23 +1120,27 @@ export default function ExcelImportPage() {
                   scrollButtons="auto"
                   sx={{ 
                     mb: 2, 
-                    borderBottom: 1, 
-                    borderColor: 'divider',
+                    borderBottom: 2, 
+                    borderColor: '#e0e0e0',
                     '& .MuiTab-root': {
-                      color: '#666',
+                      color: '#424242',
                       backgroundColor: '#f5f5f5',
-                      border: '1px solid #ddd',
+                      border: '2px solid #bdbdbd',
                       borderBottom: 'none',
-                      marginRight: '2px',
-                      minHeight: '36px',
+                      marginRight: '4px',
+                      minHeight: '40px',
+                      fontWeight: 'bold',
+                      fontSize: '0.875rem',
                       '&.Mui-selected': {
                         color: '#1976d2',
                         backgroundColor: 'white',
-                        fontWeight: 'bold'
+                        fontWeight: 'bold',
+                        border: '2px solid #2196f3'
                       },
                       '&:hover': {
                         color: '#1976d2',
-                        backgroundColor: '#e3f2fd'
+                        backgroundColor: '#e3f2fd',
+                        border: '2px solid #64b5f6'
                       }
                     },
                     '& .MuiTabs-indicator': {
@@ -729,7 +1218,12 @@ export default function ExcelImportPage() {
               onDragOver={(e) => handleDragOver(e, "Master")}
               onDrop={(e) => handleDrop(e, "Master")}
             >
-              <Typography variant="h6" sx={{ mb: 2 }}>Master File</Typography>
+              <Typography variant="h4" sx={{ 
+                mb: 3, 
+                color: '#1976d2', 
+                fontWeight: 'bold',
+                textAlign: 'center'
+              }}>📄 Master File</Typography>
               <Button variant="contained" component="label" sx={{ mb: 2 }}>
                 Upload Master File
                 <input
@@ -755,8 +1249,18 @@ export default function ExcelImportPage() {
           {clientSheetNames.length > 0 ? (
             // Show tabs and grid when data is loaded
             <>
-              <Typography variant="h6" gutterBottom>
-                Client Data ({rowsClient.length} records)
+              <FileInfoCard metadata={clientFileMetadata} type="Client" />
+              <Typography variant="h5" gutterBottom sx={{
+                color: '#1976d2',
+                fontWeight: 'bold',
+                backgroundColor: 'white',
+                padding: '12px 16px',
+                border: '2px solid #2196f3',
+                borderRadius: 1,
+                textAlign: 'center',
+                mb: 2
+              }}>
+                📋 Client Data ({rowsClient.length} records)
               </Typography>
               
               {clientSheetNames.length > 0 && (
@@ -767,23 +1271,27 @@ export default function ExcelImportPage() {
                   scrollButtons="auto"
                   sx={{ 
                     mb: 2, 
-                    borderBottom: 1, 
-                    borderColor: 'divider',
+                    borderBottom: 2, 
+                    borderColor: '#e0e0e0',
                     '& .MuiTab-root': {
-                      color: '#666',
+                      color: '#424242',
                       backgroundColor: '#f5f5f5',
-                      border: '1px solid #ddd',
+                      border: '2px solid #bdbdbd',
                       borderBottom: 'none',
-                      marginRight: '2px',
-                      minHeight: '36px',
+                      marginRight: '4px',
+                      minHeight: '40px',
+                      fontWeight: 'bold',
+                      fontSize: '0.875rem',
                       '&.Mui-selected': {
                         color: '#1976d2',
                         backgroundColor: 'white',
-                        fontWeight: 'bold'
+                        fontWeight: 'bold',
+                        border: '2px solid #2196f3'
                       },
                       '&:hover': {
                         color: '#1976d2',
-                        backgroundColor: '#e3f2fd'
+                        backgroundColor: '#e3f2fd',
+                        border: '2px solid #64b5f6'
                       }
                     },
                     '& .MuiTabs-indicator': {
@@ -861,7 +1369,12 @@ export default function ExcelImportPage() {
               onDragOver={(e) => handleDragOver(e, "Client")}
               onDrop={(e) => handleDrop(e, "Client")}
             >
-              <Typography variant="h6" sx={{ mb: 2 }}>Client File</Typography>
+              <Typography variant="h4" sx={{ 
+                mb: 3, 
+                color: '#1976d2', 
+                fontWeight: 'bold',
+                textAlign: 'center'
+              }}>📋 Client File</Typography>
               <Button variant="contained" component="label" sx={{ mb: 2 }}>
                 Upload Client File
                 <input
@@ -882,9 +1395,9 @@ export default function ExcelImportPage() {
       </Box>
       
       {/* Load Last File buttons */}
-      {(lastMasterData || lastClientData) && (
+      {isClient && (lastMasterData || lastClientData) && (
         <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
-          {lastMasterData && lastClientData && (
+          {lastMasterData && lastClientData && lastMasterFile && lastClientFile && (
             <Button 
               variant="contained"
               color="success"
@@ -896,36 +1409,77 @@ export default function ExcelImportPage() {
           <Button 
             variant="outlined" 
             onClick={() => handleLoadLastFile("Master")}
-            disabled={!lastMasterData}
+            disabled={!lastMasterData || !lastMasterFile}
           >
             Load Last Master: {lastMasterFile || "Unknown"}
           </Button>
           <Button 
             variant="outlined" 
             onClick={() => handleLoadLastFile("Client")}
-            disabled={!lastClientData}
+            disabled={!lastClientData || !lastClientFile}
           >
             Load Last Client: {lastClientFile || "Unknown"}
           </Button>
-          <Button variant="contained" onClick={handleReset} color="error">
+          <Button variant="contained" onClick={handleReset} color="warning">
             Reset
+          </Button>
+          <Button variant="contained" onClick={handleClearAllData} color="error">
+            Clear All Data
           </Button>
         </Box>
       )}
       
       <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
-        <Button variant="outlined" onClick={() => setModifierDialogOpen(true)}>
-          Modifier Settings
+        <Button 
+          variant="outlined" 
+          onClick={() => setModifierDialogOpen(true)}
+          sx={{ 
+            fontWeight: 'bold', 
+            borderWidth: 2, 
+            color: '#9c27b0', 
+            borderColor: '#9c27b0',
+            '&:hover': { backgroundColor: '#f3e5f5', borderColor: '#7b1fa2' }
+          }}
+        >
+          ⚙️ Modifier Settings
         </Button>
-        <Button variant="contained" onClick={handleCompare} disabled={rowsMaster.length === 0 || rowsClient.length === 0}>
-          Compare
+        <Button 
+          variant="contained" 
+          onClick={handleCompare} 
+          disabled={rowsMaster.length === 0 || rowsClient.length === 0}
+          sx={{ 
+            fontWeight: 'bold', 
+            backgroundColor: '#2196f3', 
+            '&:hover': { backgroundColor: '#1976d2' },
+            '&:disabled': { backgroundColor: '#e0e0e0', color: '#9e9e9e' }
+          }}
+        >
+          🔍 Compare
         </Button>
-        <Button variant="contained" onClick={handleExport} disabled={mergedForExport.length === 0}>
-          Export Merged Data
+        <Button 
+          variant="contained" 
+          onClick={handleExport} 
+          disabled={mergedForExport.length === 0}
+          sx={{ 
+            fontWeight: 'bold', 
+            backgroundColor: '#4caf50', 
+            '&:hover': { backgroundColor: '#388e3c' },
+            '&:disabled': { backgroundColor: '#e0e0e0', color: '#9e9e9e' }
+          }}
+        >
+          📁 Export Merged Data
         </Button>
-        {!(lastMasterData || lastClientData) && (
-          <Button variant="contained" onClick={handleReset} color="error">
-            Reset
+        {(!isClient || !(lastMasterData || lastClientData)) && (
+          <Button 
+            variant="contained" 
+            onClick={handleReset} 
+            sx={{ 
+              fontWeight: 'bold', 
+              backgroundColor: '#ff9800', 
+              '&:hover': { backgroundColor: '#f57c00' }
+            }}
+          >
+            🔄 Reset
           </Button>
         )}
       </Box>
@@ -979,26 +1533,39 @@ export default function ExcelImportPage() {
           {mergedSheetInfo && (
             <Box sx={{ 
               mb: 3, 
-              p: 2, 
-              backgroundColor: '#e3f2fd', 
-              border: '1px solid #1976d2', 
-              borderRadius: 1,
+              p: 3, 
+              backgroundColor: 'white', 
+              border: '3px solid #2196f3', 
+              borderRadius: 2,
+              boxShadow: '0 4px 12px rgba(33, 150, 243, 0.2)',
               display: 'flex',
               alignItems: 'center',
-              gap: 1
+              gap: 2
             }}>
-              <Typography variant="body1" sx={{ color: '#1565c0', fontWeight: 'bold' }}>
+              <Typography variant="h6" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
                 📊 Merge Source:
               </Typography>
-              <Typography variant="body1" sx={{ color: '#0d47a1' }}>
+              <Typography variant="h6" sx={{ color: '#424242', fontWeight: 'medium' }}>
                 Master: "{mergedSheetInfo.masterSheet}" ↔ Client: "{mergedSheetInfo.clientSheet}"
               </Typography>
             </Box>
           )}
           
+          <ComparisonStatsPanel stats={comparisonStats} />
+          
           {/* Merged Results */}
           <Box sx={{ mb: 4 }}>
-            <Typography variant="h6" gutterBottom>Merged Data ({mergedRows.length} records)</Typography>
+            <Typography variant="h4" gutterBottom sx={{
+              color: '#1976d2',
+              fontWeight: 'bold',
+              backgroundColor: 'white',
+              padding: '16px 20px',
+              border: '3px solid #2196f3',
+              borderRadius: 2,
+              textAlign: 'center',
+              mb: 3,
+              boxShadow: '0 4px 8px rgba(33, 150, 243, 0.2)'
+            }}>🔗 Merged Data ({mergedRows.length} records)</Typography>
             <TextField
               fullWidth
               variant="outlined"
@@ -1046,18 +1613,40 @@ export default function ExcelImportPage() {
           </Box>
           
           {/* Errors and Duplicates Tabs */}
-          <Box sx={{ display: 'flex', gap: 1, borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, borderBottom: 2, borderColor: '#e0e0e0', mb: 3 }}>
             <Button
               variant={errorsTabValue === 0 ? "contained" : "outlined"}
               onClick={() => setErrorsTabValue(0)}
-              size="small"
+              size="medium"
+              sx={{
+                fontWeight: 'bold',
+                borderWidth: 2,
+                color: errorsTabValue === 0 ? 'white' : '#d32f2f',
+                backgroundColor: errorsTabValue === 0 ? '#d32f2f' : 'white',
+                borderColor: '#d32f2f',
+                '&:hover': {
+                  backgroundColor: errorsTabValue === 0 ? '#c62828' : '#ffebee',
+                  borderColor: '#c62828'
+                }
+              }}
             >
               Unmatched Records ({unmatchedClient.length})
             </Button>
             <Button
               variant={errorsTabValue === 1 ? "contained" : "outlined"}
               onClick={() => setErrorsTabValue(1)}
-              size="small"
+              size="medium"
+              sx={{
+                fontWeight: 'bold',
+                borderWidth: 2,
+                color: errorsTabValue === 1 ? 'white' : '#f57c00',
+                backgroundColor: errorsTabValue === 1 ? '#f57c00' : 'white',
+                borderColor: '#f57c00',
+                '&:hover': {
+                  backgroundColor: errorsTabValue === 1 ? '#ef6c00' : '#fff3e0',
+                  borderColor: '#ef6c00'
+                }
+              }}
             >
               Duplicate Records ({dupsClient.length})
             </Button>
