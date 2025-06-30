@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment } from "@mui/material";
+import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
 import * as XLSX from "xlsx";
@@ -27,24 +27,56 @@ export default function ExcelImportPage() {
   const [lastClientFile, setLastClientFile] = useState<string | null>(null);
   const [lastMasterData, setLastMasterData] = useState<string | null>(null);
   const [lastClientData, setLastClientData] = useState<string | null>(null);
+  
+  // Sheet management state
+  const [masterSheetData, setMasterSheetData] = useState<{[sheetName: string]: {rows: ExcelRow[], columns: GridColDef[]}}>({});
+  const [clientSheetData, setClientSheetData] = useState<{[sheetName: string]: {rows: ExcelRow[], columns: GridColDef[]}}>({});
+  const [activeMasterTab, setActiveMasterTab] = useState<number>(0);
+  const [activeClientTab, setActiveClientTab] = useState<number>(0);
+  const [masterSheetNames, setMasterSheetNames] = useState<string[]>([]);
+  const [clientSheetNames, setClientSheetNames] = useState<string[]>([]);
+  const [lastMasterSheet, setLastMasterSheet] = useState<string | null>(null);
+  const [lastClientSheet, setLastClientSheet] = useState<string | null>(null);
+  const [mergedSheetInfo, setMergedSheetInfo] = useState<{masterSheet: string, clientSheet: string} | null>(null);
   useEffect(() => {
     const lastMaster = localStorage.getItem("lastMasterFile");
     const lastMasterData = localStorage.getItem("lastMasterData");
+    const lastMasterSheet = localStorage.getItem("lastMasterSheet");
     if (lastMaster) {
       setLastMasterFile(lastMaster);
     }
     if (lastMasterData) {
       setLastMasterData(lastMasterData);
     }
+    if (lastMasterSheet) {
+      setLastMasterSheet(lastMasterSheet);
+    }
     const lastClient = localStorage.getItem("lastClientFile");
     const lastClientData = localStorage.getItem("lastClientData");
+    const lastClientSheet = localStorage.getItem("lastClientSheet");
     if (lastClient) {
       setLastClientFile(lastClient);
     }
     if (lastClientData) {
       setLastClientData(lastClientData);
     }
+    if (lastClientSheet) {
+      setLastClientSheet(lastClientSheet);
+    }
   }, []);
+  
+  // Auto-trigger comparison when both files are loaded
+  useEffect(() => {
+    if (rowsMaster.length > 0 && rowsClient.length > 0 && !showCompare) {
+      handleCompare();
+    }
+  }, [rowsMaster.length, rowsClient.length]);
+  
+  // Debug tab state
+  useEffect(() => {
+    console.log('[DEBUG] Master sheets:', masterSheetNames, 'Active tab:', activeMasterTab);
+    console.log('[DEBUG] Client sheets:', clientSheetNames, 'Active tab:', activeClientTab);
+  }, [masterSheetNames, clientSheetNames, activeMasterTab, activeClientTab]);
 
   // Modifier criteria state
   const [modifierDialogOpen, setModifierDialogOpen] = useState(false);
@@ -116,16 +148,26 @@ export default function ExcelImportPage() {
       const data = evt.target?.result;
       if (!data) return;
       
+      // Process all sheets
+      const workbook = XLSX.read(data, { type: "binary" });
+      const sheets = workbook.SheetNames;
+      console.log(`[DEBUG] File ${which} has ${sheets.length} sheets:`, sheets);
+      
       // Save file data to localStorage for reload functionality
       if (which === "Master") {
         localStorage.setItem("lastMasterData", data as string);
         setLastMasterData(data as string);
+        localStorage.setItem("lastMasterSheet", sheets[0]);
+        setLastMasterSheet(sheets[0]);
       } else {
         localStorage.setItem("lastClientData", data as string);
         setLastClientData(data as string);
+        localStorage.setItem("lastClientSheet", sheets[0]);
+        setLastClientSheet(sheets[0]);
       }
       
-      processFileData(data as string, which);
+      // Process all sheets and store them
+      processAllSheets(data as string, which, sheets);
     };
     reader.readAsBinaryString(file);
   };
@@ -168,6 +210,10 @@ export default function ExcelImportPage() {
   }
 
   const handleCompare = () => {
+    // Save which sheets are being used for this merge
+    const currentMasterSheet = masterSheetNames[activeMasterTab] || 'Unknown';
+    const currentClientSheet = clientSheetNames[activeClientTab] || 'Unknown';
+    setMergedSheetInfo({ masterSheet: currentMasterSheet, clientSheet: currentClientSheet });
     const hcpcsColMaster = getHCPCSColumnMaster();
     const hcpcsColClient = getHCPCSColumnClient();
     const modifierColMaster = getModifierColumnMaster();
@@ -325,18 +371,50 @@ export default function ExcelImportPage() {
     if (which === "Client" && !dragOverClient) setDragOverClient(true);
   };
 
-  const processFileData = (data: string, which: "Master" | "Client") => {
+  const processAllSheets = (data: string, which: "Master" | "Client", sheetNames: string[]) => {
     const workbook = XLSX.read(data, { type: "binary" });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
+    const sheetData: {[sheetName: string]: {rows: ExcelRow[], columns: GridColDef[]}} = {};
+    
+    sheetNames.forEach(sheetName => {
+      const worksheet = workbook.Sheets[sheetName];
+      const processed = processSheetData(worksheet);
+      sheetData[sheetName] = processed;
+    });
+    
+    if (which === "Master") {
+      setMasterSheetData(sheetData);
+      setMasterSheetNames(sheetNames);
+      setActiveMasterTab(0);
+      // Update legacy state for first sheet for backward compatibility
+      if (sheetNames.length > 0) {
+        const firstSheet = sheetData[sheetNames[0]];
+        setRowsMaster(firstSheet.rows);
+        setColumnsMaster(firstSheet.columns);
+      }
+    } else {
+      setClientSheetData(sheetData);
+      setClientSheetNames(sheetNames);
+      setActiveClientTab(0);
+      // Update legacy state for first sheet for backward compatibility
+      if (sheetNames.length > 0) {
+        const firstSheet = sheetData[sheetNames[0]];
+        setRowsClient(firstSheet.rows);
+        setColumnsClient(firstSheet.columns);
+      }
+    }
+  };
+  
+  const processSheetData = (worksheet: any) => {
     const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-    if (json.length === 0) return;
+    if (json.length === 0) return { rows: [], columns: [] };
+    
     const headers = json[0] as string[];
     const columns: GridColDef[] = headers.map((header, idx) => ({
       field: header || `col${idx}`,
       headerName: header || `Column ${idx + 1}`,
       width: 150,
     }));
+    
     const rows: ExcelRow[] = Array.from(json.slice(1)).map((row, idx) => {
       const rowArr = row as unknown[];
       const rowObj: ExcelRow = { id: idx };
@@ -349,20 +427,52 @@ export default function ExcelImportPage() {
       });
       return rowObj;
     });
-    if (which === "Master") {
-      setColumnsMaster(columns);
-      setRowsMaster(Array.from(rows));
-    } else {
-      setColumnsClient(columns);
-      setRowsClient(Array.from(rows));
-    }
+    
+    return { rows: Array.from(rows), columns };
+  };
+  
+  const processFileData = (data: string, which: "Master" | "Client", sheetName?: string) => {
+    const workbook = XLSX.read(data, { type: "binary" });
+    const sheets = workbook.SheetNames;
+    processAllSheets(data, which, sheets);
   };
 
+  const handleMasterTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setActiveMasterTab(newValue);
+    const sheetName = masterSheetNames[newValue];
+    const sheetData = masterSheetData[sheetName];
+    if (sheetData) {
+      setRowsMaster(sheetData.rows);
+      setColumnsMaster(sheetData.columns);
+      localStorage.setItem("lastMasterSheet", sheetName);
+      setLastMasterSheet(sheetName);
+    }
+  };
+  
+  const handleClientTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setActiveClientTab(newValue);
+    const sheetName = clientSheetNames[newValue];
+    const sheetData = clientSheetData[sheetName];
+    if (sheetData) {
+      setRowsClient(sheetData.rows);
+      setColumnsClient(sheetData.columns);
+      localStorage.setItem("lastClientSheet", sheetName);
+      setLastClientSheet(sheetName);
+    }
+  };
+  
   const handleLoadLastFile = (which: "Master" | "Client") => {
     if (which === "Master" && lastMasterData) {
-      processFileData(lastMasterData, "Master");
+      processFileData(lastMasterData, "Master", lastMasterSheet || undefined);
     } else if (which === "Client" && lastClientData) {
-      processFileData(lastClientData, "Client");
+      processFileData(lastClientData, "Client", lastClientSheet || undefined);
+    }
+  };
+  
+  const handleRestoreSession = () => {
+    if (lastMasterData && lastClientData) {
+      processFileData(lastMasterData, "Master", lastMasterSheet || undefined);
+      processFileData(lastClientData, "Client", lastClientSheet || undefined);
     }
   };
 
@@ -378,6 +488,13 @@ export default function ExcelImportPage() {
     setMergedRows([]);
     setMergedColumns([]);
     setShowCompare(false);
+    setMasterSheetData({});
+    setClientSheetData({});
+    setMasterSheetNames([]);
+    setClientSheetNames([]);
+    setActiveMasterTab(0);
+    setActiveClientTab(0);
+    setMergedSheetInfo(null);
     if (fileMasterInputRef.current) fileMasterInputRef.current.value = "";
     if (fileClientInputRef.current) fileClientInputRef.current.value = "";
   };
@@ -388,11 +505,8 @@ export default function ExcelImportPage() {
         Excel File Merge Tool
       </Typography>
       
-      {/* Original Data Section - Unified Upload/Grid Areas */}
+      {/* Upload/Grid Areas */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
-          Original Data
-        </Typography>
         <Box sx={{ 
           display: "flex", 
           gap: 2,
@@ -405,10 +519,51 @@ export default function ExcelImportPage() {
           flex: 1,
           minWidth: 0
         }}>
-          {rowsMaster.length > 0 ? (
-            // Show grid when data is loaded
+          {masterSheetNames.length > 0 ? (
+            // Show tabs and grid when data is loaded
             <>
-              <Typography variant="h6" gutterBottom>Master Data ({rowsMaster.length} records)</Typography>
+              <Typography variant="h6" gutterBottom>
+                Master Data ({rowsMaster.length} records)
+              </Typography>
+              
+              {masterSheetNames.length > 0 && (
+                <Tabs 
+                  value={activeMasterTab} 
+                  onChange={handleMasterTabChange}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  sx={{ 
+                    mb: 2, 
+                    borderBottom: 1, 
+                    borderColor: 'divider',
+                    '& .MuiTab-root': {
+                      color: '#666',
+                      backgroundColor: '#f5f5f5',
+                      border: '1px solid #ddd',
+                      borderBottom: 'none',
+                      marginRight: '2px',
+                      minHeight: '36px',
+                      '&.Mui-selected': {
+                        color: '#1976d2',
+                        backgroundColor: 'white',
+                        fontWeight: 'bold'
+                      },
+                      '&:hover': {
+                        color: '#1976d2',
+                        backgroundColor: '#e3f2fd'
+                      }
+                    },
+                    '& .MuiTabs-indicator': {
+                      display: 'none'
+                    }
+                  }}
+                >
+                  {masterSheetNames.map((sheetName, index) => (
+                    <Tab key={index} label={sheetName} />
+                  ))}
+                </Tabs>
+              )}
+              
               <TextField
                 fullWidth
                 variant="outlined"
@@ -496,10 +651,51 @@ export default function ExcelImportPage() {
           flex: 1,
           minWidth: 0
         }}>
-          {rowsClient.length > 0 ? (
-            // Show grid when data is loaded
+          {clientSheetNames.length > 0 ? (
+            // Show tabs and grid when data is loaded
             <>
-              <Typography variant="h6" gutterBottom>Client Data ({rowsClient.length} records)</Typography>
+              <Typography variant="h6" gutterBottom>
+                Client Data ({rowsClient.length} records)
+              </Typography>
+              
+              {clientSheetNames.length > 0 && (
+                <Tabs 
+                  value={activeClientTab} 
+                  onChange={handleClientTabChange}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  sx={{ 
+                    mb: 2, 
+                    borderBottom: 1, 
+                    borderColor: 'divider',
+                    '& .MuiTab-root': {
+                      color: '#666',
+                      backgroundColor: '#f5f5f5',
+                      border: '1px solid #ddd',
+                      borderBottom: 'none',
+                      marginRight: '2px',
+                      minHeight: '36px',
+                      '&.Mui-selected': {
+                        color: '#1976d2',
+                        backgroundColor: 'white',
+                        fontWeight: 'bold'
+                      },
+                      '&:hover': {
+                        color: '#1976d2',
+                        backgroundColor: '#e3f2fd'
+                      }
+                    },
+                    '& .MuiTabs-indicator': {
+                      display: 'none'
+                    }
+                  }}
+                >
+                  {clientSheetNames.map((sheetName, index) => (
+                    <Tab key={index} label={sheetName} />
+                  ))}
+                </Tabs>
+              )}
+              
               <TextField
                 fullWidth
                 variant="outlined"
@@ -586,7 +782,16 @@ export default function ExcelImportPage() {
       
       {/* Load Last File buttons */}
       {(lastMasterData || lastClientData) && (
-        <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mb: 2 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
+          {lastMasterData && lastClientData && (
+            <Button 
+              variant="contained"
+              color="success"
+              onClick={handleRestoreSession}
+            >
+              Restore Session
+            </Button>
+          )}
           <Button 
             variant="outlined" 
             onClick={() => handleLoadLastFile("Master")}
@@ -601,20 +806,27 @@ export default function ExcelImportPage() {
           >
             Load Last Client: {lastClientFile || "Unknown"}
           </Button>
+          <Button variant="contained" onClick={handleReset} color="error">
+            Reset
+          </Button>
         </Box>
       )}
       
-      <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mb: 2 }}>
+      <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
+        <Button variant="outlined" onClick={() => setModifierDialogOpen(true)}>
+          Modifier Settings
+        </Button>
         <Button variant="contained" onClick={handleCompare} disabled={rowsMaster.length === 0 || rowsClient.length === 0}>
           Compare
         </Button>
         <Button variant="contained" onClick={handleExport} disabled={mergedForExport.length === 0}>
           Export Merged Data
         </Button>
-        <Box sx={{ flexGrow: 1 }} />
-        <Button variant="contained" onClick={handleReset}>
-          Reset
-        </Button>
+        {!(lastMasterData || lastClientData) && (
+          <Button variant="contained" onClick={handleReset} color="error">
+            Reset
+          </Button>
+        )}
       </Box>
       
       {/* Modifier Criteria Dialog */}
@@ -659,12 +871,29 @@ export default function ExcelImportPage() {
         </DialogActions>
       </Dialog>
       
+      
       {/* Compare Results Section */}
       {showCompare && (
         <Box sx={{ mt: 4 }}>
-          <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
-            Compare Results
-          </Typography>
+          {mergedSheetInfo && (
+            <Box sx={{ 
+              mb: 3, 
+              p: 2, 
+              backgroundColor: '#e3f2fd', 
+              border: '1px solid #1976d2', 
+              borderRadius: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}>
+              <Typography variant="body1" sx={{ color: '#1565c0', fontWeight: 'bold' }}>
+                📊 Merge Source:
+              </Typography>
+              <Typography variant="body1" sx={{ color: '#0d47a1' }}>
+                Master: "{mergedSheetInfo.masterSheet}" ↔ Client: "{mergedSheetInfo.clientSheet}"
+              </Typography>
+            </Box>
+          )}
           
           {/* Merged Results */}
           <Box sx={{ mb: 4 }}>
