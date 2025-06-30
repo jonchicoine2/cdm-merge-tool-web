@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Card, CardContent, Chip, Grid, Divider } from "@mui/material";
+import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Chip } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
 import * as XLSX from "xlsx";
@@ -57,8 +57,6 @@ export default function ExcelImportPage() {
   const [activeClientTab, setActiveClientTab] = useState<number>(0);
   const [masterSheetNames, setMasterSheetNames] = useState<string[]>([]);
   const [clientSheetNames, setClientSheetNames] = useState<string[]>([]);
-  const [lastMasterSheet, setLastMasterSheet] = useState<string | null>(null);
-  const [lastClientSheet, setLastClientSheet] = useState<string | null>(null);
   const [mergedSheetInfo, setMergedSheetInfo] = useState<{masterSheet: string, clientSheet: string} | null>(null);
   
   // File metadata state
@@ -67,7 +65,6 @@ export default function ExcelImportPage() {
   
   // Comparison statistics state
   const [comparisonStats, setComparisonStats] = useState<ComparisonStats | null>(null);
-  const [comparisonStartTime, setComparisonStartTime] = useState<number | null>(null);
   
   // Client-side hydration state
   const [isClient, setIsClient] = useState(false);
@@ -81,16 +78,12 @@ export default function ExcelImportPage() {
     if (!isClient) return;
     const lastMaster = localStorage.getItem("lastMasterFile");
     const lastMasterData = localStorage.getItem("lastMasterData");
-    const lastMasterSheet = localStorage.getItem("lastMasterSheet");
     const lastMasterMetadata = localStorage.getItem("lastMasterMetadata");
     if (lastMaster) {
       setLastMasterFile(lastMaster);
     }
     if (lastMasterData) {
       setLastMasterData(lastMasterData);
-    }
-    if (lastMasterSheet) {
-      setLastMasterSheet(lastMasterSheet);
     }
     if (lastMasterMetadata) {
       try {
@@ -104,16 +97,12 @@ export default function ExcelImportPage() {
     }
     const lastClient = localStorage.getItem("lastClientFile");
     const lastClientData = localStorage.getItem("lastClientData");
-    const lastClientSheet = localStorage.getItem("lastClientSheet");
     const lastClientMetadata = localStorage.getItem("lastClientMetadata");
     if (lastClient) {
       setLastClientFile(lastClient);
     }
     if (lastClientData) {
       setLastClientData(lastClientData);
-    }
-    if (lastClientSheet) {
-      setLastClientSheet(lastClientSheet);
     }
     if (lastClientMetadata) {
       try {
@@ -126,14 +115,6 @@ export default function ExcelImportPage() {
       }
     }
   }, [isClient]);
-  
-  // Auto-trigger comparison when both files are loaded
-  useEffect(() => {
-    if (rowsMaster.length > 0 && rowsClient.length > 0 && !showCompare) {
-      console.log('[DEBUG] Auto-triggering comparison - rowsMaster:', rowsMaster.length, 'rowsClient:', rowsClient.length);
-      handleCompare();
-    }
-  }, [rowsMaster.length, rowsClient.length, showCompare, handleCompare]);
   
   // Debug tab state
   useEffect(() => {
@@ -349,7 +330,7 @@ export default function ExcelImportPage() {
         const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
         if (json.length > 0) {
           totalRecords += Math.max(0, json.length - 1); // Subtract header row
-          totalColumns = Math.max(totalColumns, (json[0] as any[]).length);
+          totalColumns = Math.max(totalColumns, (json[0] as string[]).length);
         }
       });
       
@@ -369,7 +350,6 @@ export default function ExcelImportPage() {
           localStorage.setItem("lastMasterData", data as string);
           setLastMasterData(data as string);
           localStorage.setItem("lastMasterSheet", sheets[0]);
-          setLastMasterSheet(sheets[0]);
           localStorage.setItem("lastMasterMetadata", JSON.stringify(metadata));
           setMasterFileMetadata(metadata);
           console.log('[DEBUG] Master metadata set:', metadata);
@@ -377,7 +357,6 @@ export default function ExcelImportPage() {
           localStorage.setItem("lastClientData", data as string);
           setLastClientData(data as string);
           localStorage.setItem("lastClientSheet", sheets[0]);
-          setLastClientSheet(sheets[0]);
           localStorage.setItem("lastClientMetadata", JSON.stringify(metadata));
           setClientFileMetadata(metadata);
           console.log('[DEBUG] Client metadata set:', metadata);
@@ -386,10 +365,8 @@ export default function ExcelImportPage() {
         // For restore operations, only update the data and sheet info
         if (which === "Master") {
           setLastMasterData(data as string);
-          setLastMasterSheet(sheets[0]);
         } else {
           setLastClientData(data as string);
-          setLastClientSheet(sheets[0]);
         }
       }
       
@@ -523,7 +500,6 @@ export default function ExcelImportPage() {
   const handleCompare = useCallback(() => {
     // Start timing the comparison
     const startTime = performance.now();
-    setComparisonStartTime(startTime);
     
     // Save which sheets are being used for this merge
     const currentMasterSheet = masterSheetNames[activeMasterTab] || 'Unknown';
@@ -677,7 +653,15 @@ export default function ExcelImportPage() {
     console.log(`[DIAG] dupsClient count: ${dupsClient.length}`);
     if (unmatchedClient.length > 0) console.log("[DIAG] Sample unmatched Client record:", unmatchedClient[0]);
     if (dupsClient.length > 0) console.log("[DIAG] Sample duplicate Client record:", dupsClient[0]);
-  }, [rowsMaster, rowsClient, columnsMaster, columnsClient, masterSheetNames, clientSheetNames, activeMasterTab, activeClientTab, modifierCriteria]);
+  }, [rowsMaster, rowsClient, columnsMaster, columnsClient, masterSheetNames, clientSheetNames, activeMasterTab, activeClientTab, modifierCriteria, createColumnMapping, getHCPCSColumnClient, getHCPCSColumnMaster, getModifierColumnClient, getModifierColumnMaster]);
+
+  // Auto-trigger comparison when both files are loaded
+  useEffect(() => {
+    if (rowsMaster.length > 0 && rowsClient.length > 0 && !showCompare) {
+      console.log('[DEBUG] Auto-triggering comparison - rowsMaster:', rowsMaster.length, 'rowsClient:', rowsClient.length);
+      handleCompare();
+    }
+  }, [rowsMaster.length, rowsClient.length, showCompare, handleCompare]);
 
   const handleExport = () => {
     if (mergedForExport.length === 0) return;
@@ -770,7 +754,7 @@ export default function ExcelImportPage() {
     }
   };
   
-  const processSheetData = (worksheet: unknown) => {
+  const processSheetData = (worksheet: XLSX.WorkSheet) => {
     const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
     if (json.length === 0) return { rows: [], columns: [] };
     
@@ -795,12 +779,6 @@ export default function ExcelImportPage() {
     });
     
     return { rows: Array.from(rows), columns };
-  };
-  
-  const processFileData = (data: string, which: "Master" | "Client") => {
-    const workbook = XLSX.read(data, { type: "binary" });
-    const sheets = workbook.SheetNames;
-    processAllSheets(data, which, sheets);
   };
   
   const restoreFileData = (data: string, which: "Master" | "Client", filename: string, restoreMetadata = false) => {
@@ -850,7 +828,6 @@ export default function ExcelImportPage() {
       setRowsMaster(sheetData.rows);
       setColumnsMaster(sheetData.columns);
       localStorage.setItem("lastMasterSheet", sheetName);
-      setLastMasterSheet(sheetName);
     }
   };
   
@@ -862,7 +839,6 @@ export default function ExcelImportPage() {
       setRowsClient(sheetData.rows);
       setColumnsClient(sheetData.columns);
       localStorage.setItem("lastClientSheet", sheetName);
-      setLastClientSheet(sheetName);
     }
   };
   
@@ -910,7 +886,6 @@ export default function ExcelImportPage() {
     setMasterFileMetadata(null);
     setClientFileMetadata(null);
     setComparisonStats(null);
-    setComparisonStartTime(null);
     if (fileMasterInputRef.current) fileMasterInputRef.current.value = "";
     if (fileClientInputRef.current) fileClientInputRef.current.value = "";
   };
@@ -932,10 +907,8 @@ export default function ExcelImportPage() {
     // Clear the state variables too
     setLastMasterFile(null);
     setLastMasterData(null);
-    setLastMasterSheet(null);
     setLastClientFile(null);
     setLastClientData(null);
-    setLastClientSheet(null);
   };
 
   // Don't render anything on server side to prevent hydration mismatch
