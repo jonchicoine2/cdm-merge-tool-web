@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --prefix ../.. run dev)"
+    ],
+    "deny": []
+  }
+}
