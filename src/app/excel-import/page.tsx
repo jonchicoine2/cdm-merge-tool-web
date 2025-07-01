@@ -35,6 +35,20 @@ interface ComparisonStats {
   totalClientColumns: number;
 }
 
+interface AIIntent {
+  type: 'query' | 'action' | 'filter' | 'sort' | 'analysis' | 'documentation';
+  action?: 'sort' | 'filter' | 'search' | 'summarize' | 'count' | 'show' | 'switch' | 'explain' | 'clear_filters' | 'export';
+  parameters?: {
+    column?: string;
+    value?: string;
+    direction?: 'asc' | 'desc';
+    condition?: string;
+    view?: string;
+    filename?: string;
+  };
+  response?: string;
+}
+
 export default function ExcelImportPage() {
   const [rowsMaster, setRowsMaster] = useState<ExcelRow[]>([]);
   const [columnsMaster, setColumnsMaster] = useState<GridColDef[]>([]);
@@ -275,7 +289,6 @@ export default function ExcelImportPage() {
 
   // AI Chat state with localStorage persistence
   const [isChatOpen, setIsChatOpen] = useState(true);
-  const [currentView, setCurrentView] = useState<'master' | 'client' | 'merged' | 'unmatched' | 'duplicates'>('merged');
   const [aiSelectedGrid, setAiSelectedGrid] = useState<'master' | 'client' | 'merged' | 'unmatched' | 'duplicates'>('merged');
   const [chatWidth, setChatWidth] = useState(320);
 
@@ -304,23 +317,6 @@ export default function ExcelImportPage() {
   const [mergedFilters, setMergedFilters] = useState<{column: string, condition: string, value: string}[]>([]);
   const [unmatchedFilters, setUnmatchedFilters] = useState<{column: string, condition: string, value: string}[]>([]);
   const [duplicatesFilters, setDuplicatesFilters] = useState<{column: string, condition: string, value: string}[]>([]);
-
-  // Update currentView based on what's currently displayed
-  useEffect(() => {
-    if (showCompare) {
-      if (errorsTabValue === 0 && unmatchedClient.length > 0) {
-        setCurrentView('unmatched');
-      } else if (errorsTabValue === 1 && dupsClient.length > 0) {
-        setCurrentView('duplicates');
-      } else {
-        setCurrentView('merged');
-      }
-    } else if (rowsClient.length > 0) {
-      setCurrentView('client');
-    } else if (rowsMaster.length > 0) {
-      setCurrentView('master');
-    }
-  }, [showCompare, errorsTabValue, unmatchedClient.length, dupsClient.length, rowsClient.length, rowsMaster.length]);
 
   // Filter function for search
   const filterRows = (rows: ExcelRow[], searchTerm: string): ExcelRow[] => {
@@ -377,7 +373,7 @@ export default function ExcelImportPage() {
 
   // Combined filter function that applies both search and AI filters
   const filterAndSearchRows = (rows: ExcelRow[], searchTerm: string, filters: {column: string, condition: string, value: string}[]): ExcelRow[] => {
-    let filteredRows = applyFilters(rows, filters);
+    const filteredRows = applyFilters(rows, filters);
     return filterRows(filteredRows, searchTerm);
   };
 
@@ -523,7 +519,7 @@ export default function ExcelImportPage() {
     };
   };
 
-  const handleAIAction = (intent: any) => {
+  const handleAIAction = (intent: AIIntent) => {
     console.log('[AI ACTION DEBUG] Received intent:', intent);
     console.log('[AI ACTION DEBUG] Intent type:', intent.type, 'Action:', intent.action);
     console.log('[AI ACTION DEBUG] Parameters:', intent.parameters);
