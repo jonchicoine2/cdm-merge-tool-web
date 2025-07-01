@@ -318,6 +318,14 @@ export default function ExcelImportPage() {
   const [unmatchedFilters, setUnmatchedFilters] = useState<{column: string, condition: string, value: string}[]>([]);
   const [duplicatesFilters, setDuplicatesFilters] = useState<{column: string, condition: string, value: string}[]>([]);
 
+  // Edit tracking states
+  const [originalClientData, setOriginalClientData] = useState<ExcelRow[]>([]);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [originalMasterData, setOriginalMasterData] = useState<ExcelRow[]>([]);
+  const [hasUnsavedMasterChanges, setHasUnsavedMasterChanges] = useState(false);
+  const [originalMergedData, setOriginalMergedData] = useState<ExcelRow[]>([]);
+  const [hasUnsavedMergedChanges, setHasUnsavedMergedChanges] = useState(false);
+
   // Filter function for search
   const filterRows = (rows: ExcelRow[], searchTerm: string): ExcelRow[] => {
     if (!searchTerm.trim()) return rows;
@@ -1292,9 +1300,12 @@ export default function ExcelImportPage() {
     const workbook = XLSX.read(data, { type: "binary" });
     const sheetData: {[sheetName: string]: {rows: ExcelRow[], columns: GridColDef[]}} = {};
     
+    // Make both client and master data editable
+    const isEditable = true;
+    
     sheetNames.forEach(sheetName => {
       const worksheet = workbook.Sheets[sheetName];
-      const processed = processSheetData(worksheet);
+      const processed = processSheetData(worksheet, isEditable);
       sheetData[sheetName] = processed;
     });
     
@@ -1307,6 +1318,9 @@ export default function ExcelImportPage() {
         const firstSheet = sheetData[sheetNames[0]];
         setRowsMaster(firstSheet.rows);
         setColumnsMaster(firstSheet.columns);
+        // Save original data for cancel functionality
+        setOriginalMasterData([...firstSheet.rows]);
+        setHasUnsavedMasterChanges(false);
       }
     } else {
       setClientSheetData(sheetData);
@@ -1317,11 +1331,14 @@ export default function ExcelImportPage() {
         const firstSheet = sheetData[sheetNames[0]];
         setRowsClient(firstSheet.rows);
         setColumnsClient(firstSheet.columns);
+        // Save original data for cancel functionality
+        setOriginalClientData([...firstSheet.rows]);
+        setHasUnsavedChanges(false);
       }
     }
   };
   
-  const processSheetData = (worksheet: XLSX.WorkSheet) => {
+  const processSheetData = (worksheet: XLSX.WorkSheet, isEditable = false) => {
     const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
     if (json.length === 0) return { rows: [], columns: [] };
     
@@ -1330,6 +1347,8 @@ export default function ExcelImportPage() {
       field: header || `col${idx}`,
       headerName: header || `Column ${idx + 1}`,
       width: 150,
+      editable: isEditable,
+      type: 'string',
     }));
     
     const rows: ExcelRow[] = Array.from(json.slice(1)).map((row, idx) => {
@@ -1395,6 +1414,9 @@ export default function ExcelImportPage() {
       setRowsMaster(sheetData.rows);
       setColumnsMaster(sheetData.columns);
       localStorage.setItem("lastMasterSheet", sheetName);
+      // Save original data for cancel functionality
+      setOriginalMasterData([...sheetData.rows]);
+      setHasUnsavedMasterChanges(false);
     }
   };
   
@@ -1406,6 +1428,9 @@ export default function ExcelImportPage() {
       setRowsClient(sheetData.rows);
       setColumnsClient(sheetData.columns);
       localStorage.setItem("lastClientSheet", sheetName);
+      // Save original data for cancel functionality
+      setOriginalClientData([...sheetData.rows]);
+      setHasUnsavedChanges(false);
     }
   };
   
@@ -1476,6 +1501,35 @@ export default function ExcelImportPage() {
     setLastMasterData(null);
     setLastClientFile(null);
     setLastClientData(null);
+  };
+
+  // Save and cancel functions for editing
+  const handleSaveEdits = () => {
+    // Update the original data to match current data
+    setOriginalClientData([...rowsClient]);
+    setHasUnsavedChanges(false);
+    console.log('Changes saved successfully');
+  };
+
+  const handleCancelEdits = () => {
+    // Revert to original data
+    setRowsClient([...originalClientData]);
+    
+    // Update the sheet data as well
+    const currentSheet = clientSheetNames[activeClientTab];
+    if (currentSheet && clientSheetData[currentSheet]) {
+      const updatedSheetData = {
+        ...clientSheetData,
+        [currentSheet]: {
+          ...clientSheetData[currentSheet],
+          rows: [...originalClientData]
+        }
+      };
+      setClientSheetData(updatedSheetData);
+    }
+    
+    setHasUnsavedChanges(false);
+    console.log('Changes cancelled successfully');
   };
 
   // Don't render anything on server side to prevent hydration mismatch
@@ -1764,6 +1818,54 @@ export default function ExcelImportPage() {
                   }
                 }}
               />
+              
+              {/* Save/Cancel buttons for editing */}
+              {hasUnsavedChanges && (
+                <Box sx={{ 
+                  display: 'flex', 
+                  gap: 1, 
+                  mb: 2,
+                  justifyContent: 'flex-end',
+                  alignItems: 'center'
+                }}>
+                  <Typography variant="body2" sx={{ 
+                    color: '#f57c00', 
+                    fontWeight: 'bold',
+                    mr: 1
+                  }}>
+                    ⚠️ Unsaved changes
+                  </Typography>
+                  <Button 
+                    variant="outlined" 
+                    size="small"
+                    onClick={handleCancelEdits}
+                    sx={{ 
+                      color: '#d32f2f', 
+                      borderColor: '#d32f2f',
+                      '&:hover': {
+                        backgroundColor: '#ffebee',
+                        borderColor: '#c62828'
+                      }
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    variant="contained" 
+                    size="small"
+                    onClick={handleSaveEdits}
+                    sx={{ 
+                      backgroundColor: '#4caf50',
+                      '&:hover': {
+                        backgroundColor: '#388e3c'
+                      }
+                    }}
+                  >
+                    Save
+                  </Button>
+                </Box>
+              )}
+              
               <Box sx={{ height: 400, width: "100%" }}>
                 <DataGrid 
                   rows={filteredRowsClient} 
@@ -1773,6 +1875,69 @@ export default function ExcelImportPage() {
                   disableVirtualization={aiSelectedGrid !== 'client'}
                   sortModel={clientSortModel}
                   onSortModelChange={setClientSortModel}
+                  processRowUpdate={(newRow) => {
+                    // Basic validation for edited cells
+                    const validatedRow = { ...newRow };
+                    
+                    // Validate and clean each field
+                    Object.keys(validatedRow).forEach(key => {
+                      if (key !== 'id') {
+                        const value = validatedRow[key];
+                        
+                        // Convert to string and trim whitespace
+                        if (value !== null && value !== undefined) {
+                          validatedRow[key] = String(value).trim();
+                        } else {
+                          validatedRow[key] = '';
+                        }
+                        
+                        // Additional validation for HCPCS codes (if column contains "HCPCS")
+                        if (key.toLowerCase().includes('hcpcs') && validatedRow[key]) {
+                          const hcpcsValue = String(validatedRow[key]).toUpperCase().trim();
+                          // Basic HCPCS format validation (5 characters, alphanumeric)
+                          if (hcpcsValue.length > 0 && !/^[A-Z0-9]{1,8}(-[A-Z0-9]{1,2})?$/.test(hcpcsValue)) {
+                            console.warn(`Invalid HCPCS format: ${hcpcsValue}. Expected format: XXXXX or XXXXX-XX`);
+                          }
+                          validatedRow[key] = hcpcsValue;
+                        }
+                        
+                        // Validation for numeric fields (if column contains "price", "amount", "cost", "quantity")
+                        if (['price', 'amount', 'cost', 'quantity', 'qty'].some(term => 
+                            key.toLowerCase().includes(term)) && validatedRow[key]) {
+                          const numericValue = String(validatedRow[key]).replace(/[^\d.-]/g, '');
+                          if (numericValue && !isNaN(parseFloat(numericValue))) {
+                            validatedRow[key] = numericValue;
+                          }
+                        }
+                      }
+                    });
+                    
+                    const updatedRows = rowsClient.map((row) =>
+                      row.id === validatedRow.id ? validatedRow : row
+                    );
+                    setRowsClient(updatedRows);
+                    
+                    // Update the sheet data as well
+                    const currentSheet = clientSheetNames[activeClientTab];
+                    if (currentSheet && clientSheetData[currentSheet]) {
+                      const updatedSheetData = {
+                        ...clientSheetData,
+                        [currentSheet]: {
+                          ...clientSheetData[currentSheet],
+                          rows: updatedRows
+                        }
+                      };
+                      setClientSheetData(updatedSheetData);
+                    }
+                    
+                    // Mark as having unsaved changes
+                    setHasUnsavedChanges(true);
+                    
+                    return validatedRow;
+                  }}
+                  onProcessRowUpdateError={(error) => {
+                    console.error('Row update error:', error);
+                  }}
                   sx={getDataGridStyles('client')}
                 />
               </Box>
