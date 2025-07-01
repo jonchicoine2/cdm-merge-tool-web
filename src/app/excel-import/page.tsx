@@ -1146,6 +1146,56 @@ export default function ExcelImportPage() {
     }
   };
 
+  // Sample data loading function
+  const handleLoadSampleData = async () => {
+    try {
+      console.log('[SAMPLE DATA] Starting to load sample data...');
+      
+      // Load the sample files
+      const masterFileResponse = await fetch('/sample%20sheets/ED%20Master%20CDM%202025.xlsx');
+      const clientFileResponse = await fetch('/sample%20sheets/Client%20ED%20w%20Hyphens.xlsx');
+      
+      if (!masterFileResponse.ok || !clientFileResponse.ok) {
+        console.error('[SAMPLE DATA] Failed to fetch sample files');
+        return;
+      }
+      
+      const masterBlob = await masterFileResponse.blob();
+      const clientBlob = await clientFileResponse.blob();
+      
+      // Create File objects
+      const masterFile = new File([masterBlob], 'ED Master CDM 2025.xlsx', {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const clientFile = new File([clientBlob], 'Client ED w Hyphens.xlsx', {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      
+      console.log('[SAMPLE DATA] Sample files loaded, processing master file...');
+      
+      // Load master file first
+      await new Promise<void>((resolve) => {
+        handleFileUpload(masterFile, "Master", false);
+        // Wait a bit for the master file to process
+        setTimeout(resolve, 1000);
+      });
+      
+      console.log('[SAMPLE DATA] Master file processed, processing client file...');
+      
+      // Load client file second
+      await new Promise<void>((resolve) => {
+        handleFileUpload(clientFile, "Client", false);
+        // Wait a bit for the client file to process
+        setTimeout(resolve, 1000);
+      });
+      
+      console.log('[SAMPLE DATA] Both files processed, will auto-compare when ready...');
+      
+    } catch (error) {
+      console.error('[SAMPLE DATA] Error loading sample data:', error);
+    }
+  };
+
   const handleFileUpload = (
     e: React.ChangeEvent<HTMLInputElement> | File,
     which: "Master" | "Client",
@@ -3043,13 +3093,24 @@ export default function ExcelImportPage() {
       )}
       
       <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
-        <Button 
-          variant="outlined" 
+        <Button
+          variant="contained"
+          onClick={handleLoadSampleData}
+          sx={{
+            fontWeight: 'bold',
+            backgroundColor: '#ff9800',
+            '&:hover': { backgroundColor: '#f57c00' }
+          }}
+        >
+          📂 Load Sample Data
+        </Button>
+        <Button
+          variant="outlined"
           onClick={() => setModifierDialogOpen(true)}
-          sx={{ 
-            fontWeight: 'bold', 
-            borderWidth: 2, 
-            color: '#9c27b0', 
+          sx={{
+            fontWeight: 'bold',
+            borderWidth: 2,
+            color: '#9c27b0',
             borderColor: '#9c27b0',
             '&:hover': { backgroundColor: '#f3e5f5', borderColor: '#7b1fa2' }
           }}
