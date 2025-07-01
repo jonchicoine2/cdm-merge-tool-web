@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
-  Paper,
   TextField,
   IconButton,
   Typography,
@@ -11,12 +10,12 @@ import {
   ListItem,
   Avatar,
   Chip,
-  Fade,
   CircularProgress,
   Select,
   MenuItem,
   FormControl,
   Button,
+  Drawer,
 } from '@mui/material';
 import {
   Send as SendIcon,
@@ -25,6 +24,7 @@ import {
   Close as CloseIcon,
   Minimize as MinimizeIcon,
   Clear as ClearIcon,
+  DragIndicator as DragIcon,
 } from '@mui/icons-material';
 
 interface Message {
@@ -71,40 +71,17 @@ interface AIChatProps {
   onMinimize: () => void;
   selectedGrid: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates';
   onGridChange: (grid: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') => void;
+  onWidthChange?: (width: number) => void;
 }
 
-export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinimize, selectedGrid, onGridChange }: AIChatProps) {
+export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinimize, selectedGrid, onGridChange, onWidthChange }: AIChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [width, setWidth] = useState(320); // Reduced from 400 to 320
+  const [isResizing, setIsResizing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  // Draggable state with localStorage persistence
-  const getInitialPosition = () => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('aiChatPosition');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {
-          // Fall back to default if parsing fails
-        }
-      }
-    }
-    // Default to top right
-    return { x: window.innerWidth - 420, y: 20 };
-  };
-
-  const [position, setPosition] = useState({ x: 20, y: 20 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const chatRef = useRef<HTMLDivElement>(null);
-
-  // Initialize position from localStorage after component mounts
-  useEffect(() => {
-    const initialPos = getInitialPosition();
-    setPosition(initialPos);
-  }, []);
+  const resizeRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -114,59 +91,48 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
     scrollToBottom();
   }, [messages]);
 
-  // Drag handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.drag-handle')) {
-      setIsDragging(true);
-      setDragStart({
-        x: e.clientX - position.x,
-        y: e.clientY - position.y,
-      });
-      e.preventDefault();
-    }
-  };
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging) return;
-    
-    const newX = e.clientX - dragStart.x;
-    const newY = e.clientY - dragStart.y;
-    
-    // Keep chat window within viewport bounds
-    const chatElement = chatRef.current;
-    if (chatElement) {
-      const rect = chatElement.getBoundingClientRect();
-      const maxX = window.innerWidth - rect.width;
-      const maxY = window.innerHeight - rect.height;
-      
-      const newPosition = {
-        x: Math.max(0, Math.min(newX, maxX)),
-        y: Math.max(0, Math.min(newY, maxY)),
-      };
-      setPosition(newPosition);
-      
-      // Save position to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('aiChatPosition', JSON.stringify(newPosition));
-      }
-    }
-  }, [isDragging, dragStart.x, dragStart.y]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
+  // Notify parent when width changes
   useEffect(() => {
-    if (isDragging) {
+    if (onWidthChange && isOpen) {
+      onWidthChange(width);
+    }
+  }, [width, onWidthChange, isOpen]);
+
+  // Resize functionality
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      
+      const newWidth = window.innerWidth - e.clientX;
+      const minWidth = 250;
+      const maxWidth = Math.min(600, window.innerWidth * 0.6);
+      
+      setWidth(Math.max(minWidth, Math.min(maxWidth, newWidth)));
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    if (isResizing) {
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
     }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -252,31 +218,67 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
     "What are modifiers?",
   ];
 
-  if (!isOpen) return null;
-
   return (
-    <Fade in={isOpen}>
-      <Paper
-        ref={chatRef}
-        elevation={8}
+    <Drawer
+      anchor="right"
+      open={isOpen}
+      variant="persistent"
+      sx={{
+        width: isOpen ? { xs: '90vw', sm: width } : 0,
+        flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width: { xs: '90vw', sm: width },
+          maxWidth: 'none',
+        },
+      }}
+    >
+      {/* Resize Handle */}
+      <Box
+        ref={resizeRef}
+        onMouseDown={handleResizeStart}
         sx={{
-          position: 'fixed',
-          left: position.x,
-          top: position.y,
-          width: 400,
-          height: 600,
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: '4px',
+          cursor: 'ew-resize',
+          backgroundColor: 'transparent',
+          zIndex: 1000,
+          '&:hover': {
+            backgroundColor: 'rgba(25, 118, 210, 0.3)',
+          },
+          display: { xs: 'none', sm: 'block' }, // Hide on mobile
+        }}
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            color: 'rgba(25, 118, 210, 0.6)',
+            fontSize: '12px',
+            writingMode: 'vertical-rl',
+            textOrientation: 'mixed',
+            userSelect: 'none',
+            pointerEvents: 'none',
+          }}
+        >
+          <DragIcon sx={{ fontSize: '16px' }} />
+        </Box>
+      </Box>
+
+      <Box
+        sx={{
+          height: '100vh',
           display: 'flex',
           flexDirection: 'column',
-          zIndex: 1300,
-          borderRadius: 2,
-          cursor: isDragging ? 'grabbing' : 'default',
-          userSelect: 'none',
+          position: 'relative',
         }}
       >
         {/* Header */}
         <Box
-          className="drag-handle"
-          onMouseDown={handleMouseDown}
           sx={{
             p: 2,
             borderBottom: '1px solid #e0e0e0',
@@ -285,8 +287,6 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
             justifyContent: 'space-between',
             bgcolor: 'primary.main',
             color: 'white',
-            borderRadius: '8px 8px 0 0',
-            cursor: isDragging ? 'grabbing' : 'grab',
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
@@ -397,18 +397,19 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
                   >
                     {message.type === 'user' ? <PersonIcon /> : <AIIcon />}
                   </Avatar>
-                  <Paper
+                  <Box
                     sx={{
                       p: 1.5,
                       maxWidth: '75%',
                       bgcolor: message.type === 'user' ? 'primary.light' : 'grey.100',
                       color: message.type === 'user' ? 'white' : 'text.primary',
+                      borderRadius: 2,
                     }}
                   >
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
                       {message.content}
                     </Typography>
-                  </Paper>
+                  </Box>
                 </Box>
               </ListItem>
             ))}
@@ -463,7 +464,7 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
             </IconButton>
           </Box>
         </Box>
-      </Paper>
-    </Fade>
+      </Box>
+    </Drawer>
   );
 }

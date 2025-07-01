@@ -277,6 +277,7 @@ export default function ExcelImportPage() {
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [currentView, setCurrentView] = useState<'master' | 'client' | 'merged' | 'unmatched' | 'duplicates'>('merged');
   const [aiSelectedGrid, setAiSelectedGrid] = useState<'master' | 'client' | 'merged' | 'unmatched' | 'duplicates'>('merged');
+  const [chatWidth, setChatWidth] = useState(320);
 
   // Refs for scrolling to grids
   const masterGridRef = useRef<HTMLDivElement>(null);
@@ -421,7 +422,7 @@ export default function ExcelImportPage() {
     }
   }, [aiSelectedGrid, errorsTabValue, dupsClient.length]);
 
-  // Function to get grid container styles with glowing border
+  // Function to get grid container styles with glowing border and scroll control
   const getGridContainerStyles = (gridType: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') => {
     const isActive = aiSelectedGrid === gridType;
     return {
@@ -434,7 +435,43 @@ export default function ExcelImportPage() {
         : '0 2px 4px rgba(0,0,0,0.1)',
       transition: 'all 0.3s ease',
       background: isActive ? 'rgba(25, 118, 210, 0.02)' : 'white',
+      opacity: isActive ? 1 : 0.85,
+      position: 'relative' as const,
+      cursor: isActive ? 'default' : 'pointer',
+      '&:hover': isActive ? {} : {
+        opacity: 0.95,
+        boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+        borderColor: '#90caf9',
+      },
     };
+  };
+
+  // Function to handle grid container clicks
+  const handleGridClick = (gridType: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') => {
+    if (aiSelectedGrid !== gridType) {
+      setAiSelectedGrid(gridType);
+      console.log(`[GRID CLICK] Switched active grid to: ${gridType}`);
+    }
+  };
+
+  // Function to get DataGrid styles with conditional scroll handling
+  const getDataGridStyles = (gridType: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') => {
+    const isActive = aiSelectedGrid === gridType;
+    return {
+      pointerEvents: isActive ? 'auto' : 'none',
+      '& .MuiDataGrid-virtualScroller': {
+        pointerEvents: isActive ? 'auto' : 'none',
+      },
+      '& .MuiDataGrid-scrollArea': {
+        pointerEvents: isActive ? 'auto' : 'none',
+      },
+      '& .MuiDataGrid-cell': {
+        pointerEvents: isActive ? 'auto' : 'none',
+      },
+      '& .MuiDataGrid-row': {
+        pointerEvents: isActive ? 'auto' : 'none',
+      },
+    } as const;
   };
 
   // Filtered data for each grid
@@ -1442,7 +1479,9 @@ export default function ExcelImportPage() {
     <Box sx={{ 
       p: 4, 
       background: 'linear-gradient(135deg, #f8fbff 0%, #e3f2fd 50%, #f0f8ff 100%)',
-      minHeight: '100vh' 
+      minHeight: '100vh',
+      marginRight: isChatOpen ? { xs: '90vw', sm: `${chatWidth}px` } : 0,
+      transition: 'margin-right 0.3s ease',
     }}>
       <Typography variant="h3" gutterBottom sx={{ 
         color: '#1976d2', 
@@ -1466,6 +1505,7 @@ export default function ExcelImportPage() {
         {/* Master File Area */}
         <Box 
           ref={masterGridRef}
+          onClick={() => handleGridClick('master')}
           sx={{ 
             flex: 1,
             minWidth: 0,
@@ -1561,8 +1601,10 @@ export default function ExcelImportPage() {
                   columns={columnsMaster}
                   density="compact"
                   disableRowSelectionOnClick
+                  disableVirtualization={aiSelectedGrid !== 'master'}
                   sortModel={masterSortModel}
                   onSortModelChange={setMasterSortModel}
+                  sx={getDataGridStyles('master')}
                 />
               </Box>
             </>
@@ -1611,6 +1653,7 @@ export default function ExcelImportPage() {
         {/* Client File Area */}
         <Box 
           ref={clientGridRef}
+          onClick={() => handleGridClick('client')}
           sx={{ 
             flex: 1,
             minWidth: 0,
@@ -1706,8 +1749,10 @@ export default function ExcelImportPage() {
                   columns={columnsClient}
                   density="compact"
                   disableRowSelectionOnClick
+                  disableVirtualization={aiSelectedGrid !== 'client'}
                   sortModel={clientSortModel}
                   onSortModelChange={setClientSortModel}
+                  sx={getDataGridStyles('client')}
                 />
               </Box>
             </>
@@ -1917,6 +1962,7 @@ export default function ExcelImportPage() {
           {/* Merged Results */}
           <Box 
             ref={mergedGridRef}
+            onClick={() => handleGridClick('merged')}
             sx={{ 
               mb: 4,
               ...getGridContainerStyles('merged')
@@ -1964,8 +2010,10 @@ export default function ExcelImportPage() {
                 columns={mergedColumns}
                 density="compact"
                 disableRowSelectionOnClick
+                disableVirtualization={aiSelectedGrid !== 'merged'}
                 sortModel={mergedSortModel}
                 onSortModelChange={setMergedSortModel}
+                sx={getDataGridStyles('merged')}
               />
             </Box>
           </Box>
@@ -2014,6 +2062,7 @@ export default function ExcelImportPage() {
           {errorsTabValue === 0 && (
             <Box 
               ref={unmatchedGridRef}
+              onClick={() => handleGridClick('unmatched')}
               sx={{ 
                 height: 400, 
                 width: "100%", 
@@ -2027,8 +2076,10 @@ export default function ExcelImportPage() {
                   columns={columnsClient}
                   density="compact"
                   disableRowSelectionOnClick
+                  disableVirtualization={aiSelectedGrid !== 'unmatched'}
                   sortModel={unmatchedSortModel}
                   onSortModelChange={setUnmatchedSortModel}
+                  sx={getDataGridStyles('unmatched')}
                 />
               ) : (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -2044,6 +2095,7 @@ export default function ExcelImportPage() {
           {errorsTabValue === 1 && (
             <Box 
               ref={duplicatesGridRef}
+              onClick={() => handleGridClick('duplicates')}
               sx={{ 
                 height: 400, 
                 width: "100%",
@@ -2056,8 +2108,10 @@ export default function ExcelImportPage() {
                   columns={columnsClient}
                   density="compact"
                   disableRowSelectionOnClick
+                  disableVirtualization={aiSelectedGrid !== 'duplicates'}
                   sortModel={duplicatesSortModel}
                   onSortModelChange={setDuplicatesSortModel}
+                  sx={getDataGridStyles('duplicates')}
                 />
               ) : (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -2097,6 +2151,7 @@ export default function ExcelImportPage() {
         onMinimize={() => setIsChatOpen(false)}
         selectedGrid={aiSelectedGrid}
         onGridChange={setAiSelectedGrid}
+        onWidthChange={setChatWidth}
       />
     </Box>
   );
