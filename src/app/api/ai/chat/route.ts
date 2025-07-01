@@ -3,6 +3,8 @@ import OpenAI from 'openai';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  timeout: 25000, // 25 seconds timeout
+  maxRetries: 2, // Retry failed requests twice
 });
 
 interface GridContext {
@@ -43,8 +45,17 @@ interface AIIntent {
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
     const { message, gridContext }: { message: string; gridContext: GridContext } = await request.json();
+    
+    // Optimize gridContext to reduce payload size
+    const optimizedGridContext = {
+      ...gridContext,
+      // Limit sample data to reduce request size
+      sampleData: gridContext.sampleData.slice(0, 2),
+    };
     
     console.log('[AI API DEBUG] Received request:', {
       message,
@@ -54,7 +65,8 @@ export async function POST(request: NextRequest) {
       selectedRowCount: gridContext.selectedRowCount,
       selectedRowData: gridContext.selectedRowData ? 'present' : 'null',
       hasRowSelection: !!gridContext.selectedRowId,
-      rowCount: gridContext.rowCount
+      rowCount: gridContext.rowCount,
+      requestSize: JSON.stringify({ message, gridContext: optimizedGridContext }).length
     });
     
 
@@ -144,7 +156,7 @@ The modifier settings dialog allows users to specify which modifier codes should
 - Current view: ${gridContext.currentView}
 - Columns: ${gridContext.columns.join(', ')}
 - Row count: ${gridContext.rowCount}
-- Sample data: ${JSON.stringify(gridContext.sampleData.slice(0, 3))}
+- Sample data: ${JSON.stringify(optimizedGridContext.sampleData)}
 - Available grids: ${JSON.stringify(gridContext.availableGrids)}
 - In compare mode: ${gridContext.isInCompareMode}
 - Selected row ID: ${gridContext.selectedRowId || 'none'}
@@ -297,32 +309,130 @@ CRITICAL: In your JSON response, use the EXACT column field name from the availa
 Example: If user says "sort by description" and available columns include "description", use "description" in the parameters.column field.
 If user says "sort by desc" and available columns include "procedure_description", use "procedure_description" in the parameters.column field.`;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: message },
-        { role: "system", content: "Remember: Respond with natural conversation only. No JSON, no code, no technical syntax. Just helpful, friendly answers." }
-      ],
-      temperature: 0.2,
-      max_tokens: 500,
-    });
+    let completion: OpenAI.Chat.Completions.ChatCompletion;
+    
+    try {
+      // First attempt with normal timeout
+      completion = await Promise.race([
+        openai.chat.completions.create({
+          model: "gpt-3.5-turbo",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: message },
+            { role: "system", content: "CRITICAL: You MUST respond with valid JSON format. Never respond with plain text. Examples:\n- Sort: {\"type\": \"action\", \"action\": \"sort\", \"parameters\": {\"column\": \"description\", \"direction\": \"asc\"}, \"response\": \"Sorting by description\"}\n- Switch: {\"type\": \"action\", \"action\": \"switch\", \"parameters\": {\"view\": \"master\"}, \"response\": \"Switching to master grid\"}" }
+          ],
+          temperature: 0.1,
+          max_tokens: 500,
+        }),
+        // Additional timeout safety net for Netlify
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Request timeout (9s limit)')), 9000)
+        )
+      ]) as OpenAI.Chat.Completions.ChatCompletion;
+    } catch (timeoutError) {
+      // If first attempt times out, try with a shorter, simpler prompt
+      console.log('[AI API DEBUG] First attempt timed out, trying simplified prompt');
+      const simplifiedPrompt = `You are an AI assistant for the CDM Merge Tool.
+
+Current context: ${optimizedGridContext.selectedGrid} grid with ${optimizedGridContext.rowCount} rows.
+Available columns: ${optimizedGridContext.columns.join(', ')}
+Available grids: ${Object.entries(optimizedGridContext.availableGrids).filter(([, grid]) => grid.hasData).map(([name, grid]) => `${name}(${grid.rowCount})`).join(', ')}
+
+For user commands, respond with JSON:
+- Sort: {"type": "action", "action": "sort", "parameters": {"column": "exact_column_name", "direction": "asc|desc"}, "response": "Sorting by X"}
+- Filter: {"type": "action", "action": "filter", "parameters": {"column": "exact_column_name", "condition": "is_empty|equals|contains", "value": "search_value"}, "response": "Filtering..."}
+- Switch grid: {"type": "action", "action": "switch", "parameters": {"view": "master|client|merged|unmatched|duplicates"}, "response": "Switching to X grid"}
+- Questions: {"type": "query", "response": "Answer text"}
+
+Examples:
+- "sort by description" → {"type": "action", "action": "sort", "parameters": {"column": "description", "direction": "asc"}, "response": "Sorting by description"}
+- "sort master by description" → {"type": "action", "action": "sort", "parameters": {"column": "description", "direction": "asc", "view": "master"}, "response": "Sorting master grid by description"}
+- "show master" → {"type": "action", "action": "switch", "parameters": {"view": "master"}, "response": "Switching to master grid"}`;
+      
+      completion = await Promise.race([
+        openai.chat.completions.create({
+          model: "gpt-3.5-turbo",
+          messages: [
+            { role: "system", content: simplifiedPrompt },
+            { role: "user", content: message }
+          ],
+          temperature: 0.1,
+          max_tokens: 300,
+        }),
+        // Shorter timeout for retry
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Request timeout (6s limit on retry)')), 6000)
+        )
+      ]) as OpenAI.Chat.Completions.ChatCompletion;
+    }
 
     const responseContent = completion.choices[0]?.message?.content;
     if (!responseContent) {
       throw new Error('No response from OpenAI');
     }
     
+    const processingTime = Date.now() - startTime;
     console.log('[AI API DEBUG] Raw AI response:', responseContent);
+    console.log('[AI API DEBUG] Processing time:', processingTime + 'ms');
 
     try {
-      const intent: AIIntent = JSON.parse(responseContent);
+      // Clean up response if it has extra text around JSON
+      let cleanedResponse = responseContent.trim();
+      
+      // Look for JSON block in the response
+      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanedResponse = jsonMatch[0];
+      }
+      
+      console.log('[AI API DEBUG] Cleaned response for parsing:', cleanedResponse);
+      
+      const intent: AIIntent = JSON.parse(cleanedResponse);
       console.log('[AI API DEBUG] Parsed intent:', intent);
+      
+      // Validate that intent has required fields
+      if (!intent.type || !intent.response) {
+        throw new Error('Invalid intent structure');
+      }
+      
       return NextResponse.json({ intent });
     } catch (error) {
       console.log('[AI API DEBUG] JSON parsing failed:', error);
       console.log('[AI API DEBUG] Falling back to query response');
-      // Fallback if JSON parsing fails
+      
+      // Enhanced fallback - try to extract action from the response text
+      const lowerMessage = message.toLowerCase();
+      const lowerResponse = responseContent.toLowerCase();
+      
+      // Try to detect common actions in the response
+      if (lowerMessage.includes('sort') && (lowerMessage.includes('description') || lowerResponse.includes('description'))) {
+        return NextResponse.json({
+          intent: {
+            type: 'action',
+            action: 'sort',
+            parameters: {
+              column: 'description',
+              direction: lowerMessage.includes('desc') && !lowerMessage.includes('description') ? 'desc' : 'asc',
+              ...(lowerMessage.includes('master') && { view: 'master' }),
+              ...(lowerMessage.includes('client') && { view: 'client' })
+            },
+            response: `Sorting by description ${lowerMessage.includes('desc') && !lowerMessage.includes('description') ? 'descending' : 'ascending'}`
+          }
+        });
+      }
+      
+      if (lowerMessage.includes('master') && (lowerMessage.includes('show') || lowerMessage.includes('switch'))) {
+        return NextResponse.json({
+          intent: {
+            type: 'action',
+            action: 'switch',
+            parameters: { view: 'master' },
+            response: 'Switching to master grid'
+          }
+        });
+      }
+      
+      // Default fallback
       return NextResponse.json({
         intent: {
           type: 'query',
@@ -332,9 +442,24 @@ If user says "sort by desc" and available columns include "procedure_description
     }
 
   } catch (error) {
+    const processingTime = Date.now() - startTime;
     console.error('AI Chat API Error:', error);
+    console.error('Processing time before error:', processingTime + 'ms');
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to process AI request';
+    if (error instanceof Error) {
+      if (error.message.includes('timeout') || error.message.includes('Request timeout')) {
+        errorMessage = 'Request timed out - this prompt may be too complex for the deployment environment. Try a simpler command.';
+      } else if (error.message.includes('rate limit') || error.message.includes('quota')) {
+        errorMessage = 'OpenAI rate limit exceeded. Please wait a moment and try again.';
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        errorMessage = 'Network error connecting to OpenAI. Please check your connection and try again.';
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to process AI request' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

@@ -271,25 +271,40 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
         rowCount: gridContext.rowCount
       });
 
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: inputValue,
-          gridContext,
-        }),
-      });
+      // Add client-side timeout for Netlify compatibility
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 second timeout
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      let data;
+      try {
+        const response = await fetch('/api/ai/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: inputValue,
+            gridContext,
+          }),
+          signal: controller.signal,
+        });
 
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API Error Response:', errorText);
+          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+
+        data = await response.json();
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
       }
 
       const aiMessage: Message = {
@@ -308,10 +323,29 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
 
     } catch (error) {
       console.error('AI Chat Error:', error);
+      
+      let errorContent = 'Sorry, I encountered an error. ';
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError' || error.message.includes('aborted')) {
+          errorContent = 'The request timed out. This might happen with complex prompts on the deployed version. Try a simpler command or break your request into smaller parts.';
+        } else if (error.message.includes('timeout')) {
+          errorContent = 'The request timed out. Try using shorter, simpler commands.';
+        } else if (error.message.includes('rate limit') || error.message.includes('quota')) {
+          errorContent = 'Rate limit exceeded. Please wait a moment before trying again.';
+        } else if (error.message.includes('network') || error.message.includes('fetch failed')) {
+          errorContent = 'Network connection error. Please check your internet connection and try again.';
+        } else {
+          errorContent += error.message;
+        }
+      } else {
+        errorContent += 'Unknown error occurred.';
+      }
+      
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        content: errorContent,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
