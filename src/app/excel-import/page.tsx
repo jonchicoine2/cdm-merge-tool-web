@@ -1125,7 +1125,7 @@ export default function ExcelImportPage() {
     
     // The merged result should ALWAYS use ALL master columns as the structure
     // This ensures no duplicate columns and maintains master sheet structure
-    const mergedColumns = columnsMaster;
+    const mergedColumns = columnsMaster.map(col => ({ ...col, editable: true }));
     setMergedColumns(mergedColumns);
     // Build merged rows: for each match, populate master columns with client data where possible
     const merged: ExcelRow[] = matchedKeys.map((key: string, idx: number) => {
@@ -1148,6 +1148,9 @@ export default function ExcelImportPage() {
     });
     setMergedRows(merged);
     setMergedForExport(merged);
+    // Save original merged data for cancel functionality
+    setOriginalMergedData([...merged]);
+    setHasUnsavedMergedChanges(false);
 
     // --- New: Collect errors (Client not matched) and dups (Client with duplicate CDM numbers) ---
     // 1. Errors: records from Client not matched with Master
@@ -1504,32 +1507,76 @@ export default function ExcelImportPage() {
   };
 
   // Save and cancel functions for editing
-  const handleSaveEdits = () => {
-    // Update the original data to match current data
-    setOriginalClientData([...rowsClient]);
-    setHasUnsavedChanges(false);
-    console.log('Changes saved successfully');
-  };
-
-  const handleCancelEdits = () => {
-    // Revert to original data
-    setRowsClient([...originalClientData]);
-    
-    // Update the sheet data as well
-    const currentSheet = clientSheetNames[activeClientTab];
-    if (currentSheet && clientSheetData[currentSheet]) {
-      const updatedSheetData = {
-        ...clientSheetData,
-        [currentSheet]: {
-          ...clientSheetData[currentSheet],
-          rows: [...originalClientData]
-        }
-      };
-      setClientSheetData(updatedSheetData);
+  const handleSaveEdits = (gridType?: 'master' | 'client' | 'merged') => {
+    if (!gridType || gridType === 'client') {
+      // Update the original data to match current data
+      setOriginalClientData([...rowsClient]);
+      setHasUnsavedChanges(false);
+      console.log('Client changes saved successfully');
     }
     
-    setHasUnsavedChanges(false);
-    console.log('Changes cancelled successfully');
+    if (gridType === 'master') {
+      setOriginalMasterData([...rowsMaster]);
+      setHasUnsavedMasterChanges(false);
+      console.log('Master changes saved successfully');
+    }
+    
+    if (gridType === 'merged') {
+      setOriginalMergedData([...mergedRows]);
+      setHasUnsavedMergedChanges(false);
+      console.log('Merged changes saved successfully');
+    }
+  };
+
+  const handleCancelEdits = (gridType?: 'master' | 'client' | 'merged') => {
+    if (!gridType || gridType === 'client') {
+      // Revert to original data
+      setRowsClient([...originalClientData]);
+      
+      // Update the sheet data as well
+      const currentSheet = clientSheetNames[activeClientTab];
+      if (currentSheet && clientSheetData[currentSheet]) {
+        const updatedSheetData = {
+          ...clientSheetData,
+          [currentSheet]: {
+            ...clientSheetData[currentSheet],
+            rows: [...originalClientData]
+          }
+        };
+        setClientSheetData(updatedSheetData);
+      }
+      
+      setHasUnsavedChanges(false);
+      console.log('Client changes cancelled successfully');
+    }
+    
+    if (gridType === 'master') {
+      // Revert to original master data
+      setRowsMaster([...originalMasterData]);
+      
+      // Update the sheet data as well
+      const currentSheet = masterSheetNames[activeMasterTab];
+      if (currentSheet && masterSheetData[currentSheet]) {
+        const updatedSheetData = {
+          ...masterSheetData,
+          [currentSheet]: {
+            ...masterSheetData[currentSheet],
+            rows: [...originalMasterData]
+          }
+        };
+        setMasterSheetData(updatedSheetData);
+      }
+      
+      setHasUnsavedMasterChanges(false);
+      console.log('Master changes cancelled successfully');
+    }
+    
+    if (gridType === 'merged') {
+      // Revert to original merged data
+      setMergedRows([...originalMergedData]);
+      setHasUnsavedMergedChanges(false);
+      console.log('Merged changes cancelled successfully');
+    }
   };
 
   // Don't render anything on server side to prevent hydration mismatch
@@ -1670,6 +1717,54 @@ export default function ExcelImportPage() {
                   }
                 }}
               />
+              
+              {/* Save/Cancel buttons for master editing */}
+              {hasUnsavedMasterChanges && (
+                <Box sx={{ 
+                  display: 'flex', 
+                  gap: 1, 
+                  mb: 2,
+                  justifyContent: 'flex-end',
+                  alignItems: 'center'
+                }}>
+                  <Typography variant="body2" sx={{ 
+                    color: '#f57c00', 
+                    fontWeight: 'bold',
+                    mr: 1
+                  }}>
+                    ⚠️ Unsaved changes
+                  </Typography>
+                  <Button 
+                    variant="outlined" 
+                    size="small"
+                    onClick={() => handleCancelEdits('master')}
+                    sx={{ 
+                      color: '#d32f2f', 
+                      borderColor: '#d32f2f',
+                      '&:hover': {
+                        backgroundColor: '#ffebee',
+                        borderColor: '#c62828'
+                      }
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    variant="contained" 
+                    size="small"
+                    onClick={() => handleSaveEdits('master')}
+                    sx={{ 
+                      backgroundColor: '#4caf50',
+                      '&:hover': {
+                        backgroundColor: '#388e3c'
+                      }
+                    }}
+                  >
+                    Save
+                  </Button>
+                </Box>
+              )}
+              
               <Box sx={{ height: 400, width: "100%" }}>
                 <DataGrid 
                   rows={filteredRowsMaster} 
@@ -1679,6 +1774,69 @@ export default function ExcelImportPage() {
                   disableVirtualization={aiSelectedGrid !== 'master'}
                   sortModel={masterSortModel}
                   onSortModelChange={setMasterSortModel}
+                  processRowUpdate={(newRow) => {
+                    // Basic validation for edited cells
+                    const validatedRow = { ...newRow };
+                    
+                    // Validate and clean each field
+                    Object.keys(validatedRow).forEach(key => {
+                      if (key !== 'id') {
+                        const value = validatedRow[key];
+                        
+                        // Convert to string and trim whitespace
+                        if (value !== null && value !== undefined) {
+                          validatedRow[key] = String(value).trim();
+                        } else {
+                          validatedRow[key] = '';
+                        }
+                        
+                        // Additional validation for HCPCS codes (if column contains "HCPCS")
+                        if (key.toLowerCase().includes('hcpcs') && validatedRow[key]) {
+                          const hcpcsValue = String(validatedRow[key]).toUpperCase().trim();
+                          // Basic HCPCS format validation (5 characters, alphanumeric)
+                          if (hcpcsValue.length > 0 && !/^[A-Z0-9]{1,8}(-[A-Z0-9]{1,2})?$/.test(hcpcsValue)) {
+                            console.warn(`Invalid HCPCS format: ${hcpcsValue}. Expected format: XXXXX or XXXXX-XX`);
+                          }
+                          validatedRow[key] = hcpcsValue;
+                        }
+                        
+                        // Validation for numeric fields (if column contains "price", "amount", "cost", "quantity")
+                        if (['price', 'amount', 'cost', 'quantity', 'qty'].some(term => 
+                            key.toLowerCase().includes(term)) && validatedRow[key]) {
+                          const numericValue = String(validatedRow[key]).replace(/[^\d.-]/g, '');
+                          if (numericValue && !isNaN(parseFloat(numericValue))) {
+                            validatedRow[key] = numericValue;
+                          }
+                        }
+                      }
+                    });
+                    
+                    const updatedRows = rowsMaster.map((row) =>
+                      row.id === validatedRow.id ? validatedRow : row
+                    );
+                    setRowsMaster(updatedRows);
+                    
+                    // Update the sheet data as well
+                    const currentSheet = masterSheetNames[activeMasterTab];
+                    if (currentSheet && masterSheetData[currentSheet]) {
+                      const updatedSheetData = {
+                        ...masterSheetData,
+                        [currentSheet]: {
+                          ...masterSheetData[currentSheet],
+                          rows: updatedRows
+                        }
+                      };
+                      setMasterSheetData(updatedSheetData);
+                    }
+                    
+                    // Mark as having unsaved changes
+                    setHasUnsavedMasterChanges(true);
+                    
+                    return validatedRow;
+                  }}
+                  onProcessRowUpdateError={(error) => {
+                    console.error('Master row update error:', error);
+                  }}
                   sx={getDataGridStyles('master')}
                 />
               </Box>
@@ -1838,7 +1996,7 @@ export default function ExcelImportPage() {
                   <Button 
                     variant="outlined" 
                     size="small"
-                    onClick={handleCancelEdits}
+                    onClick={() => handleCancelEdits('client')}
                     sx={{ 
                       color: '#d32f2f', 
                       borderColor: '#d32f2f',
@@ -1853,7 +2011,7 @@ export default function ExcelImportPage() {
                   <Button 
                     variant="contained" 
                     size="small"
-                    onClick={handleSaveEdits}
+                    onClick={() => handleSaveEdits('client')}
                     sx={{ 
                       backgroundColor: '#4caf50',
                       '&:hover': {
@@ -2190,6 +2348,54 @@ export default function ExcelImportPage() {
                 }
               }}
             />
+            
+            {/* Save/Cancel buttons for merged editing */}
+            {hasUnsavedMergedChanges && (
+              <Box sx={{ 
+                display: 'flex', 
+                gap: 1, 
+                mb: 2,
+                justifyContent: 'flex-end',
+                alignItems: 'center'
+              }}>
+                <Typography variant="body2" sx={{ 
+                  color: '#f57c00', 
+                  fontWeight: 'bold',
+                  mr: 1
+                }}>
+                  ⚠️ Unsaved changes
+                </Typography>
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  onClick={() => handleCancelEdits('merged')}
+                  sx={{ 
+                    color: '#d32f2f', 
+                    borderColor: '#d32f2f',
+                    '&:hover': {
+                      backgroundColor: '#ffebee',
+                      borderColor: '#c62828'
+                    }
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  variant="contained" 
+                  size="small"
+                  onClick={() => handleSaveEdits('merged')}
+                  sx={{ 
+                    backgroundColor: '#4caf50',
+                    '&:hover': {
+                      backgroundColor: '#388e3c'
+                    }
+                  }}
+                >
+                  Save
+                </Button>
+              </Box>
+            )}
+            
             <Box sx={{ height: 400, width: "100%" }}>
               <DataGrid 
                 rows={filteredMergedRows} 
@@ -2199,6 +2405,57 @@ export default function ExcelImportPage() {
                 disableVirtualization={aiSelectedGrid !== 'merged'}
                 sortModel={mergedSortModel}
                 onSortModelChange={setMergedSortModel}
+                processRowUpdate={(newRow) => {
+                  // Basic validation for edited cells
+                  const validatedRow = { ...newRow };
+                  
+                  // Validate and clean each field
+                  Object.keys(validatedRow).forEach(key => {
+                    if (key !== 'id') {
+                      const value = validatedRow[key];
+                      
+                      // Convert to string and trim whitespace
+                      if (value !== null && value !== undefined) {
+                        validatedRow[key] = String(value).trim();
+                      } else {
+                        validatedRow[key] = '';
+                      }
+                      
+                      // Additional validation for HCPCS codes (if column contains "HCPCS")
+                      if (key.toLowerCase().includes('hcpcs') && validatedRow[key]) {
+                        const hcpcsValue = String(validatedRow[key]).toUpperCase().trim();
+                        // Basic HCPCS format validation (5 characters, alphanumeric)
+                        if (hcpcsValue.length > 0 && !/^[A-Z0-9]{1,8}(-[A-Z0-9]{1,2})?$/.test(hcpcsValue)) {
+                          console.warn(`Invalid HCPCS format: ${hcpcsValue}. Expected format: XXXXX or XXXXX-XX`);
+                        }
+                        validatedRow[key] = hcpcsValue;
+                      }
+                      
+                      // Validation for numeric fields (if column contains "price", "amount", "cost", "quantity")
+                      if (['price', 'amount', 'cost', 'quantity', 'qty'].some(term => 
+                          key.toLowerCase().includes(term)) && validatedRow[key]) {
+                        const numericValue = String(validatedRow[key]).replace(/[^\d.-]/g, '');
+                        if (numericValue && !isNaN(parseFloat(numericValue))) {
+                          validatedRow[key] = numericValue;
+                        }
+                      }
+                    }
+                  });
+                  
+                  const updatedRows = mergedRows.map((row) =>
+                    row.id === validatedRow.id ? validatedRow : row
+                  );
+                  setMergedRows(updatedRows);
+                  setMergedForExport(updatedRows);
+                  
+                  // Mark as having unsaved changes
+                  setHasUnsavedMergedChanges(true);
+                  
+                  return validatedRow;
+                }}
+                onProcessRowUpdateError={(error) => {
+                  console.error('Merged row update error:', error);
+                }}
                 sx={getDataGridStyles('merged')}
               />
             </Box>
