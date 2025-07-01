@@ -22,7 +22,6 @@ import {
   SmartToy as AIIcon,
   Person as PersonIcon,
   Close as CloseIcon,
-  Minimize as MinimizeIcon,
   Clear as ClearIcon,
   DragIndicator as DragIcon,
 } from '@mui/icons-material';
@@ -68,13 +67,12 @@ interface AIChatProps {
   onAction?: (intent: AIIntent) => void;
   isOpen: boolean;
   onClose: () => void;
-  onMinimize: () => void;
   selectedGrid: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates';
   onGridChange: (grid: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') => void;
   onWidthChange?: (width: number) => void;
 }
 
-export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinimize, selectedGrid, onGridChange, onWidthChange }: AIChatProps) {
+export default function AIChat({ gridContext, onAction, isOpen, onClose, selectedGrid, onGridChange, onWidthChange }: AIChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -383,9 +381,6 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
             </Box>
           </Box>
           <Box>
-            <IconButton size="small" onClick={onMinimize} sx={{ color: 'white', mr: 1 }} title="Minimize">
-              <MinimizeIcon />
-            </IconButton>
             <IconButton size="small" onClick={onClose} sx={{ color: 'white' }} title="Close">
               <CloseIcon />
             </IconButton>

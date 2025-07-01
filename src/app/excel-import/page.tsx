@@ -288,7 +288,7 @@ export default function ExcelImportPage() {
   const [errorsTabValue, setErrorsTabValue] = useState(0);
 
   // AI Chat state with localStorage persistence
-  const [isChatOpen, setIsChatOpen] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [aiSelectedGrid, setAiSelectedGrid] = useState<'master' | 'client' | 'merged' | 'unmatched' | 'duplicates'>('merged');
   const [chatWidth, setChatWidth] = useState(320);
 
@@ -896,10 +896,33 @@ export default function ExcelImportPage() {
   // Remove mergeSource state and related code
 
   // Find HCPCS and Modifier columns for each file independently
-  const getHCPCSColumnMaster = () => columnsMaster.find(col => col.field.toLowerCase() === "hcpcs")?.field || null;
-  const getHCPCSColumnClient = () => columnsClient.find(col => col.field.toLowerCase() === "hcpcs")?.field || null;
-  const getModifierColumnMaster = () => columnsMaster.find(col => col.field.toLowerCase() === "modifier")?.field || null;
-  const getModifierColumnClient = () => columnsClient.find(col => col.field.toLowerCase() === "modifier")?.field || null;
+  const getHCPCSColumnMaster = useCallback(() => {
+    const hcpcsColumn = columnsMaster.find(col => 
+      findMatchingColumn("HCPCS", [col]) === col.field
+    );
+    return hcpcsColumn?.field || null;
+  }, [columnsMaster]);
+  
+  const getHCPCSColumnClient = useCallback(() => {
+    const hcpcsColumn = columnsClient.find(col => 
+      findMatchingColumn("HCPCS", [col]) === col.field
+    );
+    return hcpcsColumn?.field || null;
+  }, [columnsClient]);
+  
+  const getModifierColumnMaster = useCallback(() => {
+    const modifierColumn = columnsMaster.find(col => 
+      findMatchingColumn("MODIFIER", [col]) === col.field
+    );
+    return modifierColumn?.field || null;
+  }, [columnsMaster]);
+  
+  const getModifierColumnClient = useCallback(() => {
+    const modifierColumn = columnsClient.find(col => 
+      findMatchingColumn("MODIFIER", [col]) === col.field
+    );
+    return modifierColumn?.field || null;
+  }, [columnsClient]);
 
   // Improved HCPCS parsing: supports XXXXX-YY, XXXXXYY, and separate Modifier column
   function parseHCPCS(row: ExcelRow, hcpcsCol: string, modifierCol: string | null): { root: string, modifier: string } {
@@ -924,10 +947,12 @@ export default function ExcelImportPage() {
   }
 
   // Helper to get description column name (case-insensitive)
-  function getDescriptionCol(cols: GridColDef[]): string | null {
-    const descCol = cols.find(col => col.field.toLowerCase() === "description");
-    return descCol ? descCol.field : null;
-  }
+  const getDescriptionCol = useCallback((cols: GridColDef[]): string | null => {
+    const descColumn = cols.find(col => 
+      findMatchingColumn("DESCRIPTION", [col]) === col.field
+    );
+    return descColumn?.field || null;
+  }, []);
   
   // Advanced column matching with multiple fallback strategies
   function findMatchingColumn(masterField: string, clientColumns: GridColDef[]): string | null {
@@ -999,7 +1024,7 @@ export default function ExcelImportPage() {
   }
   
   // Create column mapping between master and client
-  function createColumnMapping(masterColumns: GridColDef[], clientColumns: GridColDef[]): {[masterField: string]: string} {
+  const createColumnMapping = useCallback((masterColumns: GridColDef[], clientColumns: GridColDef[]): {[masterField: string]: string} => {
     const mapping: {[masterField: string]: string} = {};
     
     masterColumns.forEach(masterCol => {
@@ -1011,7 +1036,7 @@ export default function ExcelImportPage() {
     
     console.log('[COLUMN MAPPING] Final mapping:', mapping);
     return mapping;
-  }
+  }, []);
 
   const handleCompare = useCallback(() => {
     // Start timing the comparison
@@ -1087,33 +1112,28 @@ export default function ExcelImportPage() {
     const matchedKeys = Array.from(mapClient.keys()).filter((key: string) => mapMaster.has(key));
     console.log(`[DIAG] matchedKeys count: ${matchedKeys.length}`);
     
-    // Create column mapping and merged columns with only matching fields
+    // Create column mapping and merged columns
     const columnMapping = createColumnMapping(columnsMaster, columnsClient);
-    const matchingMasterColumns = columnsMaster.filter(col => columnMapping[col.field]);
-    const matchingClientColumns = columnsClient.filter(col => 
-      Object.values(columnMapping).includes(col.field) && 
-      !matchingMasterColumns.some(masterCol => masterCol.field === col.field)
-    );
     
-    const mergedColumns = [...matchingMasterColumns, ...matchingClientColumns];
+    // The merged result should ALWAYS use ALL master columns as the structure
+    // This ensures no duplicate columns and maintains master sheet structure
+    const mergedColumns = columnsMaster;
     setMergedColumns(mergedColumns);
-    // Build merged rows: for each match, use mapped columns
+    // Build merged rows: for each match, populate master columns with client data where possible
     const merged: ExcelRow[] = matchedKeys.map((key: string, idx: number) => {
       const rowMaster = mapMaster.get(key);
       const rowClient = mapClient.get(key);
       const mergedRow: ExcelRow = { id: rowMaster?.id ?? idx };
       
+      // For each master column, populate with client data if mapping exists, otherwise use master data
       mergedColumns.forEach((col) => {
         if (columnMapping[col.field]) {
-          // This is a master column with a mapped client column
+          // This master column has a mapped client column - use client data
           const clientField = columnMapping[col.field];
           mergedRow[col.field] = rowClient?.[clientField] ?? rowMaster?.[col.field] ?? "";
-        } else if (Object.values(columnMapping).includes(col.field)) {
-          // This is a client column that was mapped
-          mergedRow[col.field] = rowClient?.[col.field] ?? "";
         } else {
-          // Fallback for unmapped columns
-          mergedRow[col.field] = rowMaster?.[col.field] ?? rowClient?.[col.field] ?? "";
+          // No mapping found - use master data
+          mergedRow[col.field] = rowMaster?.[col.field] ?? "";
         }
       });
       return mergedRow;
@@ -1169,7 +1189,7 @@ export default function ExcelImportPage() {
     console.log(`[DIAG] dupsClient count: ${dupsClient.length}`);
     if (unmatchedClient.length > 0) console.log("[DIAG] Sample unmatched Client record:", unmatchedClient[0]);
     if (dupsClient.length > 0) console.log("[DIAG] Sample duplicate Client record:", dupsClient[0]);
-  }, [rowsMaster, rowsClient, columnsMaster, columnsClient, masterSheetNames, clientSheetNames, activeMasterTab, activeClientTab, modifierCriteria, createColumnMapping, getHCPCSColumnClient, getHCPCSColumnMaster, getModifierColumnClient, getModifierColumnMaster]);
+  }, [rowsMaster, rowsClient, columnsMaster, columnsClient, masterSheetNames, clientSheetNames, activeMasterTab, activeClientTab, modifierCriteria, createColumnMapping, getHCPCSColumnClient, getHCPCSColumnMaster, getModifierColumnClient, getModifierColumnMaster, getDescriptionCol]);
 
   // Auto-trigger comparison when both files are loaded
   useEffect(() => {
@@ -2149,7 +2169,6 @@ export default function ExcelImportPage() {
         onAction={handleAIAction}
         isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}
-        onMinimize={() => setIsChatOpen(false)}
         selectedGrid={aiSelectedGrid}
         onGridChange={setAiSelectedGrid}
         onWidthChange={handleChatWidthChange}
