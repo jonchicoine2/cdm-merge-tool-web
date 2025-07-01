@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Chip, Fab } from "@mui/material";
 import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
@@ -37,7 +37,7 @@ interface ComparisonStats {
 
 interface AIIntent {
   type: 'query' | 'action' | 'filter' | 'sort' | 'analysis' | 'documentation';
-  action?: 'sort' | 'filter' | 'search' | 'summarize' | 'count' | 'show' | 'switch' | 'explain' | 'clear_filters' | 'export';
+  action?: 'sort' | 'filter' | 'search' | 'summarize' | 'count' | 'show' | 'switch' | 'explain' | 'clear_filters' | 'export' | 'duplicate' | 'delete' | 'add';
   parameters?: {
     column?: string;
     value?: string;
@@ -45,6 +45,8 @@ interface AIIntent {
     condition?: string;
     view?: string;
     filename?: string;
+    rowId?: number | string;
+    rowData?: {[key: string]: string | number | undefined};
   };
   response?: string;
 }
@@ -326,6 +328,24 @@ export default function ExcelImportPage() {
   const [originalMergedData, setOriginalMergedData] = useState<ExcelRow[]>([]);
   const [hasUnsavedMergedChanges, setHasUnsavedMergedChanges] = useState(false);
 
+  // Duplicate validation states
+  const [duplicateValidationErrors, setDuplicateValidationErrors] = useState<{
+    master: { duplicateKeys: string[], duplicateRows: ExcelRow[] },
+    client: { duplicateKeys: string[], duplicateRows: ExcelRow[] },
+    merged: { duplicateKeys: string[], duplicateRows: ExcelRow[] }
+  }>({
+    master: { duplicateKeys: [], duplicateRows: [] },
+    client: { duplicateKeys: [], duplicateRows: [] },
+    merged: { duplicateKeys: [], duplicateRows: [] }
+  });
+
+  // Row selection states for each grid
+  const [selectedRowMaster, setSelectedRowMaster] = useState<number | string | null>(null);
+  const [selectedRowClient, setSelectedRowClient] = useState<number | string | null>(null);
+  const [selectedRowMerged, setSelectedRowMerged] = useState<number | string | null>(null);
+  const [selectedRowUnmatched, setSelectedRowUnmatched] = useState<number | string | null>(null);
+  const [selectedRowDuplicates, setSelectedRowDuplicates] = useState<number | string | null>(null);
+
   // Filter function for search
   const filterRows = (rows: ExcelRow[], searchTerm: string): ExcelRow[] => {
     if (!searchTerm.trim()) return rows;
@@ -510,6 +530,27 @@ export default function ExcelImportPage() {
     };
 
     const { rows, columns } = getCurrentData();
+    
+    // Get selected row information for current grid
+    const getSelectedRowInfo = () => {
+      switch (aiSelectedGrid) {
+        case 'master':
+          return { selectedRowId: selectedRowMaster, selectedRowData: selectedRowMaster ? (rows.find(row => row.id === selectedRowMaster) || null) : null };
+        case 'client':
+          return { selectedRowId: selectedRowClient, selectedRowData: selectedRowClient ? (rows.find(row => row.id === selectedRowClient) || null) : null };
+        case 'merged':
+          return { selectedRowId: selectedRowMerged, selectedRowData: selectedRowMerged ? (rows.find(row => row.id === selectedRowMerged) || null) : null };
+        case 'unmatched':
+          return { selectedRowId: selectedRowUnmatched, selectedRowData: selectedRowUnmatched ? (rows.find(row => row.id === selectedRowUnmatched) || null) : null };
+        case 'duplicates':
+          return { selectedRowId: selectedRowDuplicates, selectedRowData: selectedRowDuplicates ? (rows.find(row => row.id === selectedRowDuplicates) || null) : null };
+        default:
+          return { selectedRowId: null, selectedRowData: null };
+      }
+    };
+    
+    const { selectedRowId, selectedRowData } = getSelectedRowInfo();
+    
     return {
       columns: columns.map(col => col.field),
       rowCount: rows.length,
@@ -524,7 +565,56 @@ export default function ExcelImportPage() {
       },
       isInCompareMode: showCompare,
       selectedGrid: aiSelectedGrid,
+      selectedRowId: selectedRowId,
+      selectedRowData: selectedRowData,
     };
+  };
+
+  // Memoized grid context that updates when selection state changes
+  const gridContext = useMemo(() => {
+    console.log('[GRID CONTEXT DEBUG] Creating context with selection states:', {
+      aiSelectedGrid,
+      selectedRowMaster,
+      selectedRowClient,
+      selectedRowMerged,
+      selectedRowUnmatched,
+      selectedRowDuplicates
+    });
+    const context = getCurrentGridContext();
+    console.log('[GRID CONTEXT DEBUG] Created context:', {
+      selectedGrid: context.selectedGrid,
+      selectedRowId: context.selectedRowId,
+      selectedRowData: context.selectedRowData ? 'present' : 'null'
+    });
+    return context;
+  }, [
+    aiSelectedGrid,
+    selectedRowMaster,
+    selectedRowClient, 
+    selectedRowMerged,
+    selectedRowUnmatched,
+    selectedRowDuplicates,
+    rowsMaster,
+    rowsClient,
+    mergedRows,
+    unmatchedClient,
+    dupsClient,
+    columnsMaster,
+    columnsClient,
+    mergedColumns,
+    showCompare
+  ]);
+
+  // Helper function to get currently selected row ID
+  const getCurrentSelectedRowId = () => {
+    switch (aiSelectedGrid) {
+      case 'master': return selectedRowMaster;
+      case 'client': return selectedRowClient;
+      case 'merged': return selectedRowMerged;
+      case 'unmatched': return selectedRowUnmatched;
+      case 'duplicates': return selectedRowDuplicates;
+      default: return null;
+    }
   };
 
   const handleAIAction = (intent: AIIntent) => {
@@ -538,6 +628,31 @@ export default function ExcelImportPage() {
       // Just log for now - the response is already displayed in chat
       console.log('Documentation question answered:', intent.response);
       return;
+    }
+
+    // FALLBACK: If AI returned a query but we can detect it should be an action
+    if (intent.type === 'query' && intent.response) {
+      const response = intent.response.toLowerCase();
+      
+      // Check for duplicate commands
+      if ((response.includes('duplicat') && (response.includes('current') || response.includes('selected'))) ||
+          response.includes('duplicating the currently selected row') ||
+          response.includes('duplicating the selected row')) {
+        
+        const selectedRowId = getCurrentSelectedRowId();
+        if (selectedRowId !== null) {
+          console.log('[AI FALLBACK] Converting query to duplicate action, rowId:', selectedRowId);
+          const duplicateIntent: AIIntent = {
+            type: 'action',
+            action: 'duplicate',
+            parameters: { rowId: selectedRowId },
+            response: 'Duplicating the currently selected row'
+          };
+          // Recursively call handleAIAction with the corrected intent
+          handleAIAction(duplicateIntent);
+          return;
+        }
+      }
     }
     
     // Function to ensure grid is visible and scroll to it
@@ -811,6 +926,60 @@ export default function ExcelImportPage() {
       } else {
         console.log(`Export not supported for ${targetView} grid yet`);
       }
+    }
+
+    if (intent.action === 'duplicate' && intent.parameters?.rowId) {
+      const targetView = intent.parameters?.view || aiSelectedGrid;
+      const rowId = intent.parameters.rowId;
+      
+      // Update AI selected grid if specified
+      if (intent.parameters?.view) {
+        setAiSelectedGrid(intent.parameters.view as typeof aiSelectedGrid);
+        ensureGridVisible(intent.parameters.view);
+      } else {
+        // Scroll to current grid to show the duplication
+        ensureGridVisible(targetView);
+      }
+      
+      // Call the duplicate function
+      handleDuplicateRecord(rowId, targetView as 'master' | 'client' | 'merged');
+      console.log(`Duplicated record ${rowId} in ${targetView} grid`);
+    }
+
+    if (intent.action === 'delete' && intent.parameters?.rowId) {
+      const targetView = intent.parameters?.view || aiSelectedGrid;
+      const rowId = intent.parameters.rowId;
+      
+      // Update AI selected grid if specified
+      if (intent.parameters?.view) {
+        setAiSelectedGrid(intent.parameters.view as typeof aiSelectedGrid);
+        ensureGridVisible(intent.parameters.view);
+      } else {
+        // Scroll to current grid to show the deletion
+        ensureGridVisible(targetView);
+      }
+      
+      // Call the delete function
+      handleDeleteRecord(rowId, targetView as 'master' | 'client' | 'merged');
+      console.log(`Deleted record ${rowId} from ${targetView} grid`);
+    }
+
+    if (intent.action === 'add') {
+      const targetView = intent.parameters?.view || aiSelectedGrid;
+      const rowData = intent.parameters?.rowData;
+      
+      // Update AI selected grid if specified
+      if (intent.parameters?.view) {
+        setAiSelectedGrid(intent.parameters.view as typeof aiSelectedGrid);
+        ensureGridVisible(intent.parameters.view);
+      } else {
+        // Scroll to current grid to show the addition
+        ensureGridVisible(targetView);
+      }
+      
+      // Call the add function
+      handleAddRecord(targetView as 'master' | 'client' | 'merged', rowData);
+      console.log(`Added new record to ${targetView} grid`);
     }
   };
 
@@ -1509,19 +1678,66 @@ export default function ExcelImportPage() {
   // Save and cancel functions for editing
   const handleSaveEdits = (gridType?: 'master' | 'client' | 'merged') => {
     if (!gridType || gridType === 'client') {
-      // Update the original data to match current data
+      // Validate for duplicates before saving
+      const validation = validateForDuplicates(rowsClient, 'client');
+      if (validation.hasDuplicates) {
+        setDuplicateValidationErrors(prev => ({
+          ...prev,
+          client: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
+        }));
+        console.error('Cannot save: Duplicate records found in client grid', validation.duplicateKeys);
+        return;
+      }
+      
+      // Clear any previous validation errors and save
+      setDuplicateValidationErrors(prev => ({
+        ...prev,
+        client: { duplicateKeys: [], duplicateRows: [] }
+      }));
       setOriginalClientData([...rowsClient]);
       setHasUnsavedChanges(false);
       console.log('Client changes saved successfully');
     }
     
     if (gridType === 'master') {
+      // Validate for duplicates before saving
+      const validation = validateForDuplicates(rowsMaster, 'master');
+      if (validation.hasDuplicates) {
+        setDuplicateValidationErrors(prev => ({
+          ...prev,
+          master: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
+        }));
+        console.error('Cannot save: Duplicate records found in master grid', validation.duplicateKeys);
+        return;
+      }
+      
+      // Clear any previous validation errors and save
+      setDuplicateValidationErrors(prev => ({
+        ...prev,
+        master: { duplicateKeys: [], duplicateRows: [] }
+      }));
       setOriginalMasterData([...rowsMaster]);
       setHasUnsavedMasterChanges(false);
       console.log('Master changes saved successfully');
     }
     
     if (gridType === 'merged') {
+      // Validate for duplicates before saving
+      const validation = validateForDuplicates(mergedRows, 'merged');
+      if (validation.hasDuplicates) {
+        setDuplicateValidationErrors(prev => ({
+          ...prev,
+          merged: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
+        }));
+        console.error('Cannot save: Duplicate records found in merged grid', validation.duplicateKeys);
+        return;
+      }
+      
+      // Clear any previous validation errors and save
+      setDuplicateValidationErrors(prev => ({
+        ...prev,
+        merged: { duplicateKeys: [], duplicateRows: [] }
+      }));
       setOriginalMergedData([...mergedRows]);
       setHasUnsavedMergedChanges(false);
       console.log('Merged changes saved successfully');
@@ -1546,6 +1762,12 @@ export default function ExcelImportPage() {
         setClientSheetData(updatedSheetData);
       }
       
+      // Clear validation errors
+      setDuplicateValidationErrors(prev => ({
+        ...prev,
+        client: { duplicateKeys: [], duplicateRows: [] }
+      }));
+      
       setHasUnsavedChanges(false);
       console.log('Client changes cancelled successfully');
     }
@@ -1567,6 +1789,12 @@ export default function ExcelImportPage() {
         setMasterSheetData(updatedSheetData);
       }
       
+      // Clear validation errors
+      setDuplicateValidationErrors(prev => ({
+        ...prev,
+        master: { duplicateKeys: [], duplicateRows: [] }
+      }));
+      
       setHasUnsavedMasterChanges(false);
       console.log('Master changes cancelled successfully');
     }
@@ -1574,8 +1802,273 @@ export default function ExcelImportPage() {
     if (gridType === 'merged') {
       // Revert to original merged data
       setMergedRows([...originalMergedData]);
+      
+      // Clear validation errors
+      setDuplicateValidationErrors(prev => ({
+        ...prev,
+        merged: { duplicateKeys: [], duplicateRows: [] }
+      }));
+      
       setHasUnsavedMergedChanges(false);
       console.log('Merged changes cancelled successfully');
+    }
+  };
+
+  // Duplicate validation function
+  const validateForDuplicates = (rows: ExcelRow[], gridType: 'master' | 'client' | 'merged'): {hasDuplicates: boolean, duplicateRows: ExcelRow[], duplicateKeys: string[]} => {
+    // Get the appropriate HCPCS and modifier columns based on grid type
+    let hcpcsCol: string | null = null;
+    let modifierCol: string | null = null;
+    
+    if (gridType === 'master') {
+      hcpcsCol = getHCPCSColumnMaster();
+      modifierCol = getModifierColumnMaster();
+    } else if (gridType === 'client') {
+      hcpcsCol = getHCPCSColumnClient();
+      modifierCol = getModifierColumnClient();
+    } else if (gridType === 'merged') {
+      // For merged grid, use master column structure but check for duplicates
+      hcpcsCol = getHCPCSColumnMaster();
+      modifierCol = getModifierColumnMaster();
+    }
+    
+    if (!hcpcsCol) {
+      // If no HCPCS column found, no duplicates can be detected
+      return { hasDuplicates: false, duplicateRows: [], duplicateKeys: [] };
+    }
+    
+    // Create key function similar to the existing duplicate detection
+    const getRawKey = (row: ExcelRow): string => {
+      const hcpcs = String(row[hcpcsCol!] || "").toUpperCase().trim();
+      const modifier = modifierCol ? String(row[modifierCol] || "").toUpperCase().trim() : "";
+      // If there's a modifier column, use both; otherwise, use the full HCPCS field as-is
+      return modifierCol ? `${hcpcs}-${modifier}` : hcpcs;
+    };
+    
+    // Count occurrences of each key
+    const keyCount: Record<string, number> = {};
+    const keyToRows: Record<string, ExcelRow[]> = {};
+    
+    rows.forEach(row => {
+      const key = getRawKey(row);
+      if (key) {
+        keyCount[key] = (keyCount[key] || 0) + 1;
+        if (!keyToRows[key]) {
+          keyToRows[key] = [];
+        }
+        keyToRows[key].push(row);
+      }
+    });
+    
+    // Find duplicate keys (keys that appear more than once)
+    const duplicateKeys = Object.keys(keyCount).filter(key => keyCount[key] > 1);
+    const duplicateRows = duplicateKeys.flatMap(key => keyToRows[key]);
+    
+    return {
+      hasDuplicates: duplicateKeys.length > 0,
+      duplicateRows,
+      duplicateKeys
+    };
+  };
+
+  // Record manipulation functions
+  const handleDuplicateRecord = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
+    // Set up variables based on grid type
+    if (gridType === 'master') {
+      const recordToDuplicate = rowsMaster.find(row => row.id === rowId);
+      if (!recordToDuplicate) {
+        console.error(`Record with ID ${rowId} not found in master grid`);
+        return;
+      }
+      
+      const maxId = Math.max(...rowsMaster.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
+      const newRecord = { ...recordToDuplicate, id: maxId + 1 };
+      const updatedRows = [...rowsMaster, newRecord];
+      setRowsMaster(updatedRows);
+      
+      // Update sheet data
+      const currentSheet = masterSheetNames[activeMasterTab];
+      if (currentSheet && masterSheetData[currentSheet]) {
+        const updatedSheetData = {
+          ...masterSheetData,
+          [currentSheet]: {
+            ...masterSheetData[currentSheet],
+            rows: updatedRows
+          }
+        };
+        setMasterSheetData(updatedSheetData);
+      }
+      
+      setHasUnsavedMasterChanges(true);
+      console.log(`Record duplicated in master grid. New record ID: ${newRecord.id}`);
+    } else if (gridType === 'client') {
+      const recordToDuplicate = rowsClient.find(row => row.id === rowId);
+      if (!recordToDuplicate) {
+        console.error(`Record with ID ${rowId} not found in client grid`);
+        return;
+      }
+      
+      const maxId = Math.max(...rowsClient.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
+      const newRecord = { ...recordToDuplicate, id: maxId + 1 };
+      const updatedRows = [...rowsClient, newRecord];
+      setRowsClient(updatedRows);
+      
+      // Update sheet data
+      const currentSheet = clientSheetNames[activeClientTab];
+      if (currentSheet && clientSheetData[currentSheet]) {
+        const updatedSheetData = {
+          ...clientSheetData,
+          [currentSheet]: {
+            ...clientSheetData[currentSheet],
+            rows: updatedRows
+          }
+        };
+        setClientSheetData(updatedSheetData);
+      }
+      
+      setHasUnsavedChanges(true);
+      console.log(`Record duplicated in client grid. New record ID: ${newRecord.id}`);
+    } else if (gridType === 'merged') {
+      const recordToDuplicate = mergedRows.find(row => row.id === rowId);
+      if (!recordToDuplicate) {
+        console.error(`Record with ID ${rowId} not found in merged grid`);
+        return;
+      }
+      
+      const maxId = Math.max(...mergedRows.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
+      const newRecord = { ...recordToDuplicate, id: maxId + 1 };
+      const updatedRows = [...mergedRows, newRecord];
+      setMergedRows(updatedRows);
+      setMergedForExport(updatedRows);
+      setHasUnsavedMergedChanges(true);
+      console.log(`Record duplicated in merged grid. New record ID: ${newRecord.id}`);
+    }
+  };
+
+  const handleDeleteRecord = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
+    // Set up variables based on grid type
+    if (gridType === 'master') {
+      const updatedRows = rowsMaster.filter(row => row.id !== rowId);
+      setRowsMaster(updatedRows);
+      
+      // Update sheet data
+      const currentSheet = masterSheetNames[activeMasterTab];
+      if (currentSheet && masterSheetData[currentSheet]) {
+        const updatedSheetData = {
+          ...masterSheetData,
+          [currentSheet]: {
+            ...masterSheetData[currentSheet],
+            rows: updatedRows
+          }
+        };
+        setMasterSheetData(updatedSheetData);
+      }
+      
+      setHasUnsavedMasterChanges(true);
+    } else if (gridType === 'client') {
+      const updatedRows = rowsClient.filter(row => row.id !== rowId);
+      setRowsClient(updatedRows);
+      
+      // Update sheet data
+      const currentSheet = clientSheetNames[activeClientTab];
+      if (currentSheet && clientSheetData[currentSheet]) {
+        const updatedSheetData = {
+          ...clientSheetData,
+          [currentSheet]: {
+            ...clientSheetData[currentSheet],
+            rows: updatedRows
+          }
+        };
+        setClientSheetData(updatedSheetData);
+      }
+      
+      setHasUnsavedChanges(true);
+    } else if (gridType === 'merged') {
+      const updatedRows = mergedRows.filter(row => row.id !== rowId);
+      setMergedRows(updatedRows);
+      setMergedForExport(updatedRows);
+      setHasUnsavedMergedChanges(true);
+    }
+
+    console.log(`Record with ID ${rowId} deleted from ${gridType} grid`);
+  };
+
+  const handleAddRecord = (gridType: 'master' | 'client' | 'merged', rowData?: {[key: string]: string | number | undefined}) => {
+    // Set up variables based on grid type
+    if (gridType === 'master') {
+      const maxId = rowsMaster.length > 0 ? Math.max(...rowsMaster.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0)) : 0;
+      const newRecord: ExcelRow = { id: maxId + 1 };
+      
+      // Initialize all columns with empty values or provided data
+      columnsMaster.forEach(col => {
+        if (col.field !== 'id') {
+          newRecord[col.field] = rowData?.[col.field] || '';
+        }
+      });
+      
+      const updatedRows = [...rowsMaster, newRecord];
+      setRowsMaster(updatedRows);
+      
+      // Update sheet data
+      const currentSheet = masterSheetNames[activeMasterTab];
+      if (currentSheet && masterSheetData[currentSheet]) {
+        const updatedSheetData = {
+          ...masterSheetData,
+          [currentSheet]: {
+            ...masterSheetData[currentSheet],
+            rows: updatedRows
+          }
+        };
+        setMasterSheetData(updatedSheetData);
+      }
+      
+      setHasUnsavedMasterChanges(true);
+      console.log(`New record added to master grid. New record ID: ${newRecord.id}`);
+    } else if (gridType === 'client') {
+      const maxId = rowsClient.length > 0 ? Math.max(...rowsClient.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0)) : 0;
+      const newRecord: ExcelRow = { id: maxId + 1 };
+      
+      // Initialize all columns with empty values or provided data
+      columnsClient.forEach(col => {
+        if (col.field !== 'id') {
+          newRecord[col.field] = rowData?.[col.field] || '';
+        }
+      });
+      
+      const updatedRows = [...rowsClient, newRecord];
+      setRowsClient(updatedRows);
+      
+      // Update sheet data
+      const currentSheet = clientSheetNames[activeClientTab];
+      if (currentSheet && clientSheetData[currentSheet]) {
+        const updatedSheetData = {
+          ...clientSheetData,
+          [currentSheet]: {
+            ...clientSheetData[currentSheet],
+            rows: updatedRows
+          }
+        };
+        setClientSheetData(updatedSheetData);
+      }
+      
+      setHasUnsavedChanges(true);
+      console.log(`New record added to client grid. New record ID: ${newRecord.id}`);
+    } else if (gridType === 'merged') {
+      const maxId = mergedRows.length > 0 ? Math.max(...mergedRows.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0)) : 0;
+      const newRecord: ExcelRow = { id: maxId + 1 };
+      
+      // Initialize all columns with empty values or provided data
+      mergedColumns.forEach(col => {
+        if (col.field !== 'id') {
+          newRecord[col.field] = rowData?.[col.field] || '';
+        }
+      });
+      
+      const updatedRows = [...mergedRows, newRecord];
+      setMergedRows(updatedRows);
+      setMergedForExport(updatedRows);
+      setHasUnsavedMergedChanges(true);
+      console.log(`New record added to merged grid. New record ID: ${newRecord.id}`);
     }
   };
 
@@ -1722,46 +2215,74 @@ export default function ExcelImportPage() {
               {hasUnsavedMasterChanges && (
                 <Box sx={{ 
                   display: 'flex', 
+                  flexDirection: 'column',
                   gap: 1, 
-                  mb: 2,
-                  justifyContent: 'flex-end',
-                  alignItems: 'center'
+                  mb: 2
                 }}>
-                  <Typography variant="body2" sx={{ 
-                    color: '#f57c00', 
-                    fontWeight: 'bold',
-                    mr: 1
+                  {duplicateValidationErrors.master.duplicateKeys.length > 0 && (
+                    <Box sx={{ 
+                      p: 1.5,
+                      backgroundColor: '#ffebee',
+                      border: '1px solid #f44336',
+                      borderRadius: 1,
+                      mb: 1
+                    }}>
+                      <Typography variant="body2" sx={{ 
+                        color: '#d32f2f', 
+                        fontWeight: 'bold',
+                        mb: 0.5
+                      }}>
+                        🚫 Cannot save: Duplicate records found
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: '#d32f2f' }}>
+                        Duplicate HCPCS codes: {duplicateValidationErrors.master.duplicateKeys.join(', ')}
+                      </Typography>
+                    </Box>
+                  )}
+                  
+                  <Box sx={{ 
+                    display: 'flex', 
+                    gap: 1,
+                    justifyContent: 'flex-end',
+                    alignItems: 'center'
                   }}>
-                    ⚠️ Unsaved changes
-                  </Typography>
-                  <Button 
-                    variant="outlined" 
-                    size="small"
-                    onClick={() => handleCancelEdits('master')}
-                    sx={{ 
-                      color: '#d32f2f', 
-                      borderColor: '#d32f2f',
-                      '&:hover': {
-                        backgroundColor: '#ffebee',
-                        borderColor: '#c62828'
-                      }
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    variant="contained" 
-                    size="small"
-                    onClick={() => handleSaveEdits('master')}
-                    sx={{ 
-                      backgroundColor: '#4caf50',
-                      '&:hover': {
-                        backgroundColor: '#388e3c'
-                      }
-                    }}
-                  >
-                    Save
-                  </Button>
+                    <Typography variant="body2" sx={{ 
+                      color: '#f57c00', 
+                      fontWeight: 'bold',
+                      mr: 1
+                    }}>
+                      ⚠️ Unsaved changes
+                    </Typography>
+                    <Button 
+                      variant="outlined" 
+                      size="small"
+                      onClick={() => handleCancelEdits('master')}
+                      sx={{ 
+                        color: '#d32f2f', 
+                        borderColor: '#d32f2f',
+                        '&:hover': {
+                          backgroundColor: '#ffebee',
+                          borderColor: '#c62828'
+                        }
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      variant="contained" 
+                      size="small"
+                      onClick={() => handleSaveEdits('master')}
+                      disabled={duplicateValidationErrors.master.duplicateKeys.length > 0}
+                      sx={{ 
+                        backgroundColor: '#4caf50',
+                        '&:hover': {
+                          backgroundColor: '#388e3c'
+                        }
+                      }}
+                    >
+                      Save
+                    </Button>
+                  </Box>
                 </Box>
               )}
               
@@ -1770,10 +2291,19 @@ export default function ExcelImportPage() {
                   rows={filteredRowsMaster} 
                   columns={columnsMaster}
                   density="compact"
-                  disableRowSelectionOnClick
                   disableVirtualization={aiSelectedGrid !== 'master'}
                   sortModel={masterSortModel}
                   onSortModelChange={setMasterSortModel}
+                  checkboxSelection
+                  onRowSelectionModelChange={(newRowSelectionModel) => {
+                    // Handle the new DataGrid selection model format
+                    let selectedId = null;
+                    if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
+                      const ids = newRowSelectionModel.ids as Set<number | string>;
+                      selectedId = ids.size > 0 ? Array.from(ids)[0] : null;
+                    }
+                    setSelectedRowMaster(selectedId);
+                  }}
                   processRowUpdate={(newRow) => {
                     // Basic validation for edited cells
                     const validatedRow = { ...newRow };
@@ -1981,46 +2511,74 @@ export default function ExcelImportPage() {
               {hasUnsavedChanges && (
                 <Box sx={{ 
                   display: 'flex', 
+                  flexDirection: 'column',
                   gap: 1, 
-                  mb: 2,
-                  justifyContent: 'flex-end',
-                  alignItems: 'center'
+                  mb: 2
                 }}>
-                  <Typography variant="body2" sx={{ 
-                    color: '#f57c00', 
-                    fontWeight: 'bold',
-                    mr: 1
+                  {duplicateValidationErrors.client.duplicateKeys.length > 0 && (
+                    <Box sx={{ 
+                      p: 1.5,
+                      backgroundColor: '#ffebee',
+                      border: '1px solid #f44336',
+                      borderRadius: 1,
+                      mb: 1
+                    }}>
+                      <Typography variant="body2" sx={{ 
+                        color: '#d32f2f', 
+                        fontWeight: 'bold',
+                        mb: 0.5
+                      }}>
+                        🚫 Cannot save: Duplicate records found
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: '#d32f2f' }}>
+                        Duplicate HCPCS codes: {duplicateValidationErrors.client.duplicateKeys.join(', ')}
+                      </Typography>
+                    </Box>
+                  )}
+                  
+                  <Box sx={{ 
+                    display: 'flex', 
+                    gap: 1,
+                    justifyContent: 'flex-end',
+                    alignItems: 'center'
                   }}>
-                    ⚠️ Unsaved changes
-                  </Typography>
-                  <Button 
-                    variant="outlined" 
-                    size="small"
-                    onClick={() => handleCancelEdits('client')}
-                    sx={{ 
-                      color: '#d32f2f', 
-                      borderColor: '#d32f2f',
-                      '&:hover': {
-                        backgroundColor: '#ffebee',
-                        borderColor: '#c62828'
-                      }
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    variant="contained" 
-                    size="small"
-                    onClick={() => handleSaveEdits('client')}
-                    sx={{ 
-                      backgroundColor: '#4caf50',
-                      '&:hover': {
-                        backgroundColor: '#388e3c'
-                      }
-                    }}
-                  >
-                    Save
-                  </Button>
+                    <Typography variant="body2" sx={{ 
+                      color: '#f57c00', 
+                      fontWeight: 'bold',
+                      mr: 1
+                    }}>
+                      ⚠️ Unsaved changes
+                    </Typography>
+                    <Button 
+                      variant="outlined" 
+                      size="small"
+                      onClick={() => handleCancelEdits('client')}
+                      sx={{ 
+                        color: '#d32f2f', 
+                        borderColor: '#d32f2f',
+                        '&:hover': {
+                          backgroundColor: '#ffebee',
+                          borderColor: '#c62828'
+                        }
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      variant="contained" 
+                      size="small"
+                      onClick={() => handleSaveEdits('client')}
+                      disabled={duplicateValidationErrors.client.duplicateKeys.length > 0}
+                      sx={{ 
+                        backgroundColor: '#4caf50',
+                        '&:hover': {
+                          backgroundColor: '#388e3c'
+                        }
+                      }}
+                    >
+                      Save
+                    </Button>
+                  </Box>
                 </Box>
               )}
               
@@ -2029,10 +2587,19 @@ export default function ExcelImportPage() {
                   rows={filteredRowsClient} 
                   columns={columnsClient}
                   density="compact"
-                  disableRowSelectionOnClick
                   disableVirtualization={aiSelectedGrid !== 'client'}
                   sortModel={clientSortModel}
                   onSortModelChange={setClientSortModel}
+                  checkboxSelection
+                  onRowSelectionModelChange={(newRowSelectionModel) => {
+                    // Handle the new DataGrid selection model format
+                    let selectedId = null;
+                    if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
+                      const ids = newRowSelectionModel.ids as Set<number | string>;
+                      selectedId = ids.size > 0 ? Array.from(ids)[0] : null;
+                    }
+                    setSelectedRowClient(selectedId);
+                  }}
                   processRowUpdate={(newRow) => {
                     // Basic validation for edited cells
                     const validatedRow = { ...newRow };
@@ -2353,46 +2920,74 @@ export default function ExcelImportPage() {
             {hasUnsavedMergedChanges && (
               <Box sx={{ 
                 display: 'flex', 
+                flexDirection: 'column',
                 gap: 1, 
-                mb: 2,
-                justifyContent: 'flex-end',
-                alignItems: 'center'
+                mb: 2
               }}>
-                <Typography variant="body2" sx={{ 
-                  color: '#f57c00', 
-                  fontWeight: 'bold',
-                  mr: 1
+                {duplicateValidationErrors.merged.duplicateKeys.length > 0 && (
+                  <Box sx={{ 
+                    p: 1.5,
+                    backgroundColor: '#ffebee',
+                    border: '1px solid #f44336',
+                    borderRadius: 1,
+                    mb: 1
+                  }}>
+                    <Typography variant="body2" sx={{ 
+                      color: '#d32f2f', 
+                      fontWeight: 'bold',
+                      mb: 0.5
+                    }}>
+                      🚫 Cannot save: Duplicate records found
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#d32f2f' }}>
+                      Duplicate HCPCS codes: {duplicateValidationErrors.merged.duplicateKeys.join(', ')}
+                    </Typography>
+                  </Box>
+                )}
+                
+                <Box sx={{ 
+                  display: 'flex', 
+                  gap: 1,
+                  justifyContent: 'flex-end',
+                  alignItems: 'center'
                 }}>
-                  ⚠️ Unsaved changes
-                </Typography>
-                <Button 
-                  variant="outlined" 
-                  size="small"
-                  onClick={() => handleCancelEdits('merged')}
-                  sx={{ 
-                    color: '#d32f2f', 
-                    borderColor: '#d32f2f',
-                    '&:hover': {
-                      backgroundColor: '#ffebee',
-                      borderColor: '#c62828'
-                    }
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  variant="contained" 
-                  size="small"
-                  onClick={() => handleSaveEdits('merged')}
-                  sx={{ 
-                    backgroundColor: '#4caf50',
-                    '&:hover': {
-                      backgroundColor: '#388e3c'
-                    }
-                  }}
-                >
-                  Save
-                </Button>
+                  <Typography variant="body2" sx={{ 
+                    color: '#f57c00', 
+                    fontWeight: 'bold',
+                    mr: 1
+                  }}>
+                    ⚠️ Unsaved changes
+                  </Typography>
+                  <Button 
+                    variant="outlined" 
+                    size="small"
+                    onClick={() => handleCancelEdits('merged')}
+                    sx={{ 
+                      color: '#d32f2f', 
+                      borderColor: '#d32f2f',
+                      '&:hover': {
+                        backgroundColor: '#ffebee',
+                        borderColor: '#c62828'
+                      }
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    variant="contained" 
+                    size="small"
+                    onClick={() => handleSaveEdits('merged')}
+                    disabled={duplicateValidationErrors.merged.duplicateKeys.length > 0}
+                    sx={{ 
+                      backgroundColor: '#4caf50',
+                      '&:hover': {
+                        backgroundColor: '#388e3c'
+                      }
+                    }}
+                  >
+                    Save
+                  </Button>
+                </Box>
               </Box>
             )}
             
@@ -2401,10 +2996,19 @@ export default function ExcelImportPage() {
                 rows={filteredMergedRows} 
                 columns={mergedColumns}
                 density="compact"
-                disableRowSelectionOnClick
                 disableVirtualization={aiSelectedGrid !== 'merged'}
                 sortModel={mergedSortModel}
                 onSortModelChange={setMergedSortModel}
+                checkboxSelection
+                onRowSelectionModelChange={(newRowSelectionModel) => {
+                  // Handle the new DataGrid selection model format
+                  let selectedId = null;
+                  if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
+                    const ids = newRowSelectionModel.ids as Set<number | string>;
+                    selectedId = ids.size > 0 ? Array.from(ids)[0] : null;
+                  }
+                  setSelectedRowMerged(selectedId);
+                }}
                 processRowUpdate={(newRow) => {
                   // Basic validation for edited cells
                   const validatedRow = { ...newRow };
@@ -2518,10 +3122,19 @@ export default function ExcelImportPage() {
                   rows={filteredUnmatchedClient} 
                   columns={columnsClient}
                   density="compact"
-                  disableRowSelectionOnClick
                   disableVirtualization={aiSelectedGrid !== 'unmatched'}
                   sortModel={unmatchedSortModel}
                   onSortModelChange={setUnmatchedSortModel}
+                  checkboxSelection
+                  onRowSelectionModelChange={(newRowSelectionModel) => {
+                    // Handle the new DataGrid selection model format
+                    let selectedId = null;
+                    if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
+                      const ids = newRowSelectionModel.ids as Set<number | string>;
+                      selectedId = ids.size > 0 ? Array.from(ids)[0] : null;
+                    }
+                    setSelectedRowUnmatched(selectedId);
+                  }}
                   sx={getDataGridStyles('unmatched')}
                 />
               ) : (
@@ -2550,10 +3163,19 @@ export default function ExcelImportPage() {
                   rows={filteredDupsClient} 
                   columns={columnsClient}
                   density="compact"
-                  disableRowSelectionOnClick
                   disableVirtualization={aiSelectedGrid !== 'duplicates'}
                   sortModel={duplicatesSortModel}
                   onSortModelChange={setDuplicatesSortModel}
+                  checkboxSelection
+                  onRowSelectionModelChange={(newRowSelectionModel) => {
+                    // Handle the new DataGrid selection model format
+                    let selectedId = null;
+                    if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
+                      const ids = newRowSelectionModel.ids as Set<number | string>;
+                      selectedId = ids.size > 0 ? Array.from(ids)[0] : null;
+                    }
+                    setSelectedRowDuplicates(selectedId);
+                  }}
                   sx={getDataGridStyles('duplicates')}
                 />
               ) : (
@@ -2587,7 +3209,7 @@ export default function ExcelImportPage() {
       )}
 
       <AIChat
-        gridContext={getCurrentGridContext()}
+        gridContext={gridContext}
         onAction={handleAIAction}
         isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}

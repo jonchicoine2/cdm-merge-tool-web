@@ -19,11 +19,13 @@ interface GridContext {
   };
   isInCompareMode: boolean;
   selectedGrid: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates';
+  selectedRowId: number | string | null;
+  selectedRowData: Record<string, unknown> | null;
 }
 
 interface AIIntent {
   type: 'query' | 'action' | 'filter' | 'sort' | 'analysis' | 'documentation';
-  action?: 'sort' | 'filter' | 'search' | 'summarize' | 'count' | 'show' | 'switch' | 'clear_filters' | 'export' | 'explain';
+  action?: 'sort' | 'filter' | 'search' | 'summarize' | 'count' | 'show' | 'switch' | 'clear_filters' | 'export' | 'explain' | 'duplicate' | 'delete' | 'add';
   parameters?: {
     column?: string;
     value?: string;
@@ -32,6 +34,8 @@ interface AIIntent {
     view?: string;
     filename?: string;
     topic?: string;
+    rowId?: number | string;
+    rowData?: {[key: string]: string | number | undefined};
   };
   response: string;
 }
@@ -39,6 +43,14 @@ interface AIIntent {
 export async function POST(request: NextRequest) {
   try {
     const { message, gridContext }: { message: string; gridContext: GridContext } = await request.json();
+    
+    console.log('[AI API DEBUG] Received:', {
+      message,
+      selectedGrid: gridContext.selectedGrid,
+      selectedRowId: gridContext.selectedRowId,
+      selectedRowData: gridContext.selectedRowData ? 'present' : 'null'
+    });
+    
 
     console.log('API Key present:', !!process.env.OPENAI_API_KEY);
     console.log('API Key length:', process.env.OPENAI_API_KEY?.length);
@@ -95,6 +107,9 @@ export async function POST(request: NextRequest) {
 - Multi-sheet Excel file support with intelligent column mapping
 - Advanced matching algorithms (exact, fuzzy, normalized)
 - Comprehensive reporting with matched/unmatched/duplicate categorization
+- In-place data editing with validation for all grids (master, client, merged)
+- Record management: duplicate, delete, and add records via AI commands
+- Save/cancel functionality for data edits with change tracking
 
 **Matching Rules**: Uses HCPCS codes + modifiers as primary matching criteria. Match key format: "HCPCS Code + Modifier" (e.g., "99213" + "25" = "9921325"). 
 
@@ -126,6 +141,8 @@ The modifier settings dialog allows users to specify which modifier codes should
 - Sample data: ${JSON.stringify(gridContext.sampleData.slice(0, 3))}
 - Available grids: ${JSON.stringify(gridContext.availableGrids)}
 - In compare mode: ${gridContext.isInCompareMode}
+- Selected row ID: ${gridContext.selectedRowId || 'none'}
+- Selected row data: ${gridContext.selectedRowData ? JSON.stringify(gridContext.selectedRowData) : 'none'}
 
 Your job is to interpret user queries and return JSON responses for grid actions, but the "response" field should contain natural, conversational text that directly answers the user's question. Users will only see the "response" text - they will never see the JSON structure.
 
@@ -140,6 +157,9 @@ Available actions:
 - clear_filters: Remove all filters from a grid
 - export: Export grid data to Excel file (supports custom filename)
 - explain: Answer questions about the CDM Merge Tool functionality, purpose, and features
+- duplicate: Create a copy of an existing record by ID
+- delete: Remove a record by ID from the grid
+- add: Create a new blank record or record with specific data
 
 Filter conditions available:
 - is_empty: Hide rows where column is blank/empty
@@ -156,18 +176,22 @@ Filter conditions available:
 Return JSON with this structure:
 {
   "type": "action|query|analysis",
-  "action": "sort|filter|search|count|summarize|show|switch",
+  "action": "sort|filter|search|count|summarize|show|switch|duplicate|delete|add",
   "parameters": {
     "column": "column_name",
     "value": "search_value",
     "direction": "asc|desc",
     "condition": "criteria",
-    "view": "master|client|merged|unmatched|duplicates"
+    "view": "master|client|merged|unmatched|duplicates",
+    "rowId": "record_id_to_duplicate_or_delete",
+    "rowData": {"column_name": "value"}
   },
   "response": "Human-readable response"
 }
 
-CRITICAL: For sort commands like "sort by description" or "sort by X", you MUST return:
+CRITICAL: You MUST return proper JSON format for all actions. Examples:
+
+For sort commands:
 {
   "type": "action",
   "action": "sort", 
@@ -176,6 +200,16 @@ CRITICAL: For sort commands like "sort by description" or "sort by X", you MUST 
     "direction": "asc"
   },
   "response": "Sorting by description in ascending order"
+}
+
+For duplicate commands:
+{
+  "type": "action",
+  "action": "duplicate",
+  "parameters": {
+    "rowId": ${gridContext.selectedRowId}
+  },
+  "response": "Duplicating the currently selected row"
 }
 
 IMPORTANT: Always respond with natural, conversational language. Never show JSON examples or technical structures to users.
@@ -189,6 +223,18 @@ Example user interactions:
 - User: "hide rows with blank cdms" → Return: {"type": "action", "action": "filter", "parameters": {"column": "cdms", "condition": "is_not_empty"}, "response": "Hiding rows where CDMS column is blank"}
 - User: "export the data" → Return: {"type": "action", "action": "export", "response": "Exporting merged data to Excel file"}
 - User: "export as monthly_report" → Return: {"type": "action", "action": "export", "parameters": {"filename": "monthly_report"}, "response": "Exporting merged data as 'monthly_report.xlsx'"}
+- User: "duplicate record 5" → Return: {"type": "action", "action": "duplicate", "parameters": {"rowId": 5}, "response": "Duplicating record 5 in the current grid"}
+- User: "duplicate row 3 in client grid" → Return: {"type": "action", "action": "duplicate", "parameters": {"rowId": 3, "view": "client"}, "response": "Duplicating record 3 in the client grid"}
+- User: "duplicate the current row" → {"type": "action", "action": "duplicate", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Duplicating the currently selected row"}
+- User: "duplicate current row" → {"type": "action", "action": "duplicate", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Duplicating the currently selected row"}
+- User: "duplicate the selected row" → {"type": "action", "action": "duplicate", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Duplicating the selected row"}
+- User: "delete record 7" → Return: {"type": "action", "action": "delete", "parameters": {"rowId": 7}, "response": "Deleting record 7 from the current grid"}
+- User: "remove row 2 from master" → Return: {"type": "action", "action": "delete", "parameters": {"rowId": 2, "view": "master"}, "response": "Deleting record 2 from the master grid"}
+- User: "delete the current row" → Return: {"type": "action", "action": "delete", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Deleting the currently selected row"}
+- User: "remove the selected row" → Return: {"type": "action", "action": "delete", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Deleting the selected row"}
+- User: "add a new record" → Return: {"type": "action", "action": "add", "response": "Adding a new blank record to the current grid"}
+- User: "add new row to merged grid" → Return: {"type": "action", "action": "add", "parameters": {"view": "merged"}, "response": "Adding a new blank record to the merged grid"}
+- User: "add record with HCPCS 99213" → Return: {"type": "action", "action": "add", "parameters": {"rowData": {"hcpcs": "99213"}}, "response": "Adding a new record with HCPCS code 99213"}
 - User: "what is this app for?" → You respond: "This is VIC's internal CDM Merge Tool - designed specifically for our team to streamline charge master data updates. The app merges Master and Client Excel files by matching HCPCS codes, then updates the Master with CDM data from the Client to create a clean merged dataset for export. Key features include HCPCS matching, configurable modifier settings for VIC's specific data requirements, quality control to identify unmatched records and duplicates, and export-ready output. This tool handles the tedious manual work of CDM merging while ensuring data accuracy and giving you visibility into any potential issues that need attention."
 - User: "what are modifier settings?" → You respond: "Modifier settings let you specify which modifier codes should be treated as root codes during matching. For example, if Root 25 is enabled, codes like '99213-25' will match as just '99213'. Available options include Root 00, Root 25, Root 50, Root 59, Root XU, Root 76, and Ignore Trauma (excludes trauma team codes). This allows modified procedure codes to match their base codes when needed."
 
@@ -196,6 +242,8 @@ IMPORTANT:
 - Use the selectedGrid (${gridContext.selectedGrid}) when no specific grid is mentioned in the user's query
 - If user specifies a different grid in their query, use that grid instead
 - Look for keywords: "master", "client", "merged", "unmatched", "duplicates", "comparison", "results"
+- For "current row" or "selected row" requests: Use selectedRowId (${gridContext.selectedRowId}) if available
+- If no row is selected and user asks for "current row" operations, respond: "I'm sorry, but there is currently no row selected. Please select a row first by clicking on it in the grid, then I can help you with that operation."
 - For "hide rows with blank X" or "remove empty X", use condition "is_not_empty"  
 - For "show only non-empty X", use condition "is_not_empty"
 - For "hide rows where X contains Y", use condition "not_contains"
@@ -253,11 +301,16 @@ If user says "sort by desc" and available columns include "procedure_description
     if (!responseContent) {
       throw new Error('No response from OpenAI');
     }
+    
+    console.log('[AI API DEBUG] Raw AI response:', responseContent);
 
     try {
       const intent: AIIntent = JSON.parse(responseContent);
+      console.log('[AI API DEBUG] Parsed intent:', intent);
       return NextResponse.json({ intent });
-    } catch {
+    } catch (error) {
+      console.log('[AI API DEBUG] JSON parsing failed:', error);
+      console.log('[AI API DEBUG] Falling back to query response');
       // Fallback if JSON parsing fails
       return NextResponse.json({
         intent: {

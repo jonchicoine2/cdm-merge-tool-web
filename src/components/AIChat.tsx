@@ -47,6 +47,8 @@ interface GridContext {
   };
   isInCompareMode: boolean;
   selectedGrid: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates';
+  selectedRowId: number | string | null;
+  selectedRowData: Record<string, unknown> | null;
 }
 
 interface AIIntent {
@@ -204,6 +206,16 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
     setIsLoading(true);
 
     try {
+      console.log('[AI CHAT DEBUG] Sending to API:', {
+        message: inputValue,
+        gridContext: {
+          selectedGrid: gridContext.selectedGrid,
+          selectedRowId: gridContext.selectedRowId,
+          selectedRowData: gridContext.selectedRowData,
+          rowCount: gridContext.rowCount
+        }
+      });
+
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: {
