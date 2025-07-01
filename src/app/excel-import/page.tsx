@@ -1,9 +1,11 @@
 "use client";
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Chip } from "@mui/material";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Chip, Fab } from "@mui/material";
+import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
 import * as XLSX from "xlsx";
+import AIChat from "../../components/AIChat";
 
 // Define a type for Excel rows with dynamic fields, plus id
 interface ExcelRow {
@@ -267,9 +269,52 @@ export default function ExcelImportPage() {
   const [searchMaster, setSearchMaster] = useState("");
   const [searchClient, setSearchClient] = useState("");
   const [searchMerged, setSearchMerged] = useState("");
-
+  
   // Tab state for errors and duplicates
   const [errorsTabValue, setErrorsTabValue] = useState(0);
+
+  // AI Chat state
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [currentView, setCurrentView] = useState<'master' | 'client' | 'merged' | 'unmatched' | 'duplicates'>('merged');
+  const [aiSelectedGrid, setAiSelectedGrid] = useState<'master' | 'client' | 'merged' | 'unmatched' | 'duplicates'>('merged');
+
+  // Refs for scrolling to grids
+  const masterGridRef = useRef<HTMLDivElement>(null);
+  const clientGridRef = useRef<HTMLDivElement>(null);
+  const mergedGridRef = useRef<HTMLDivElement>(null);
+  const unmatchedGridRef = useRef<HTMLDivElement>(null);
+  const duplicatesGridRef = useRef<HTMLDivElement>(null);
+  
+  // Sort models for each grid
+  const [masterSortModel, setMasterSortModel] = useState<GridSortModel>([]);
+  const [clientSortModel, setClientSortModel] = useState<GridSortModel>([]);
+  const [mergedSortModel, setMergedSortModel] = useState<GridSortModel>([]);
+  const [unmatchedSortModel, setUnmatchedSortModel] = useState<GridSortModel>([]);
+  const [duplicatesSortModel, setDuplicatesSortModel] = useState<GridSortModel>([]);
+
+  // Filter states for each grid
+  const [masterFilters, setMasterFilters] = useState<{column: string, condition: string, value: string}[]>([]);
+  const [clientFilters, setClientFilters] = useState<{column: string, condition: string, value: string}[]>([]);
+  const [mergedFilters, setMergedFilters] = useState<{column: string, condition: string, value: string}[]>([]);
+  const [unmatchedFilters, setUnmatchedFilters] = useState<{column: string, condition: string, value: string}[]>([]);
+  const [duplicatesFilters, setDuplicatesFilters] = useState<{column: string, condition: string, value: string}[]>([]);
+
+  // Update currentView based on what's currently displayed
+  useEffect(() => {
+    if (showCompare) {
+      if (errorsTabValue === 0 && unmatchedClient.length > 0) {
+        setCurrentView('unmatched');
+      } else if (errorsTabValue === 1 && dupsClient.length > 0) {
+        setCurrentView('duplicates');
+      } else {
+        setCurrentView('merged');
+      }
+    } else if (rowsClient.length > 0) {
+      setCurrentView('client');
+    } else if (rowsMaster.length > 0) {
+      setCurrentView('master');
+    }
+  }, [showCompare, errorsTabValue, unmatchedClient.length, dupsClient.length, rowsClient.length, rowsMaster.length]);
 
   // Filter function for search
   const filterRows = (rows: ExcelRow[], searchTerm: string): ExcelRow[] => {
@@ -283,12 +328,370 @@ export default function ExcelImportPage() {
     );
   };
 
+  // Advanced filter function that applies AI filters
+  const applyFilters = (rows: ExcelRow[], filters: {column: string, condition: string, value: string}[]): ExcelRow[] => {
+    if (filters.length === 0) return rows;
+    
+    return rows.filter(row => {
+      return filters.every(filter => {
+        const cellValue = String(row[filter.column] || '').toLowerCase();
+        const filterValue = filter.value.toLowerCase();
+        
+        switch (filter.condition) {
+          case 'equals':
+            return cellValue === filterValue;
+          case 'not_equals':
+            return cellValue !== filterValue;
+          case 'contains':
+            return cellValue.includes(filterValue);
+          case 'not_contains':
+            return !cellValue.includes(filterValue);
+          case 'starts_with':
+            return cellValue.startsWith(filterValue);
+          case 'ends_with':
+            return cellValue.endsWith(filterValue);
+          case 'is_empty':
+            return cellValue === '' || cellValue === 'undefined' || cellValue === 'null';
+          case 'is_not_empty':
+            return cellValue !== '' && cellValue !== 'undefined' && cellValue !== 'null';
+          case 'greater_than':
+            const numValue = parseFloat(cellValue);
+            const numFilter = parseFloat(filterValue);
+            return !isNaN(numValue) && !isNaN(numFilter) && numValue > numFilter;
+          case 'less_than':
+            const numValue2 = parseFloat(cellValue);
+            const numFilter2 = parseFloat(filterValue);
+            return !isNaN(numValue2) && !isNaN(numFilter2) && numValue2 < numFilter2;
+          default:
+            return true;
+        }
+      });
+    });
+  };
+
+  // Combined filter function that applies both search and AI filters
+  const filterAndSearchRows = (rows: ExcelRow[], searchTerm: string, filters: {column: string, condition: string, value: string}[]): ExcelRow[] => {
+    let filteredRows = applyFilters(rows, filters);
+    return filterRows(filteredRows, searchTerm);
+  };
+
+  // Function to scroll to the active grid
+  const scrollToActiveGrid = (gridType: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') => {
+    const refs = {
+      master: masterGridRef,
+      client: clientGridRef,
+      merged: mergedGridRef,
+      unmatched: unmatchedGridRef,
+      duplicates: duplicatesGridRef,
+    };
+
+    const targetRef = refs[gridType];
+    if (targetRef.current) {
+      targetRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  };
+
+  // Effect to scroll when AI selected grid changes
+  useEffect(() => {
+    if (aiSelectedGrid) {
+      setTimeout(() => scrollToActiveGrid(aiSelectedGrid), 300); // Small delay for UI updates
+    }
+  }, [aiSelectedGrid]);
+
+  // Effect to scroll when merged data becomes available
+  useEffect(() => {
+    if (aiSelectedGrid === 'merged' && mergedRows.length > 0 && showCompare) {
+      setTimeout(() => scrollToActiveGrid('merged'), 500); // Longer delay for merged grid to render
+    }
+  }, [mergedRows.length, showCompare, aiSelectedGrid]);
+
+  // Effect to scroll to grid when it becomes visible (for unmatched/duplicates)
+  useEffect(() => {
+    if (aiSelectedGrid === 'unmatched' && errorsTabValue === 0 && unmatchedClient.length > 0) {
+      setTimeout(() => scrollToActiveGrid('unmatched'), 300);
+    }
+  }, [aiSelectedGrid, errorsTabValue, unmatchedClient.length]);
+
+  useEffect(() => {
+    if (aiSelectedGrid === 'duplicates' && errorsTabValue === 1 && dupsClient.length > 0) {
+      setTimeout(() => scrollToActiveGrid('duplicates'), 300);
+    }
+  }, [aiSelectedGrid, errorsTabValue, dupsClient.length]);
+
+  // Function to get grid container styles with glowing border
+  const getGridContainerStyles = (gridType: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') => {
+    const isActive = aiSelectedGrid === gridType;
+    return {
+      border: isActive ? '3px solid #1976d2' : '1px solid #e0e0e0',
+      borderRadius: '8px',
+      padding: '16px',
+      marginBottom: '24px',
+      boxShadow: isActive 
+        ? '0 0 20px rgba(25, 118, 210, 0.3), inset 0 0 20px rgba(25, 118, 210, 0.1)' 
+        : '0 2px 4px rgba(0,0,0,0.1)',
+      transition: 'all 0.3s ease',
+      background: isActive ? 'rgba(25, 118, 210, 0.02)' : 'white',
+    };
+  };
+
   // Filtered data for each grid
-  const filteredRowsMaster = filterRows(rowsMaster, searchMaster);
-  const filteredRowsClient = filterRows(rowsClient, searchClient);
-  const filteredMergedRows = filterRows(mergedRows, searchMerged);
-  const filteredUnmatchedClient = filterRows(unmatchedClient, "");
-  const filteredDupsClient = filterRows(dupsClient, "");
+  const filteredRowsMaster = filterAndSearchRows(rowsMaster, searchMaster, masterFilters);
+  const filteredRowsClient = filterAndSearchRows(rowsClient, searchClient, clientFilters);
+  const filteredMergedRows = filterAndSearchRows(mergedRows, searchMerged, mergedFilters);
+  const filteredUnmatchedClient = filterAndSearchRows(unmatchedClient, "", unmatchedFilters);
+  const filteredDupsClient = filterAndSearchRows(dupsClient, "", duplicatesFilters);
+
+  // AI Chat functions
+  const getCurrentGridContext = () => {
+    const getCurrentData = () => {
+      switch (aiSelectedGrid) {
+        case 'master':
+          return { rows: rowsMaster, columns: columnsMaster };
+        case 'client':
+          return { rows: rowsClient, columns: columnsClient };
+        case 'merged':
+          return { rows: mergedRows, columns: mergedColumns };
+        case 'unmatched':
+          return { rows: unmatchedClient, columns: columnsClient };
+        case 'duplicates':
+          return { rows: dupsClient, columns: columnsClient };
+        default:
+          return { rows: mergedRows, columns: mergedColumns };
+      }
+    };
+
+    const { rows, columns } = getCurrentData();
+    return {
+      columns: columns.map(col => col.field),
+      rowCount: rows.length,
+      sampleData: rows.slice(0, 5),
+      currentView: aiSelectedGrid,
+      availableGrids: {
+        master: { hasData: rowsMaster.length > 0, rowCount: rowsMaster.length },
+        client: { hasData: rowsClient.length > 0, rowCount: rowsClient.length },
+        merged: { hasData: mergedRows.length > 0, rowCount: mergedRows.length },
+        unmatched: { hasData: unmatchedClient.length > 0, rowCount: unmatchedClient.length },
+        duplicates: { hasData: dupsClient.length > 0, rowCount: dupsClient.length },
+      },
+      isInCompareMode: showCompare,
+      selectedGrid: aiSelectedGrid,
+    };
+  };
+
+  const handleAIAction = (intent: any) => {
+    console.log('AI Action:', intent);
+    
+    // Handle documentation questions - no grid action needed
+    if (intent.type === 'documentation' || intent.action === 'explain') {
+      // Just log for now - the response is already displayed in chat
+      console.log('Documentation question answered:', intent.response);
+      return;
+    }
+    
+    // Function to ensure grid is visible and scroll to it
+    const ensureGridVisible = (targetView: string) => {
+      switch (targetView) {
+        case 'master':
+          setShowCompare(false);
+          setTimeout(() => scrollToActiveGrid('master'), 300);
+          break;
+        case 'client':
+          setShowCompare(false);
+          setTimeout(() => scrollToActiveGrid('client'), 300);
+          break;
+        case 'merged':
+          setShowCompare(true);
+          setErrorsTabValue(-1);
+          setTimeout(() => scrollToActiveGrid('merged'), 500);
+          break;
+        case 'unmatched':
+          setShowCompare(true);
+          setErrorsTabValue(0);
+          setTimeout(() => scrollToActiveGrid('unmatched'), 500);
+          break;
+        case 'duplicates':
+          setShowCompare(true); 
+          setErrorsTabValue(1);
+          setTimeout(() => scrollToActiveGrid('duplicates'), 500);
+          break;
+      }
+    };
+    
+    if (intent.action === 'switch' && intent.parameters?.view) {
+      const view = intent.parameters.view as 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates';
+      
+      // Update AI selected grid
+      setAiSelectedGrid(view);
+      
+      // Ensure grid is visible and scroll to it
+      ensureGridVisible(view);
+    }
+    
+    if (intent.action === 'search' && intent.parameters?.value) {
+      const searchValue = intent.parameters.value;
+      const targetView = intent.parameters?.view || aiSelectedGrid;
+      
+      // Update AI selected grid if specified
+      if (intent.parameters?.view) {
+        setAiSelectedGrid(intent.parameters.view as typeof aiSelectedGrid);
+        ensureGridVisible(intent.parameters.view);
+      } else {
+        // Scroll to current grid to show the search results
+        ensureGridVisible(targetView);
+      }
+      
+      switch (targetView) {
+        case 'master':
+          setSearchMaster(searchValue);
+          break;
+        case 'client':
+          setSearchClient(searchValue);
+          break;
+        case 'merged':
+          setSearchMerged(searchValue);
+          break;
+      }
+    }
+
+    if (intent.action === 'filter' && intent.parameters?.column && intent.parameters?.condition) {
+      const column = intent.parameters.column;
+      const condition = intent.parameters.condition;
+      const value = intent.parameters.value || '';
+      const targetView = intent.parameters?.view || aiSelectedGrid;
+      
+      // Update AI selected grid if specified
+      if (intent.parameters?.view) {
+        setAiSelectedGrid(intent.parameters.view as typeof aiSelectedGrid);
+        ensureGridVisible(intent.parameters.view);
+      } else {
+        // Scroll to current grid to show the filter results
+        ensureGridVisible(targetView);
+      }
+      
+      const newFilter = { column, condition, value };
+      
+      // Add filter to the correct grid
+      switch (targetView) {
+        case 'master':
+          setMasterFilters(prev => [...prev.filter(f => f.column !== column), newFilter]);
+          break;
+        case 'client':
+          setClientFilters(prev => [...prev.filter(f => f.column !== column), newFilter]);
+          break;
+        case 'merged':
+          setMergedFilters(prev => [...prev.filter(f => f.column !== column), newFilter]);
+          break;
+        case 'unmatched':
+          setUnmatchedFilters(prev => [...prev.filter(f => f.column !== column), newFilter]);
+          break;
+        case 'duplicates':
+          setDuplicatesFilters(prev => [...prev.filter(f => f.column !== column), newFilter]);
+          break;
+      }
+      
+      console.log(`Applied filter: ${column} ${condition} ${value} to ${targetView} grid`);
+    }
+
+    if (intent.action === 'clear_filters') {
+      const targetView = intent.parameters?.view || aiSelectedGrid;
+      
+      // Update AI selected grid if specified
+      if (intent.parameters?.view) {
+        setAiSelectedGrid(intent.parameters.view as typeof aiSelectedGrid);
+        ensureGridVisible(intent.parameters.view);
+      } else {
+        // Scroll to current grid to show the cleared filters
+        ensureGridVisible(targetView);
+      }
+      
+      switch (targetView) {
+        case 'master':
+          setMasterFilters([]);
+          break;
+        case 'client':
+          setClientFilters([]);
+          break;
+        case 'merged':
+          setMergedFilters([]);
+          break;
+        case 'unmatched':
+          setUnmatchedFilters([]);
+          break;
+        case 'duplicates':
+          setDuplicatesFilters([]);
+          break;
+      }
+      
+      console.log(`Cleared filters for ${targetView} grid`);
+    }
+
+    if (intent.action === 'sort' && intent.parameters?.column) {
+      const column = intent.parameters.column;
+      const direction = intent.parameters.direction || 'asc';
+      const targetView = intent.parameters?.view || aiSelectedGrid;
+      
+      // Update AI selected grid if specified
+      if (intent.parameters?.view) {
+        setAiSelectedGrid(intent.parameters.view as typeof aiSelectedGrid);
+        ensureGridVisible(intent.parameters.view);
+      } else {
+        // Scroll to current grid to show the sort results
+        ensureGridVisible(targetView);
+      }
+      
+      const sortModel = [{ field: column, sort: direction }];
+      
+      // Apply sorting to the correct grid
+      switch (targetView) {
+        case 'master':
+          setMasterSortModel(sortModel);
+          break;
+        case 'client':
+          setClientSortModel(sortModel);
+          break;
+        case 'merged':
+          setMergedSortModel(sortModel);
+          break;
+        case 'unmatched':
+          setUnmatchedSortModel(sortModel);
+          break;
+        case 'duplicates':
+          setDuplicatesSortModel(sortModel);
+          break;
+      }
+      
+      console.log(`Applied sorting: ${column} ${direction} to ${targetView} grid`);
+    }
+
+    if (intent.action === 'export') {
+      const targetView = intent.parameters?.view || aiSelectedGrid;
+      const customFilename = intent.parameters?.filename;
+      
+      // For now, only support exporting merged data
+      if (targetView === 'merged' || !intent.parameters?.view) {
+        if (mergedForExport.length === 0) {
+          console.log('No merged data available for export');
+          return;
+        }
+        
+        if (customFilename) {
+          // Call export with custom filename
+          handleExportWithFilename(customFilename);
+        } else {
+          // Call standard export
+          handleExport();
+        }
+        
+        // Scroll to merged grid to show the export happened
+        ensureGridVisible('merged');
+      } else {
+        console.log(`Export not supported for ${targetView} grid yet`);
+      }
+    }
+  };
 
   const handleFileUpload = (
     e: React.ChangeEvent<HTMLInputElement> | File,
@@ -696,6 +1099,37 @@ export default function ExcelImportPage() {
     XLSX.writeFile(wb, filename);
   };
 
+  const handleExportWithFilename = (customFilename: string) => {
+    if (mergedForExport.length === 0) return;
+    
+    // Clean the filename and ensure it has .xlsx extension
+    let filename = customFilename.trim();
+    if (!filename.toLowerCase().endsWith('.xlsx') && !filename.toLowerCase().endsWith('.xls')) {
+      filename += '.xlsx';
+    }
+    
+    // Remove any invalid characters for filename
+    filename = filename.replace(/[<>:"/\\|?*]/g, '_');
+    
+    const wb = XLSX.utils.book_new();
+    const clean = (rows: ExcelRow[]) => rows.map(row => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, ...rest } = row;
+      return rest;
+    });
+    const ws = XLSX.utils.json_to_sheet(clean(mergedForExport));
+    XLSX.utils.book_append_sheet(wb, ws, "Merged");
+    
+    // Always include Unmatched_Client sheet, even if empty
+    const wsErrors = XLSX.utils.json_to_sheet(clean(unmatchedClient));
+    XLSX.utils.book_append_sheet(wb, wsErrors, "Unmatched_Client");
+    
+    // Always include Duplicate_Client sheet, even if empty
+    const wsDups = XLSX.utils.json_to_sheet(clean(dupsClient));
+    XLSX.utils.book_append_sheet(wb, wsDups, "Duplicate_Client");
+    XLSX.writeFile(wb, filename);
+  };
+
   const handleDragEnter = (which: "Master" | "Client") => (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     if (which === "Master") setDragOverMaster(true);
@@ -955,10 +1389,14 @@ export default function ExcelImportPage() {
           mb: 4
         }}>
         {/* Master File Area */}
-        <Box sx={{ 
-          flex: 1,
-          minWidth: 0
-        }}>
+        <Box 
+          ref={masterGridRef}
+          sx={{ 
+            flex: 1,
+            minWidth: 0,
+            ...getGridContainerStyles('master')
+          }}
+        >
           {masterSheetNames.length > 0 ? (
             // Show tabs and grid when data is loaded
             <>
@@ -1048,6 +1486,8 @@ export default function ExcelImportPage() {
                   columns={columnsMaster}
                   density="compact"
                   disableRowSelectionOnClick
+                  sortModel={masterSortModel}
+                  onSortModelChange={(model) => setMasterSortModel([...model])}
                 />
               </Box>
             </>
@@ -1094,10 +1534,14 @@ export default function ExcelImportPage() {
         </Box>
 
         {/* Client File Area */}
-        <Box sx={{ 
-          flex: 1,
-          minWidth: 0
-        }}>
+        <Box 
+          ref={clientGridRef}
+          sx={{ 
+            flex: 1,
+            minWidth: 0,
+            ...getGridContainerStyles('client')
+          }}
+        >
           {clientSheetNames.length > 0 ? (
             // Show tabs and grid when data is loaded
             <>
@@ -1187,6 +1631,8 @@ export default function ExcelImportPage() {
                   columns={columnsClient}
                   density="compact"
                   disableRowSelectionOnClick
+                  sortModel={clientSortModel}
+                  onSortModelChange={(model) => setClientSortModel([...model])}
                 />
               </Box>
             </>
@@ -1394,7 +1840,13 @@ export default function ExcelImportPage() {
           <ComparisonStatsPanel stats={comparisonStats} />
           
           {/* Merged Results */}
-          <Box sx={{ mb: 4 }}>
+          <Box 
+            ref={mergedGridRef}
+            sx={{ 
+              mb: 4,
+              ...getGridContainerStyles('merged')
+            }}
+          >
             <TextField
               fullWidth
               variant="outlined"
@@ -1437,6 +1889,8 @@ export default function ExcelImportPage() {
                 columns={mergedColumns}
                 density="compact"
                 disableRowSelectionOnClick
+                sortModel={mergedSortModel}
+                onSortModelChange={(model) => setMergedSortModel([...model])}
               />
             </Box>
           </Box>
@@ -1483,13 +1937,23 @@ export default function ExcelImportPage() {
           
           {/* Unmatched Records Grid */}
           {errorsTabValue === 0 && (
-            <Box sx={{ height: 400, width: "100%", mb: 4 }}>
+            <Box 
+              ref={unmatchedGridRef}
+              sx={{ 
+                height: 400, 
+                width: "100%", 
+                mb: 4,
+                ...getGridContainerStyles('unmatched')
+              }}
+            >
               {unmatchedClient.length > 0 ? (
                 <DataGrid 
                   rows={filteredUnmatchedClient} 
                   columns={columnsClient}
                   density="compact"
                   disableRowSelectionOnClick
+                  sortModel={unmatchedSortModel}
+                  onSortModelChange={(model) => setUnmatchedSortModel([...model])}
                 />
               ) : (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -1503,13 +1967,22 @@ export default function ExcelImportPage() {
           
           {/* Duplicate Records Grid */}
           {errorsTabValue === 1 && (
-            <Box sx={{ height: 400, width: "100%" }}>
+            <Box 
+              ref={duplicatesGridRef}
+              sx={{ 
+                height: 400, 
+                width: "100%",
+                ...getGridContainerStyles('duplicates')
+              }}
+            >
               {dupsClient.length > 0 ? (
                 <DataGrid 
                   rows={filteredDupsClient} 
                   columns={columnsClient}
                   density="compact"
                   disableRowSelectionOnClick
+                  sortModel={duplicatesSortModel}
+                  onSortModelChange={(model) => setDuplicatesSortModel([...model])}
                 />
               ) : (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -1523,6 +1996,33 @@ export default function ExcelImportPage() {
           
         </Box>
       )}
+
+      {/* AI Chat Components */}
+      {!isChatOpen && (
+        <Fab
+          color="primary"
+          aria-label="AI Assistant"
+          sx={{
+            position: 'fixed',
+            bottom: 20,
+            right: 20,
+            zIndex: 1000,
+          }}
+          onClick={() => setIsChatOpen(true)}
+        >
+          <SmartToyIcon />
+        </Fab>
+      )}
+
+      <AIChat
+        gridContext={getCurrentGridContext()}
+        onAction={handleAIAction}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        onMinimize={() => setIsChatOpen(false)}
+        selectedGrid={aiSelectedGrid}
+        onGridChange={setAiSelectedGrid}
+      />
     </Box>
   );
 }
