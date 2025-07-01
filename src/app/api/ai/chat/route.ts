@@ -8,7 +8,7 @@ const openai = new OpenAI({
 interface GridContext {
   columns: string[];
   rowCount: number;
-  sampleData: Record<string, any>[];
+  sampleData: Record<string, unknown>[];
   currentView: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates';
   availableGrids: {
     master: { hasData: boolean; rowCount: number };
@@ -49,8 +49,8 @@ export async function POST(request: NextRequest) {
 
     // Check if multiple grids are visible (ambiguous context)
     const visibleGrids = Object.entries(gridContext.availableGrids)
-      .filter(([_, grid]) => grid.hasData)
-      .map(([name, _]) => name);
+      .filter(([, grid]) => grid.hasData)
+      .map(([name]) => name);
     
     const isAmbiguous = gridContext.isInCompareMode && visibleGrids.length > 1;
     
@@ -98,12 +98,18 @@ export async function POST(request: NextRequest) {
 
 **Matching Rules**: Uses HCPCS codes + modifiers as primary matching criteria. Match key format: "HCPCS Code + Modifier" (e.g., "99213" + "25" = "9921325"). 
 
-**Modifier Settings Control Matching Behavior**:
-1. **Ignore Blanks** (TRUE recommended): Whether blank modifiers can match other blank modifiers
-2. **Case Sensitive** (FALSE recommended): Whether "RT" matches "rt" 
-3. **Require Exact** (FALSE recommended): Whether to allow fuzzy matching for spacing/formatting differences
+**Modifier Settings Control Root Code Matching**:
+The modifier settings dialog allows users to specify which modifier codes should be treated as "root codes" (without the modifier suffix) during matching:
 
-**Common Use Cases**: Insurance validation (flexible settings), compliance auditing (strict settings), data migration (accommodating format differences).
+1. **Root 00**: Include codes with modifier "00" - strips "00" modifier for matching
+2. **Root 25**: Include codes with modifier "25" - strips "25" modifier for matching  
+3. **Root 50**: Include codes with modifier "50" - strips "50" modifier for matching
+4. **Root 59**: Include codes with modifier "59" - strips "59" modifier for matching
+5. **Root XU**: Include codes with modifier "XU" - strips "XU" modifier for matching
+6. **Root 76**: Include codes with modifier "76" - strips "76" modifier for matching
+7. **Ignore Trauma**: Excludes trauma team codes (99284, 99285, 99291) with "trauma team" descriptions
+
+**How It Works**: When root modifiers are enabled, codes like "99213-25" will match as just "99213" if Root 25 is checked. This allows modified codes to match their base procedure codes.
 
 **Output**: Generates Excel reports with three sheets:
 1. **Merged**: All matched records with combined data
@@ -161,18 +167,30 @@ Return JSON with this structure:
   "response": "Human-readable response"
 }
 
+CRITICAL: For sort commands like "sort by description" or "sort by X", you MUST return:
+{
+  "type": "action",
+  "action": "sort", 
+  "parameters": {
+    "column": "description",
+    "direction": "asc"
+  },
+  "response": "Sorting by description in ascending order"
+}
+
 IMPORTANT: Always respond with natural, conversational language. Never show JSON examples or technical structures to users.
 
 Example user interactions:
-- User: "sort by description" → You respond: "Sorting by description in ascending order"
-- User: "show me duplicates" → You respond: "Switching to duplicates view"  
-- User: "how many rows in master?" → You respond: "There are [X] rows in the master grid"
-- User: "search client data for pending" → You respond: "Searching client data for 'pending'"
-- User: "hide rows with blank cdms" → You respond: "Hiding rows where CDMS column is blank"
-- User: "export the data" → You respond: "Exporting merged data to Excel file"
-- User: "export as monthly_report" → You respond: "Exporting merged data as 'monthly_report.xlsx'"
+- User: "sort by description" → Return: {"type": "action", "action": "sort", "parameters": {"column": "description", "direction": "asc"}, "response": "Sorting by description in ascending order"}
+- User: "sort by hcpcs descending" → Return: {"type": "action", "action": "sort", "parameters": {"column": "hcpcs", "direction": "desc"}, "response": "Sorting by HCPCS in descending order"}
+- User: "show me duplicates" → Return: {"type": "action", "action": "switch", "parameters": {"view": "duplicates"}, "response": "Switching to duplicates view"}
+- User: "how many rows in master?" → Return: {"type": "query", "response": "There are [X] rows in the master grid"}
+- User: "search client data for pending" → Return: {"type": "action", "action": "search", "parameters": {"value": "pending", "view": "client"}, "response": "Searching client data for 'pending'"}
+- User: "hide rows with blank cdms" → Return: {"type": "action", "action": "filter", "parameters": {"column": "cdms", "condition": "is_not_empty"}, "response": "Hiding rows where CDMS column is blank"}
+- User: "export the data" → Return: {"type": "action", "action": "export", "response": "Exporting merged data to Excel file"}
+- User: "export as monthly_report" → Return: {"type": "action", "action": "export", "parameters": {"filename": "monthly_report"}, "response": "Exporting merged data as 'monthly_report.xlsx'"}
 - User: "what is this app for?" → You respond: "The CDM Merge Tool is designed for healthcare data management. It compares master reference files with client data to validate HCPCS codes, detect duplicates, and ensure data quality for medical billing and compliance."
-- User: "what are modifier settings?" → You respond: "Modifier settings control how modifiers are matched: 1) Ignore Blanks (whether blank modifiers match each other), 2) Case Sensitive (whether 'RT' matches 'rt'), 3) Require Exact (whether to allow fuzzy matching for formatting differences). Recommended settings are TRUE, FALSE, FALSE for most use cases."
+- User: "what are modifier settings?" → You respond: "Modifier settings let you specify which modifier codes should be treated as root codes during matching. For example, if Root 25 is enabled, codes like '99213-25' will match as just '99213'. Available options include Root 00, Root 25, Root 50, Root 59, Root XU, Root 76, and Ignore Trauma (excludes trauma team codes). This allows modified procedure codes to match their base codes when needed."
 
 IMPORTANT: 
 - Use the selectedGrid (${gridContext.selectedGrid}) when no specific grid is mentioned in the user's query
@@ -199,7 +217,26 @@ Grid detection keywords:
 - "client data", "client file", "client grid" → view: "client"  
 - "merged data", "merged results", "comparison results", "merged grid" → view: "merged"
 - "unmatched", "unmatched records" → view: "unmatched"
-- "duplicates", "duplicate records" → view: "duplicates"`;
+- "duplicates", "duplicate records" → view: "duplicates"
+
+Column name mapping instructions:
+When the user requests sorting/filtering by a column, you MUST match their request to the actual column names available in the current grid. The available columns are: ${gridContext.columns.join(', ')}.
+
+For sort commands:
+- Look for exact matches first (case-insensitive)
+- Then look for partial matches where the user's term is contained in a column name
+- Common user terms to column mappings:
+  * "description" → "description" or any column containing "desc"
+  * "code" → "hcpcs" or any column containing "code"
+  * "modifier" → "modifier" or "mod"
+  * "price" → any column containing "price", "amount", "cost"
+  * "quantity" → any column containing "qty", "quantity", "units"
+  * "date" → any column containing "date"
+
+CRITICAL: In your JSON response, use the EXACT column field name from the available columns list. Do not guess or approximate column names.
+
+Example: If user says "sort by description" and available columns include "description", use "description" in the parameters.column field.
+If user says "sort by desc" and available columns include "procedure_description", use "procedure_description" in the parameters.column field.`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
@@ -220,7 +257,7 @@ Grid detection keywords:
     try {
       const intent: AIIntent = JSON.parse(responseContent);
       return NextResponse.json({ intent });
-    } catch (parseError) {
+    } catch {
       // Fallback if JSON parsing fails
       return NextResponse.json({
         intent: {

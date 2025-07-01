@@ -273,8 +273,8 @@ export default function ExcelImportPage() {
   // Tab state for errors and duplicates
   const [errorsTabValue, setErrorsTabValue] = useState(0);
 
-  // AI Chat state
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  // AI Chat state with localStorage persistence
+  const [isChatOpen, setIsChatOpen] = useState(true);
   const [currentView, setCurrentView] = useState<'master' | 'client' | 'merged' | 'unmatched' | 'duplicates'>('merged');
   const [aiSelectedGrid, setAiSelectedGrid] = useState<'master' | 'client' | 'merged' | 'unmatched' | 'duplicates'>('merged');
 
@@ -482,7 +482,10 @@ export default function ExcelImportPage() {
   };
 
   const handleAIAction = (intent: any) => {
-    console.log('AI Action:', intent);
+    console.log('[AI ACTION DEBUG] Received intent:', intent);
+    console.log('[AI ACTION DEBUG] Intent type:', intent.type, 'Action:', intent.action);
+    console.log('[AI ACTION DEBUG] Parameters:', intent.parameters);
+    console.log('[AI ACTION DEBUG] Current aiSelectedGrid:', aiSelectedGrid);
     
     // Handle documentation questions - no grid action needed
     if (intent.type === 'documentation' || intent.action === 'explain') {
@@ -633,6 +636,71 @@ export default function ExcelImportPage() {
       const direction = intent.parameters.direction || 'asc';
       const targetView = intent.parameters?.view || aiSelectedGrid;
       
+      console.log('[AI SORT DEBUG] Processing sort command:', {
+        column,
+        direction,
+        targetView,
+        aiSelectedGrid,
+        intentParameters: intent.parameters
+      });
+      
+      // Get the available columns for the target grid
+      let targetColumns: GridColDef[] = [];
+      switch (targetView) {
+        case 'master':
+          targetColumns = columnsMaster;
+          break;
+        case 'client':
+          targetColumns = columnsClient;
+          break;
+        case 'merged':
+          targetColumns = mergedColumns;
+          break;
+        case 'unmatched':
+          targetColumns = columnsClient;
+          break;
+        case 'duplicates':
+          targetColumns = columnsClient;
+          break;
+      }
+      
+      console.log('[AI SORT DEBUG] Available columns for', targetView, ':', targetColumns.map(col => col.field));
+      
+      // Try to find the exact column match or a case-insensitive match
+      let matchedColumn = targetColumns.find(col => col.field === column)?.field;
+      if (!matchedColumn) {
+        // Try case-insensitive match
+        matchedColumn = targetColumns.find(col => 
+          col.field.toLowerCase() === column.toLowerCase()
+        )?.field;
+      }
+      if (!matchedColumn) {
+        // Try partial match (column name contains the search term or vice versa)
+        matchedColumn = targetColumns.find(col => 
+          col.field.toLowerCase().includes(column.toLowerCase()) ||
+          column.toLowerCase().includes(col.field.toLowerCase())
+        )?.field;
+      }
+      
+      console.log('[AI SORT DEBUG] Column matching result:', {
+        requestedColumn: column,
+        matchedColumn,
+        matchFound: !!matchedColumn
+      });
+      
+      if (!matchedColumn) {
+        console.error('[AI SORT ERROR] Column not found:', column, 'Available columns:', targetColumns.map(col => col.field));
+        
+        // Create a user-friendly error message
+        const availableColumnNames = targetColumns.map(col => col.field).join(', ');
+        const errorMessage = `Sorry, I couldn't find a column named "${column}" in the ${targetView} grid. Available columns are: ${availableColumnNames}`;
+        
+        // You could add a callback here to show this error in the AI chat
+        // For now, just log it prominently
+        console.error('[AI SORT ERROR MESSAGE]', errorMessage);
+        return;
+      }
+      
       // Update AI selected grid if specified
       if (intent.parameters?.view) {
         setAiSelectedGrid(intent.parameters.view as typeof aiSelectedGrid);
@@ -642,28 +710,35 @@ export default function ExcelImportPage() {
         ensureGridVisible(targetView);
       }
       
-      const sortModel = [{ field: column, sort: direction }];
+      const sortModel = [{ field: matchedColumn, sort: direction }];
+      
+      console.log('[AI SORT DEBUG] Applying sort model:', sortModel, 'to grid:', targetView);
       
       // Apply sorting to the correct grid
       switch (targetView) {
         case 'master':
           setMasterSortModel(sortModel);
+          console.log('[AI SORT DEBUG] Master sort model set');
           break;
         case 'client':
           setClientSortModel(sortModel);
+          console.log('[AI SORT DEBUG] Client sort model set');
           break;
         case 'merged':
           setMergedSortModel(sortModel);
+          console.log('[AI SORT DEBUG] Merged sort model set');
           break;
         case 'unmatched':
           setUnmatchedSortModel(sortModel);
+          console.log('[AI SORT DEBUG] Unmatched sort model set');
           break;
         case 'duplicates':
           setDuplicatesSortModel(sortModel);
+          console.log('[AI SORT DEBUG] Duplicates sort model set');
           break;
       }
       
-      console.log(`Applied sorting: ${column} ${direction} to ${targetView} grid`);
+      console.log(`[AI SORT SUCCESS] Applied sorting: ${matchedColumn} ${direction} to ${targetView} grid`);
     }
 
     if (intent.action === 'export') {
@@ -1375,8 +1450,8 @@ export default function ExcelImportPage() {
         textAlign: 'center',
         mb: 4,
         textShadow: '0 2px 4px rgba(25, 118, 210, 0.2)'
-      }}>
-        🚀 VIC HCPCS Fusion Reactor
+      }}> 
+       🔧 VIC CDM MERGE TOOL
       </Typography>
       
       {/* Upload/Grid Areas */}
@@ -1487,7 +1562,7 @@ export default function ExcelImportPage() {
                   density="compact"
                   disableRowSelectionOnClick
                   sortModel={masterSortModel}
-                  onSortModelChange={(model) => setMasterSortModel([...model])}
+                  onSortModelChange={setMasterSortModel}
                 />
               </Box>
             </>
@@ -1632,7 +1707,7 @@ export default function ExcelImportPage() {
                   density="compact"
                   disableRowSelectionOnClick
                   sortModel={clientSortModel}
-                  onSortModelChange={(model) => setClientSortModel([...model])}
+                  onSortModelChange={setClientSortModel}
                 />
               </Box>
             </>
@@ -1890,7 +1965,7 @@ export default function ExcelImportPage() {
                 density="compact"
                 disableRowSelectionOnClick
                 sortModel={mergedSortModel}
-                onSortModelChange={(model) => setMergedSortModel([...model])}
+                onSortModelChange={setMergedSortModel}
               />
             </Box>
           </Box>
@@ -1953,7 +2028,7 @@ export default function ExcelImportPage() {
                   density="compact"
                   disableRowSelectionOnClick
                   sortModel={unmatchedSortModel}
-                  onSortModelChange={(model) => setUnmatchedSortModel([...model])}
+                  onSortModelChange={setUnmatchedSortModel}
                 />
               ) : (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -1982,7 +2057,7 @@ export default function ExcelImportPage() {
                   density="compact"
                   disableRowSelectionOnClick
                   sortModel={duplicatesSortModel}
-                  onSortModelChange={(model) => setDuplicatesSortModel([...model])}
+                  onSortModelChange={setDuplicatesSortModel}
                 />
               ) : (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>

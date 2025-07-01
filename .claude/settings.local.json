@@ -8,7 +8,9 @@
       "Bash(sed:*)",
       "Bash(npm install:*)",
       "Bash(npx tsc:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm run build:*)"
     ],
     "deny": []
   }

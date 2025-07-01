@@ -81,125 +81,103 @@ This means a procedure code with different modifiers will be treated as **differ
 
 #### Modifier Settings Configuration
 
-The tool provides three critical settings that control how modifiers are handled during the matching process:
+The tool provides specific modifier settings that control which modifier codes should be treated as "root codes" during the matching process:
 
-##### 1. **Ignore Blanks** (`ignoreBlanks: boolean`)
+##### Root Modifier Settings
 
-**What it does:** Controls whether blank/empty modifiers should be treated as equivalent to other blank modifiers.
+**What it does:** Specifies which modifier codes should be stripped from HCPCS codes during matching, allowing modified codes to match their base procedure codes.
 
-**Options:**
-- **TRUE (Recommended)**: Records with blank modifiers can match other records with blank modifiers
-- **FALSE**: Blank modifiers are treated as distinct values and won't match
-
-**Example Scenarios:**
-
-| Master Record | Client Record | Ignore Blanks = TRUE | Ignore Blanks = FALSE |
-|---------------|---------------|---------------------|----------------------|
-| 99213 + "" (blank) | 99213 + "" (blank) | ✅ **MATCH** | ❌ **NO MATCH** |
-| 99213 + "25" | 99213 + "" (blank) | ❌ **NO MATCH** | ❌ **NO MATCH** |
-| 99213 + "" (blank) | 99213 + "25" | ❌ **NO MATCH** | ❌ **NO MATCH** |
-
-**When to use TRUE:** Most healthcare scenarios where blank modifiers represent "no modifier applicable"
-**When to use FALSE:** Strict environments where every modifier must be explicitly specified
-
-##### 2. **Case Sensitive** (`caseSensitive: boolean`)
-
-**What it does:** Controls whether modifier text case matters for matching.
-
-**Options:**
-- **FALSE (Recommended)**: "RT" matches "rt", "LT" matches "lt"
-- **TRUE**: "RT" only matches "RT", case must be exact
+**Available Options:**
+- **Root 00**: Strip "00" modifier from codes during matching
+- **Root 25**: Strip "25" modifier from codes during matching  
+- **Root 50**: Strip "50" modifier from codes during matching
+- **Root 59**: Strip "59" modifier from codes during matching
+- **Root XU**: Strip "XU" modifier from codes during matching
+- **Root 76**: Strip "76" modifier from codes during matching
+- **Ignore Trauma**: Exclude trauma team codes (99284, 99285, 99291) with "trauma team" descriptions
 
 **Example Scenarios:**
 
-| Master Record | Client Record | Case Sensitive = FALSE | Case Sensitive = TRUE |
-|---------------|---------------|----------------------|---------------------|
-| 99213 + "RT" | 99213 + "rt" | ✅ **MATCH** | ❌ **NO MATCH** |
-| 99213 + "LT" | 99213 + "LT" | ✅ **MATCH** | ✅ **MATCH** |
-| 99213 + "25" | 99213 + "25" | ✅ **MATCH** | ✅ **MATCH** |
+| Master Record | Client Record | Root 25 = TRUE | Root 25 = FALSE |
+|---------------|---------------|-----------------|-----------------|
+| 99213 | 99213-25 | ✅ **MATCH** | ❌ **NO MATCH** |
+| 99213-25 | 99213 | ✅ **MATCH** | ❌ **NO MATCH** |
+| 99213-25 | 99213-25 | ✅ **MATCH** | ✅ **MATCH** |
+| 99213-50 | 99213-25 | ❌ **NO MATCH** | ❌ **NO MATCH** |
 
-**When to use FALSE:** Most scenarios to handle data entry inconsistencies
-**When to use TRUE:** Environments with strict data formatting standards
+**How It Works:**
+When a root modifier is enabled (e.g., Root 25), any code with that modifier will have the modifier stripped for matching purposes:
+- "99213-25" becomes "99213" for matching
+- "99285-25" becomes "99285" for matching
+- This allows modified codes to match their base procedure codes
 
-##### 3. **Require Exact** (`requireExact: boolean`)
+**When to use each option:**
+- **Root 25**: When "Significant, separately identifiable E&M service" modifier should match base codes
+- **Root 59**: When "Distinct procedural service" modifier should match base codes  
+- **Root 00**: When "00" modifier should match base codes
+- **Root 50**: When bilateral procedure modifier should match base codes
+- **Root XU**: When "Unusual non-overlapping service" modifier should match base codes
+- **Root 76**: When "Repeat procedure by same physician" modifier should match base codes
+- **Ignore Trauma**: When trauma team codes should be excluded from processing
 
-**What it does:** Controls whether modifiers must match exactly or if partial/fuzzy matching is allowed.
+#### Real-World Usage Examples
 
-**Options:**
-- **FALSE (Recommended)**: Allows fuzzy matching for minor variations
-- **TRUE**: Modifiers must match character-for-character
-
-**Example Scenarios:**
-
-| Master Record | Client Record | Require Exact = FALSE | Require Exact = TRUE |
-|---------------|---------------|---------------------|---------------------|
-| 99213 + "25" | 99213 + "25" | ✅ **MATCH** | ✅ **MATCH** |
-| 99213 + "RT" | 99213 + "R T" | ✅ **MATCH** (fuzzy) | ❌ **NO MATCH** |
-| 99213 + "59" | 99213 + "5 9" | ✅ **MATCH** (fuzzy) | ❌ **NO MATCH** |
-
-**When to use FALSE:** Real-world data with potential formatting inconsistencies
-**When to use TRUE:** Clean, standardized datasets where exact matching is required
-
-#### Real-World Impact Examples
-
-##### Scenario 1: Billing Validation
+##### Scenario 1: Insurance Claim Validation
 ```
-Master File: Approved procedures for insurance
-Client File: Submitted claims
+Master File: Approved procedure codes for insurance coverage
+Client File: Submitted claims with modifiers
 
-Settings: ignoreBlanks=true, caseSensitive=false, requireExact=false
-Result: Flexible matching that catches most legitimate variations
+Settings: Root 25 = TRUE, Root 59 = TRUE
+Result: Claims with E&M modifiers (25) and distinct procedure modifiers (59) 
+        will match against base procedure codes in the master file
 ```
 
-##### Scenario 2: Compliance Audit
+##### Scenario 2: Billing System Migration
 ```
-Master File: Regulatory standard procedures
-Client File: Provider submissions
+Master File: New system's base procedure codes
+Client File: Legacy system export with various modifiers
 
-Settings: ignoreBlanks=false, caseSensitive=true, requireExact=true
-Result: Strict matching that identifies any deviations from standards
+Settings: Root 00 = TRUE, Root 25 = TRUE, Root 50 = TRUE
+Result: Modified codes from legacy system match base codes in new system
 ```
 
-##### Scenario 3: Data Migration
+##### Scenario 3: Trauma Code Filtering
 ```
-Master File: New system format
-Client File: Legacy system export
+Master File: Standard procedure codes
+Client File: Emergency department data
 
-Settings: ignoreBlanks=true, caseSensitive=false, requireExact=false
-Result: Accommodates formatting differences between systems
+Settings: Ignore Trauma = TRUE
+Result: Trauma team codes (99284, 99285, 99291) are excluded from processing
 ```
 
 #### Recommended Settings by Use Case
 
-| Use Case | Ignore Blanks | Case Sensitive | Require Exact | Rationale |
-|----------|---------------|----------------|---------------|-----------|
-| **Insurance Validation** | ✅ TRUE | ❌ FALSE | ❌ FALSE | Flexible matching for real-world data variations |
-| **Regulatory Compliance** | ❌ FALSE | ✅ TRUE | ✅ TRUE | Strict adherence to standards |
-| **Data Migration** | ✅ TRUE | ❌ FALSE | ❌ FALSE | Accommodates system differences |
-| **Quality Control** | ✅ TRUE | ❌ FALSE | ✅ TRUE | Balance of flexibility and precision |
-| **Audit Preparation** | ❌ FALSE | ✅ TRUE | ✅ TRUE | Maximum precision for review |
+| Use Case | Root 00 | Root 25 | Root 50 | Root 59 | Root XU | Root 76 | Ignore Trauma |
+|----------|---------|---------|---------|---------|---------|---------|---------------|
+| **Insurance Validation** | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **Billing System Migration** | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Emergency Dept Processing** | ❌ | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| **Procedure Code Standardization** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
 
 #### Troubleshooting Low Match Rates
 
-If you're getting unexpectedly low match rates, try adjusting modifier settings:
+If you're getting unexpectedly low match rates:
 
-1. **Check for case differences**: Enable case-insensitive matching
-2. **Look for spacing issues**: Disable exact matching requirement
-3. **Review blank handling**: Enable ignore blanks if many records have empty modifiers
-4. **Examine data samples**: Review unmatched records to identify patterns
+1. **Check modifier usage**: Review if your data has modifiers that should be treated as root codes
+2. **Enable relevant root modifiers**: Turn on Root 25, Root 59, etc. based on your data
+3. **Review unmatched records**: Look for patterns in codes that aren't matching
+4. **Consider trauma codes**: Enable "Ignore Trauma" if trauma team codes are affecting results
 
 #### Default Configuration
 
-```typescript
-// Recommended starting configuration
-modifierCriteria: {
-  ignoreBlanks: true,        // Handle missing modifiers gracefully
-  caseSensitive: false,      // Ignore case differences
-  requireExact: false        // Allow fuzzy matching for minor variations
-}
-```
-
-This configuration works well for most healthcare data scenarios and can be adjusted based on your specific requirements and data quality.
+Most healthcare scenarios benefit from enabling common modifiers:
+- **Root 25**: TRUE (E&M services)
+- **Root 59**: TRUE (Distinct procedures)  
+- **Root 00**: FALSE (unless specific need)
+- **Root 50**: FALSE (unless bilateral procedures common)
+- **Root XU**: FALSE (unless unusual services common)
+- **Root 76**: FALSE (unless repeat procedures common)
+- **Ignore Trauma**: TRUE (if trauma codes should be excluded)
 
 ## Data Processing Rules
 

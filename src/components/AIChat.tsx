@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -16,6 +16,7 @@ import {
   Select,
   MenuItem,
   FormControl,
+  Button,
 } from '@mui/material';
 import {
   Send as SendIcon,
@@ -23,6 +24,7 @@ import {
   Person as PersonIcon,
   Close as CloseIcon,
   Minimize as MinimizeIcon,
+  Clear as ClearIcon,
 } from '@mui/icons-material';
 
 interface Message {
@@ -35,7 +37,7 @@ interface Message {
 interface GridContext {
   columns: string[];
   rowCount: number;
-  sampleData: Record<string, any>[];
+  sampleData: Record<string, unknown>[];
   currentView: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates';
   availableGrids: {
     master: { hasData: boolean; rowCount: number };
@@ -76,6 +78,33 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Draggable state with localStorage persistence
+  const getInitialPosition = () => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('aiChatPosition');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          // Fall back to default if parsing fails
+        }
+      }
+    }
+    // Default to top right
+    return { x: window.innerWidth - 420, y: 20 };
+  };
+
+  const [position, setPosition] = useState({ x: 20, y: 20 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const chatRef = useRef<HTMLDivElement>(null);
+
+  // Initialize position from localStorage after component mounts
+  useEffect(() => {
+    const initialPos = getInitialPosition();
+    setPosition(initialPos);
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -84,6 +113,60 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Drag handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.drag-handle')) {
+      setIsDragging(true);
+      setDragStart({
+        x: e.clientX - position.x,
+        y: e.clientY - position.y,
+      });
+      e.preventDefault();
+    }
+  };
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging) return;
+    
+    const newX = e.clientX - dragStart.x;
+    const newY = e.clientY - dragStart.y;
+    
+    // Keep chat window within viewport bounds
+    const chatElement = chatRef.current;
+    if (chatElement) {
+      const rect = chatElement.getBoundingClientRect();
+      const maxX = window.innerWidth - rect.width;
+      const maxY = window.innerHeight - rect.height;
+      
+      const newPosition = {
+        x: Math.max(0, Math.min(newX, maxX)),
+        y: Math.max(0, Math.min(newY, maxY)),
+      };
+      setPosition(newPosition);
+      
+      // Save position to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('aiChatPosition', JSON.stringify(newPosition));
+      }
+    }
+  }, [isDragging, dragStart.x, dragStart.y]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -156,6 +239,10 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
     }
   };
 
+  const handleClearChat = () => {
+    setMessages([]);
+  };
+
   const suggestedQueries = [
     "What is this app for?",
     "What are modifier settings?",
@@ -170,21 +257,26 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
   return (
     <Fade in={isOpen}>
       <Paper
+        ref={chatRef}
         elevation={8}
         sx={{
           position: 'fixed',
-          bottom: 20,
-          right: 20,
+          left: position.x,
+          top: position.y,
           width: 400,
           height: 600,
           display: 'flex',
           flexDirection: 'column',
           zIndex: 1300,
           borderRadius: 2,
+          cursor: isDragging ? 'grabbing' : 'default',
+          userSelect: 'none',
         }}
       >
         {/* Header */}
         <Box
+          className="drag-handle"
+          onMouseDown={handleMouseDown}
           sx={{
             p: 2,
             borderBottom: '1px solid #e0e0e0',
@@ -194,6 +286,7 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
             bgcolor: 'primary.main',
             color: 'white',
             borderRadius: '8px 8px 0 0',
+            cursor: isDragging ? 'grabbing' : 'grab',
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
@@ -233,10 +326,10 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
             </Box>
           </Box>
           <Box>
-            <IconButton size="small" onClick={onMinimize} sx={{ color: 'white', mr: 1 }}>
+            <IconButton size="small" onClick={onMinimize} sx={{ color: 'white', mr: 1 }} title="Minimize">
               <MinimizeIcon />
             </IconButton>
-            <IconButton size="small" onClick={onClose} sx={{ color: 'white' }}>
+            <IconButton size="small" onClick={onClose} sx={{ color: 'white' }} title="Close">
               <CloseIcon />
             </IconButton>
           </Box>
@@ -335,28 +428,40 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
           sx={{
             p: 2,
             borderTop: '1px solid #e0e0e0',
-            display: 'flex',
-            gap: 1,
           }}
         >
-          <TextField
-            fullWidth
-            multiline
-            maxRows={3}
-            placeholder="Ask about your data..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={handleKeyPress}
-            disabled={isLoading}
-            size="small"
-          />
-          <IconButton
-            onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isLoading}
-            color="primary"
-          >
-            <SendIcon />
-          </IconButton>
+          {messages.length > 0 && (
+            <Button
+              fullWidth
+              size="small"
+              variant="outlined"
+              startIcon={<ClearIcon />}
+              onClick={handleClearChat}
+              sx={{ fontSize: '0.75rem', py: 0.25, mb: 1, minHeight: '28px' }}
+            >
+              Clear Chat
+            </Button>
+          )}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <TextField
+              fullWidth
+              multiline
+              maxRows={3}
+              placeholder="Ask about your data..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={isLoading}
+              size="small"
+            />
+            <IconButton
+              onClick={handleSendMessage}
+              disabled={!inputValue.trim() || isLoading}
+              color="primary"
+            >
+              <SendIcon />
+            </IconButton>
+          </Box>
         </Box>
       </Paper>
     </Fade>
