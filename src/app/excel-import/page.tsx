@@ -279,6 +279,11 @@ export default function ExcelImportPage() {
   const [aiSelectedGrid, setAiSelectedGrid] = useState<'master' | 'client' | 'merged' | 'unmatched' | 'duplicates'>('merged');
   const [chatWidth, setChatWidth] = useState(320);
 
+  // Optimized width change handler to prevent unnecessary re-renders
+  const handleChatWidthChange = useCallback((newWidth: number) => {
+    setChatWidth(newWidth);
+  }, []);
+
   // Refs for scrolling to grids
   const masterGridRef = useRef<HTMLDivElement>(null);
   const clientGridRef = useRef<HTMLDivElement>(null);
@@ -2151,7 +2156,7 @@ export default function ExcelImportPage() {
         onMinimize={() => setIsChatOpen(false)}
         selectedGrid={aiSelectedGrid}
         onGridChange={setAiSelectedGrid}
-        onWidthChange={setChatWidth}
+        onWidthChange={handleChatWidthChange}
       />
     </Box>
   );

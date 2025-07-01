@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Box,
   TextField,
@@ -82,6 +82,8 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
   const [isResizing, setIsResizing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<HTMLDivElement>(null);
+  const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastNotifiedWidthRef = useRef<number>(320);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -91,43 +93,98 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
     scrollToBottom();
   }, [messages]);
 
-  // Notify parent when width changes
-  useEffect(() => {
-    if (onWidthChange && isOpen) {
-      onWidthChange(width);
+  // Throttled width change notification
+  const notifyWidthChange = useCallback((newWidth: number) => {
+    if (!onWidthChange || !isOpen) return;
+    
+    // Clear any existing timeout
+    if (throttleTimeoutRef.current) {
+      clearTimeout(throttleTimeoutRef.current);
     }
-  }, [width, onWidthChange, isOpen]);
+    
+    // Only notify if width has changed significantly (more than 5px)
+    if (Math.abs(newWidth - lastNotifiedWidthRef.current) < 5) return;
+    
+    // Throttle notifications to every 16ms (60fps)
+    throttleTimeoutRef.current = setTimeout(() => {
+      onWidthChange(newWidth);
+      lastNotifiedWidthRef.current = newWidth;
+    }, 16);
+  }, [onWidthChange, isOpen]);
 
-  // Resize functionality
+  // Notify parent when width changes (initial and final)
   useEffect(() => {
+    if (onWidthChange && isOpen && !isResizing) {
+      onWidthChange(width);
+      lastNotifiedWidthRef.current = width;
+    }
+  }, [width, onWidthChange, isOpen, isResizing]);
+
+  // Resize functionality with optimized performance
+  useEffect(() => {
+    let animationFrameId: number | null = null;
+    
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
       
-      const newWidth = window.innerWidth - e.clientX;
-      const minWidth = 250;
-      const maxWidth = Math.min(600, window.innerWidth * 0.6);
+      // Cancel any pending animation frame
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       
-      setWidth(Math.max(minWidth, Math.min(maxWidth, newWidth)));
+      // Use requestAnimationFrame for smooth updates
+      animationFrameId = requestAnimationFrame(() => {
+        const newWidth = window.innerWidth - e.clientX;
+        const minWidth = 250;
+        const maxWidth = Math.min(600, window.innerWidth * 0.6);
+        const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+        
+        setWidth(constrainedWidth);
+        notifyWidthChange(constrainedWidth);
+      });
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      
+      // Cancel any pending animation frame
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      
+      // Send final width update
+      if (onWidthChange && isOpen) {
+        onWidthChange(width);
+        lastNotifiedWidthRef.current = width;
+      }
     };
 
     if (isResizing) {
       document.body.style.cursor = 'ew-resize';
       document.body.style.userSelect = 'none';
-      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mousemove', handleMouseMove, { passive: true });
       document.addEventListener('mouseup', handleMouseUp);
     }
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
     };
-  }, [isResizing]);
+  }, [isResizing, notifyWidthChange, onWidthChange, isOpen, width]);
+
+  // Cleanup throttle timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (throttleTimeoutRef.current) {
+        clearTimeout(throttleTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleResizeStart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -400,7 +457,7 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, onMinim
                   <Box
                     sx={{
                       p: 1.5,
-                      maxWidth: '75%',
+                      maxWidth: '90%',
                       bgcolor: message.type === 'user' ? 'primary.light' : 'grey.100',
                       color: message.type === 'user' ? 'white' : 'text.primary',
                       borderRadius: 2,
