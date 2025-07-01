@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Chip, Fab } from "@mui/material";
+import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Chip, Fab, Tooltip } from "@mui/material";
 import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
@@ -346,6 +346,13 @@ export default function ExcelImportPage() {
   const [selectedRowUnmatched, setSelectedRowUnmatched] = useState<number | string | null>(null);
   const [selectedRowDuplicates, setSelectedRowDuplicates] = useState<number | string | null>(null);
 
+  // Multi-row selection states for checkbox selections
+  const [selectedRowsMaster, setSelectedRowsMaster] = useState<(number | string)[]>([]);
+  const [selectedRowsClient, setSelectedRowsClient] = useState<(number | string)[]>([]);
+  const [selectedRowsMerged, setSelectedRowsMerged] = useState<(number | string)[]>([]);
+  const [selectedRowsUnmatched, setSelectedRowsUnmatched] = useState<(number | string)[]>([]);
+  const [selectedRowsDuplicates, setSelectedRowsDuplicates] = useState<(number | string)[]>([]);
+
   // Filter function for search
   const filterRows = (rows: ExcelRow[], searchTerm: string): ExcelRow[] => {
     if (!searchTerm.trim()) return rows;
@@ -478,8 +485,10 @@ export default function ExcelImportPage() {
   // Function to handle grid container clicks
   const handleGridClick = (gridType: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') => {
     if (aiSelectedGrid !== gridType) {
+      console.log(`[GRID CLICK] Switching active grid from ${aiSelectedGrid} to ${gridType}`);
       setAiSelectedGrid(gridType);
-      console.log(`[GRID CLICK] Switched active grid to: ${gridType}`);
+    } else {
+      console.log(`[GRID CLICK] Grid ${gridType} already active`);
     }
   };
 
@@ -511,7 +520,7 @@ export default function ExcelImportPage() {
   const filteredDupsClient = filterAndSearchRows(dupsClient, "", duplicatesFilters);
 
   // AI Chat functions
-  const getCurrentGridContext = () => {
+  const getCurrentGridContext = useCallback(() => {
     const getCurrentData = () => {
       switch (aiSelectedGrid) {
         case 'master':
@@ -531,25 +540,103 @@ export default function ExcelImportPage() {
 
     const { rows, columns } = getCurrentData();
     
-    // Get selected row information for current grid
+    // Get selected row information for current grid (use checkbox selections if available, fallback to single selection)
     const getSelectedRowInfo = () => {
+      console.log('[ROW SELECTION DEBUG] Getting row info for grid:', aiSelectedGrid);
+      console.log('[ROW SELECTION DEBUG] All selection states:', {
+        master: { single: selectedRowMaster, multi: selectedRowsMaster },
+        client: { single: selectedRowClient, multi: selectedRowsClient },
+        merged: { single: selectedRowMerged, multi: selectedRowsMerged },
+        unmatched: { single: selectedRowUnmatched, multi: selectedRowsUnmatched },
+        duplicates: { single: selectedRowDuplicates, multi: selectedRowsDuplicates }
+      });
+      
       switch (aiSelectedGrid) {
         case 'master':
-          return { selectedRowId: selectedRowMaster, selectedRowData: selectedRowMaster ? (rows.find(row => row.id === selectedRowMaster) || null) : null };
+          const masterSelectedId = selectedRowsMaster.length > 0 ? selectedRowsMaster[0] : selectedRowMaster;
+          console.log('[ROW SELECTION DEBUG] Master grid selected ID:', masterSelectedId);
+          return { selectedRowId: masterSelectedId, selectedRowData: masterSelectedId ? (rows.find(row => row.id === masterSelectedId) || null) : null };
         case 'client':
-          return { selectedRowId: selectedRowClient, selectedRowData: selectedRowClient ? (rows.find(row => row.id === selectedRowClient) || null) : null };
+          const clientSelectedId = selectedRowsClient.length > 0 ? selectedRowsClient[0] : selectedRowClient;
+          console.log('[ROW SELECTION DEBUG] Client grid selected ID:', clientSelectedId);
+          return { selectedRowId: clientSelectedId, selectedRowData: clientSelectedId ? (rows.find(row => row.id === clientSelectedId) || null) : null };
         case 'merged':
-          return { selectedRowId: selectedRowMerged, selectedRowData: selectedRowMerged ? (rows.find(row => row.id === selectedRowMerged) || null) : null };
+          const mergedSelectedId = selectedRowsMerged.length > 0 ? selectedRowsMerged[0] : selectedRowMerged;
+          console.log('[ROW SELECTION DEBUG] Merged grid selected ID:', mergedSelectedId);
+          return { selectedRowId: mergedSelectedId, selectedRowData: mergedSelectedId ? (rows.find(row => row.id === mergedSelectedId) || null) : null };
         case 'unmatched':
-          return { selectedRowId: selectedRowUnmatched, selectedRowData: selectedRowUnmatched ? (rows.find(row => row.id === selectedRowUnmatched) || null) : null };
+          const unmatchedSelectedId = selectedRowsUnmatched.length > 0 ? selectedRowsUnmatched[0] : selectedRowUnmatched;
+          console.log('[ROW SELECTION DEBUG] Unmatched grid selected ID:', unmatchedSelectedId);
+          return { selectedRowId: unmatchedSelectedId, selectedRowData: unmatchedSelectedId ? (rows.find(row => row.id === unmatchedSelectedId) || null) : null };
         case 'duplicates':
-          return { selectedRowId: selectedRowDuplicates, selectedRowData: selectedRowDuplicates ? (rows.find(row => row.id === selectedRowDuplicates) || null) : null };
+          const duplicatesSelectedId = selectedRowsDuplicates.length > 0 ? selectedRowsDuplicates[0] : selectedRowDuplicates;
+          console.log('[ROW SELECTION DEBUG] Duplicates grid selected ID:', duplicatesSelectedId);
+          return { selectedRowId: duplicatesSelectedId, selectedRowData: duplicatesSelectedId ? (rows.find(row => row.id === duplicatesSelectedId) || null) : null };
         default:
           return { selectedRowId: null, selectedRowData: null };
       }
     };
     
     const { selectedRowId, selectedRowData } = getSelectedRowInfo();
+    
+    // Extract HCPCS information for user-friendly row identification
+    const getHcpcsInfo = (rowData: Record<string, unknown> | null) => {
+      if (!rowData) return null;
+      
+      // Find HCPCS column (case-insensitive search)
+      const hcpcsKey = Object.keys(rowData).find(key => 
+        key.toLowerCase().includes('hcpcs')
+      );
+      
+      // Find modifier column (case-insensitive search)
+      const modifierKey = Object.keys(rowData).find(key => 
+        key.toLowerCase().includes('modifier') || key.toLowerCase().includes('mod')
+      );
+      
+      const hcpcs = hcpcsKey ? String(rowData[hcpcsKey] || '').trim() : '';
+      const modifier = modifierKey ? String(rowData[modifierKey] || '').trim() : '';
+      
+      if (hcpcs) {
+        return modifier ? `${hcpcs}-${modifier}` : hcpcs;
+      }
+      
+      return null;
+    };
+    
+    const selectedHcpcs = getHcpcsInfo(selectedRowData);
+    
+    // Get count of selected rows for current grid
+    const getSelectedRowCount = () => {
+      switch (aiSelectedGrid) {
+        case 'master':
+          return selectedRowsMaster.length || (selectedRowMaster ? 1 : 0);
+        case 'client':
+          return selectedRowsClient.length || (selectedRowClient ? 1 : 0);
+        case 'merged':
+          return selectedRowsMerged.length || (selectedRowMerged ? 1 : 0);
+        case 'unmatched':
+          return selectedRowsUnmatched.length || (selectedRowUnmatched ? 1 : 0);
+        case 'duplicates':
+          return selectedRowsDuplicates.length || (selectedRowDuplicates ? 1 : 0);
+        default:
+          return 0;
+      }
+    };
+    
+    const selectedRowCount = getSelectedRowCount();
+    
+    console.log('[CONTEXT CREATION] Grid context for AI:', {
+      aiSelectedGrid,
+      selectedRowId,
+      selectedHcpcs,
+      selectedRowCount,
+      hasSelectedRowData: !!selectedRowData,
+      allSelections: {
+        master: { single: selectedRowMaster, multi: selectedRowsMaster },
+        client: { single: selectedRowClient, multi: selectedRowsClient },
+        merged: { single: selectedRowMerged, multi: selectedRowsMerged }
+      }
+    });
     
     return {
       columns: columns.map(col => col.field),
@@ -567,33 +654,21 @@ export default function ExcelImportPage() {
       selectedGrid: aiSelectedGrid,
       selectedRowId: selectedRowId,
       selectedRowData: selectedRowData,
+      selectedHcpcs: selectedHcpcs,
+      selectedRowCount: selectedRowCount,
     };
-  };
-
-  // Memoized grid context that updates when selection state changes
-  const gridContext = useMemo(() => {
-    console.log('[GRID CONTEXT DEBUG] Creating context with selection states:', {
-      aiSelectedGrid,
-      selectedRowMaster,
-      selectedRowClient,
-      selectedRowMerged,
-      selectedRowUnmatched,
-      selectedRowDuplicates
-    });
-    const context = getCurrentGridContext();
-    console.log('[GRID CONTEXT DEBUG] Created context:', {
-      selectedGrid: context.selectedGrid,
-      selectedRowId: context.selectedRowId,
-      selectedRowData: context.selectedRowData ? 'present' : 'null'
-    });
-    return context;
   }, [
     aiSelectedGrid,
     selectedRowMaster,
-    selectedRowClient, 
+    selectedRowClient,
     selectedRowMerged,
     selectedRowUnmatched,
     selectedRowDuplicates,
+    selectedRowsMaster,
+    selectedRowsClient,
+    selectedRowsMerged,
+    selectedRowsUnmatched,
+    selectedRowsDuplicates,
     rowsMaster,
     rowsClient,
     mergedRows,
@@ -604,6 +679,18 @@ export default function ExcelImportPage() {
     mergedColumns,
     showCompare
   ]);
+
+  // Memoized grid context that updates when selection state changes
+  const gridContext = useMemo(() => {
+    const context = getCurrentGridContext();
+    console.log('[GRID CONTEXT] Final context for AI:', {
+      selectedGrid: context.selectedGrid,
+      selectedRowId: context.selectedRowId,
+      selectedRowData: context.selectedRowData ? 'present' : 'null',
+      rowCount: context.rowCount
+    });
+    return context;
+  }, [getCurrentGridContext]);
 
   // Helper function to get currently selected row ID
   const getCurrentSelectedRowId = () => {
@@ -932,6 +1019,13 @@ export default function ExcelImportPage() {
       const targetView = intent.parameters?.view || aiSelectedGrid;
       const rowId = intent.parameters.rowId;
       
+      console.log('[DUPLICATE ACTION] Processing duplicate request:', {
+        targetView,
+        rowId,
+        aiSelectedGrid,
+        intentView: intent.parameters?.view
+      });
+      
       // Update AI selected grid if specified
       if (intent.parameters?.view) {
         setAiSelectedGrid(intent.parameters.view as typeof aiSelectedGrid);
@@ -941,14 +1035,36 @@ export default function ExcelImportPage() {
         ensureGridVisible(targetView);
       }
       
+      // Get HCPCS info for the row being duplicated
+      const getRowHcpcs = (data: Record<string, unknown> | null | undefined) => {
+        if (!data) return null;
+        const hcpcsKey = Object.keys(data).find(key => key.toLowerCase().includes('hcpcs'));
+        const modifierKey = Object.keys(data).find(key => key.toLowerCase().includes('modifier') || key.toLowerCase().includes('mod'));
+        const hcpcs = hcpcsKey ? String(data[hcpcsKey] || '').trim() : '';
+        const modifier = modifierKey ? String(data[modifierKey] || '').trim() : '';
+        return hcpcs ? (modifier ? `${hcpcs}-${modifier}` : hcpcs) : null;
+      };
+      
+      // Get the current row data for HCPCS identification
+      const currentRows = targetView === 'master' ? rowsMaster : targetView === 'client' ? rowsClient : mergedRows;
+      const rowToAnalyze = currentRows.find(row => row.id === rowId);
+      const hcpcsCode = getRowHcpcs(rowToAnalyze);
+      
       // Call the duplicate function
-      handleDuplicateRecord(rowId, targetView as 'master' | 'client' | 'merged');
-      console.log(`Duplicated record ${rowId} in ${targetView} grid`);
+      const result = handleDuplicateRecord(rowId, targetView as 'master' | 'client' | 'merged');
+      console.log('[DUPLICATE ACTION] Duplicate result:', result);
+      
+      if (result.success && result.newRowId) {
+        const identifier = hcpcsCode ? `HCPCS code ${hcpcsCode}` : `row ID ${result.originalRowId}`;
+        console.log(`✅ Successfully duplicated ${identifier} in ${targetView} grid. New record ID: ${result.newRowId}`);
+      } else {
+        const identifier = hcpcsCode ? `HCPCS code ${hcpcsCode}` : `row ID ${result.originalRowId}`;
+        console.error(`❌ Failed to duplicate ${identifier} in ${targetView} grid`);
+      }
     }
 
-    if (intent.action === 'delete' && intent.parameters?.rowId) {
+    if (intent.action === 'delete') {
       const targetView = intent.parameters?.view || aiSelectedGrid;
-      const rowId = intent.parameters.rowId;
       
       // Update AI selected grid if specified
       if (intent.parameters?.view) {
@@ -959,9 +1075,56 @@ export default function ExcelImportPage() {
         ensureGridVisible(targetView);
       }
       
-      // Call the delete function
-      handleDeleteRecord(rowId, targetView as 'master' | 'client' | 'merged');
-      console.log(`Deleted record ${rowId} from ${targetView} grid`);
+      // Check if we have a specific rowId or should delete all selected rows
+      if (intent.parameters?.rowId) {
+        // Single row delete
+        const rowId = intent.parameters.rowId;
+        handleDeleteRecord(rowId, targetView as 'master' | 'client' | 'merged');
+        console.log(`Deleted record ${rowId} from ${targetView} grid`);
+      } else {
+        // Bulk delete - get all selected rows for the current grid
+        let selectedRowIds: (number | string)[] = [];
+        
+        switch (targetView) {
+          case 'master':
+            selectedRowIds = selectedRowsMaster.length > 0 ? selectedRowsMaster : (selectedRowMaster ? [selectedRowMaster] : []);
+            break;
+          case 'client':
+            selectedRowIds = selectedRowsClient.length > 0 ? selectedRowsClient : (selectedRowClient ? [selectedRowClient] : []);
+            break;
+          case 'merged':
+            selectedRowIds = selectedRowsMerged.length > 0 ? selectedRowsMerged : (selectedRowMerged ? [selectedRowMerged] : []);
+            break;
+          case 'unmatched':
+            selectedRowIds = selectedRowsUnmatched.length > 0 ? selectedRowsUnmatched : (selectedRowUnmatched ? [selectedRowUnmatched] : []);
+            break;
+          case 'duplicates':
+            selectedRowIds = selectedRowsDuplicates.length > 0 ? selectedRowsDuplicates : (selectedRowDuplicates ? [selectedRowDuplicates] : []);
+            break;
+        }
+        
+        console.log(`[DELETE ACTION] Bulk delete requested for ${targetView} grid. Selected rows:`, selectedRowIds);
+        
+        if (selectedRowIds.length > 0) {
+          // Get HCPCS codes for the rows being deleted for better feedback
+          const currentRows = targetView === 'master' ? rowsMaster : targetView === 'client' ? rowsClient : mergedRows;
+          const rowsToDelete = currentRows.filter(row => selectedRowIds.includes(row.id));
+          const hcpcsCodes = rowsToDelete.map(row => {
+            const hcpcsKey = Object.keys(row).find(key => key.toLowerCase().includes('hcpcs'));
+            const modifierKey = Object.keys(row).find(key => key.toLowerCase().includes('modifier') || key.toLowerCase().includes('mod'));
+            const hcpcs = hcpcsKey ? String(row[hcpcsKey] || '').trim() : '';
+            const modifier = modifierKey ? String(row[modifierKey] || '').trim() : '';
+            return hcpcs ? (modifier ? `${hcpcs}-${modifier}` : hcpcs) : `ID ${row.id}`;
+          });
+          
+          const result = handleDeleteMultipleRecords(selectedRowIds, targetView as 'master' | 'client' | 'merged');
+          if (result.success) {
+            console.log(`✅ Successfully deleted ${result.deletedCount} records: ${hcpcsCodes.join(', ')}`);
+          }
+        } else {
+          console.log(`❌ No rows selected for deletion in ${targetView} grid`);
+        }
+      }
     }
 
     if (intent.action === 'add') {
@@ -1872,13 +2035,13 @@ export default function ExcelImportPage() {
   };
 
   // Record manipulation functions
-  const handleDuplicateRecord = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
+  const handleDuplicateRecord = (rowId: number | string, gridType: 'master' | 'client' | 'merged'): { success: boolean; newRowId?: number | string; originalRowId: number | string } => {
     // Set up variables based on grid type
     if (gridType === 'master') {
       const recordToDuplicate = rowsMaster.find(row => row.id === rowId);
       if (!recordToDuplicate) {
         console.error(`Record with ID ${rowId} not found in master grid`);
-        return;
+        return { success: false, originalRowId: rowId };
       }
       
       const maxId = Math.max(...rowsMaster.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
@@ -1901,11 +2064,12 @@ export default function ExcelImportPage() {
       
       setHasUnsavedMasterChanges(true);
       console.log(`Record duplicated in master grid. New record ID: ${newRecord.id}`);
+      return { success: true, newRowId: newRecord.id, originalRowId: rowId };
     } else if (gridType === 'client') {
       const recordToDuplicate = rowsClient.find(row => row.id === rowId);
       if (!recordToDuplicate) {
         console.error(`Record with ID ${rowId} not found in client grid`);
-        return;
+        return { success: false, originalRowId: rowId };
       }
       
       const maxId = Math.max(...rowsClient.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
@@ -1928,11 +2092,12 @@ export default function ExcelImportPage() {
       
       setHasUnsavedChanges(true);
       console.log(`Record duplicated in client grid. New record ID: ${newRecord.id}`);
+      return { success: true, newRowId: newRecord.id, originalRowId: rowId };
     } else if (gridType === 'merged') {
       const recordToDuplicate = mergedRows.find(row => row.id === rowId);
       if (!recordToDuplicate) {
         console.error(`Record with ID ${rowId} not found in merged grid`);
-        return;
+        return { success: false, originalRowId: rowId };
       }
       
       const maxId = Math.max(...mergedRows.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
@@ -1942,7 +2107,10 @@ export default function ExcelImportPage() {
       setMergedForExport(updatedRows);
       setHasUnsavedMergedChanges(true);
       console.log(`Record duplicated in merged grid. New record ID: ${newRecord.id}`);
+      return { success: true, newRowId: newRecord.id, originalRowId: rowId };
     }
+    
+    return { success: false, originalRowId: rowId };
   };
 
   const handleDeleteRecord = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
@@ -1965,6 +2133,13 @@ export default function ExcelImportPage() {
       }
       
       setHasUnsavedMasterChanges(true);
+      
+      // Re-validate for duplicates after delete to potentially re-enable save button
+      const validation = validateForDuplicates(updatedRows, 'master');
+      setDuplicateValidationErrors(prev => ({
+        ...prev,
+        master: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
+      }));
     } else if (gridType === 'client') {
       const updatedRows = rowsClient.filter(row => row.id !== rowId);
       setRowsClient(updatedRows);
@@ -1983,14 +2158,105 @@ export default function ExcelImportPage() {
       }
       
       setHasUnsavedChanges(true);
+      
+      // Re-validate for duplicates after delete to potentially re-enable save button
+      const validation = validateForDuplicates(updatedRows, 'client');
+      setDuplicateValidationErrors(prev => ({
+        ...prev,
+        client: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
+      }));
     } else if (gridType === 'merged') {
       const updatedRows = mergedRows.filter(row => row.id !== rowId);
       setMergedRows(updatedRows);
       setMergedForExport(updatedRows);
       setHasUnsavedMergedChanges(true);
+      
+      // Re-validate for duplicates after delete to potentially re-enable save button
+      const validation = validateForDuplicates(updatedRows, 'merged');
+      setDuplicateValidationErrors(prev => ({
+        ...prev,
+        merged: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
+      }));
     }
 
     console.log(`Record with ID ${rowId} deleted from ${gridType} grid`);
+    console.log(`[SINGLE DELETE] Re-validated duplicates for ${gridType} grid after deletion`);
+  };
+
+  const handleDeleteMultipleRecords = (rowIds: (number | string)[], gridType: 'master' | 'client' | 'merged') => {
+    if (!rowIds || rowIds.length === 0) return { success: false, deletedCount: 0 };
+    
+    console.log(`[BULK DELETE] Deleting ${rowIds.length} records from ${gridType} grid:`, rowIds);
+    
+    // Set up variables based on grid type
+    if (gridType === 'master') {
+      const updatedRows = rowsMaster.filter(row => !rowIds.includes(row.id));
+      setRowsMaster(updatedRows);
+      
+      // Update sheet data
+      const currentSheet = masterSheetNames[activeMasterTab];
+      if (currentSheet && masterSheetData[currentSheet]) {
+        const updatedSheetData = {
+          ...masterSheetData,
+          [currentSheet]: {
+            ...masterSheetData[currentSheet],
+            rows: updatedRows
+          }
+        };
+        setMasterSheetData(updatedSheetData);
+      }
+      
+      setHasUnsavedMasterChanges(true);
+      
+      // Re-validate for duplicates after bulk delete to potentially re-enable save button
+      const validation = validateForDuplicates(updatedRows, 'master');
+      setDuplicateValidationErrors(prev => ({
+        ...prev,
+        master: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
+      }));
+    } else if (gridType === 'client') {
+      const updatedRows = rowsClient.filter(row => !rowIds.includes(row.id));
+      setRowsClient(updatedRows);
+      
+      // Update sheet data
+      const currentSheet = clientSheetNames[activeClientTab];
+      if (currentSheet && clientSheetData[currentSheet]) {
+        const updatedSheetData = {
+          ...clientSheetData,
+          [currentSheet]: {
+            ...clientSheetData[currentSheet],
+            rows: updatedRows
+          }
+        };
+        setClientSheetData(updatedSheetData);
+      }
+      
+      setHasUnsavedChanges(true);
+      
+      // Re-validate for duplicates after bulk delete to potentially re-enable save button
+      const validation = validateForDuplicates(updatedRows, 'client');
+      setDuplicateValidationErrors(prev => ({
+        ...prev,
+        client: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
+      }));
+    } else if (gridType === 'merged') {
+      const updatedRows = mergedRows.filter(row => !rowIds.includes(row.id));
+      setMergedRows(updatedRows);
+      setMergedForExport(updatedRows);
+      setHasUnsavedMergedChanges(true);
+      
+      // Re-validate for duplicates after bulk delete to potentially re-enable save button
+      const validation = validateForDuplicates(updatedRows, 'merged');
+      setDuplicateValidationErrors(prev => ({
+        ...prev,
+        merged: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
+      }));
+    }
+
+    const deletedCount = rowIds.length;
+    console.log(`✅ Successfully deleted ${deletedCount} records from ${gridType} grid`);
+    console.log(`[BULK DELETE] Re-validated duplicates for ${gridType} grid after deletion`);
+    return { success: true, deletedCount };
   };
 
   const handleAddRecord = (gridType: 'master' | 'client' | 'merged', rowData?: {[key: string]: string | number | undefined}) => {
@@ -2298,11 +2564,15 @@ export default function ExcelImportPage() {
                   onRowSelectionModelChange={(newRowSelectionModel) => {
                     // Handle the new DataGrid selection model format
                     let selectedId = null;
+                    let selectedIds: (number | string)[] = [];
                     if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
                       const ids = newRowSelectionModel.ids as Set<number | string>;
-                      selectedId = ids.size > 0 ? Array.from(ids)[0] : null;
+                      selectedIds = Array.from(ids);
+                      selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
                     }
+                    console.log('[MASTER SELECTION] Setting selection:', { selectedId, selectedIds, aiSelectedGrid });
                     setSelectedRowMaster(selectedId);
+                    setSelectedRowsMaster(selectedIds);
                   }}
                   processRowUpdate={(newRow) => {
                     // Basic validation for edited cells
@@ -2361,6 +2631,13 @@ export default function ExcelImportPage() {
                     
                     // Mark as having unsaved changes
                     setHasUnsavedMasterChanges(true);
+                    
+                    // Re-validate for duplicates after row update to potentially re-enable save button
+                    const validation = validateForDuplicates(updatedRows, 'master');
+                    setDuplicateValidationErrors(prev => ({
+                      ...prev,
+                      master: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
+                    }));
                     
                     return validatedRow;
                   }}
@@ -2594,11 +2871,15 @@ export default function ExcelImportPage() {
                   onRowSelectionModelChange={(newRowSelectionModel) => {
                     // Handle the new DataGrid selection model format
                     let selectedId = null;
+                    let selectedIds: (number | string)[] = [];
                     if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
                       const ids = newRowSelectionModel.ids as Set<number | string>;
-                      selectedId = ids.size > 0 ? Array.from(ids)[0] : null;
+                      selectedIds = Array.from(ids);
+                      selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
                     }
+                    console.log('[CLIENT SELECTION] Setting selection:', { selectedId, selectedIds, aiSelectedGrid });
                     setSelectedRowClient(selectedId);
+                    setSelectedRowsClient(selectedIds);
                   }}
                   processRowUpdate={(newRow) => {
                     // Basic validation for edited cells
@@ -2657,6 +2938,13 @@ export default function ExcelImportPage() {
                     
                     // Mark as having unsaved changes
                     setHasUnsavedChanges(true);
+                    
+                    // Re-validate for duplicates after row update to potentially re-enable save button
+                    const validation = validateForDuplicates(updatedRows, 'client');
+                    setDuplicateValidationErrors(prev => ({
+                      ...prev,
+                      client: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
+                    }));
                     
                     return validatedRow;
                   }}
@@ -2723,20 +3011,28 @@ export default function ExcelImportPage() {
               Restore Last Session
             </Button>
           )}
-          <Button 
-            variant="outlined" 
-            onClick={() => handleLoadLastFile("Master")}
-            disabled={!lastMasterData || !lastMasterFile}
-          >
-            Load Last Master: {lastMasterFile || "Unknown"}
-          </Button>
-          <Button 
-            variant="outlined" 
-            onClick={() => handleLoadLastFile("Client")}
-            disabled={!lastClientData || !lastClientFile}
-          >
-            Load Last Client: {lastClientFile || "Unknown"}
-          </Button>
+          <Tooltip title={lastMasterFile ? `Load last master file: ${lastMasterFile}` : "No master file in memory"}>
+            <span>
+              <Button 
+                variant="outlined" 
+                onClick={() => handleLoadLastFile("Master")}
+                disabled={!lastMasterData || !lastMasterFile}
+              >
+                Load Last Master
+              </Button>
+            </span>
+          </Tooltip>
+          <Tooltip title={lastClientFile ? `Load last client file: ${lastClientFile}` : "No client file in memory"}>
+            <span>
+              <Button 
+                variant="outlined" 
+                onClick={() => handleLoadLastFile("Client")}
+                disabled={!lastClientData || !lastClientFile}
+              >
+                Load Last Client
+              </Button>
+            </span>
+          </Tooltip>
           <Button variant="contained" onClick={handleReset} color="warning">
             Reset
           </Button>
@@ -3003,11 +3299,14 @@ export default function ExcelImportPage() {
                 onRowSelectionModelChange={(newRowSelectionModel) => {
                   // Handle the new DataGrid selection model format
                   let selectedId = null;
+                  let selectedIds: (number | string)[] = [];
                   if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
                     const ids = newRowSelectionModel.ids as Set<number | string>;
-                    selectedId = ids.size > 0 ? Array.from(ids)[0] : null;
+                    selectedIds = Array.from(ids);
+                    selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
                   }
                   setSelectedRowMerged(selectedId);
+                  setSelectedRowsMerged(selectedIds);
                 }}
                 processRowUpdate={(newRow) => {
                   // Basic validation for edited cells
@@ -3054,6 +3353,13 @@ export default function ExcelImportPage() {
                   
                   // Mark as having unsaved changes
                   setHasUnsavedMergedChanges(true);
+                  
+                  // Re-validate for duplicates after row update to potentially re-enable save button
+                  const validation = validateForDuplicates(updatedRows, 'merged');
+                  setDuplicateValidationErrors(prev => ({
+                    ...prev,
+                    merged: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
+                  }));
                   
                   return validatedRow;
                 }}
@@ -3129,11 +3435,14 @@ export default function ExcelImportPage() {
                   onRowSelectionModelChange={(newRowSelectionModel) => {
                     // Handle the new DataGrid selection model format
                     let selectedId = null;
+                    let selectedIds: (number | string)[] = [];
                     if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
                       const ids = newRowSelectionModel.ids as Set<number | string>;
-                      selectedId = ids.size > 0 ? Array.from(ids)[0] : null;
+                      selectedIds = Array.from(ids);
+                      selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
                     }
                     setSelectedRowUnmatched(selectedId);
+                    setSelectedRowsUnmatched(selectedIds);
                   }}
                   sx={getDataGridStyles('unmatched')}
                 />
@@ -3170,11 +3479,14 @@ export default function ExcelImportPage() {
                   onRowSelectionModelChange={(newRowSelectionModel) => {
                     // Handle the new DataGrid selection model format
                     let selectedId = null;
+                    let selectedIds: (number | string)[] = [];
                     if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
                       const ids = newRowSelectionModel.ids as Set<number | string>;
-                      selectedId = ids.size > 0 ? Array.from(ids)[0] : null;
+                      selectedIds = Array.from(ids);
+                      selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
                     }
                     setSelectedRowDuplicates(selectedId);
+                    setSelectedRowsDuplicates(selectedIds);
                   }}
                   sx={getDataGridStyles('duplicates')}
                 />

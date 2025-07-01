@@ -21,6 +21,8 @@ interface GridContext {
   selectedGrid: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates';
   selectedRowId: number | string | null;
   selectedRowData: Record<string, unknown> | null;
+  selectedHcpcs: string | null;
+  selectedRowCount: number;
 }
 
 interface AIIntent {
@@ -44,11 +46,15 @@ export async function POST(request: NextRequest) {
   try {
     const { message, gridContext }: { message: string; gridContext: GridContext } = await request.json();
     
-    console.log('[AI API DEBUG] Received:', {
+    console.log('[AI API DEBUG] Received request:', {
       message,
       selectedGrid: gridContext.selectedGrid,
       selectedRowId: gridContext.selectedRowId,
-      selectedRowData: gridContext.selectedRowData ? 'present' : 'null'
+      selectedHcpcs: gridContext.selectedHcpcs,
+      selectedRowCount: gridContext.selectedRowCount,
+      selectedRowData: gridContext.selectedRowData ? 'present' : 'null',
+      hasRowSelection: !!gridContext.selectedRowId,
+      rowCount: gridContext.rowCount
     });
     
 
@@ -223,15 +229,20 @@ Example user interactions:
 - User: "hide rows with blank cdms" → Return: {"type": "action", "action": "filter", "parameters": {"column": "cdms", "condition": "is_not_empty"}, "response": "Hiding rows where CDMS column is blank"}
 - User: "export the data" → Return: {"type": "action", "action": "export", "response": "Exporting merged data to Excel file"}
 - User: "export as monthly_report" → Return: {"type": "action", "action": "export", "parameters": {"filename": "monthly_report"}, "response": "Exporting merged data as 'monthly_report.xlsx'"}
-- User: "duplicate record 5" → Return: {"type": "action", "action": "duplicate", "parameters": {"rowId": 5}, "response": "Duplicating record 5 in the current grid"}
-- User: "duplicate row 3 in client grid" → Return: {"type": "action", "action": "duplicate", "parameters": {"rowId": 3, "view": "client"}, "response": "Duplicating record 3 in the client grid"}
-- User: "duplicate the current row" → {"type": "action", "action": "duplicate", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Duplicating the currently selected row"}
-- User: "duplicate current row" → {"type": "action", "action": "duplicate", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Duplicating the currently selected row"}
-- User: "duplicate the selected row" → {"type": "action", "action": "duplicate", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Duplicating the selected row"}
+- User: "duplicate record 5" → Return: {"type": "action", "action": "duplicate", "parameters": {"rowId": 5}, "response": "Duplicating record ID 5 in the current grid. The duplicated row will be assigned a new ID."}
+- User: "duplicate row 3 in client grid" → Return: {"type": "action", "action": "duplicate", "parameters": {"rowId": 3, "view": "client"}, "response": "Duplicating record ID 3 in the client grid. The duplicated row will be assigned a new ID."}
+- User: "duplicate the current row" → {"type": "action", "action": "duplicate", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Duplicating ${gridContext.selectedHcpcs ? `HCPCS code ${gridContext.selectedHcpcs}` : `row ID ${gridContext.selectedRowId}`}. The duplicated row will be assigned a new ID."}
+- User: "duplicate current row" → {"type": "action", "action": "duplicate", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Duplicating ${gridContext.selectedHcpcs ? `HCPCS code ${gridContext.selectedHcpcs}` : `row ID ${gridContext.selectedRowId}`}. The duplicated row will be assigned a new ID."}
+- User: "duplicate the selected row" → {"type": "action", "action": "duplicate", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Duplicating ${gridContext.selectedHcpcs ? `HCPCS code ${gridContext.selectedHcpcs}` : `row ID ${gridContext.selectedRowId}`}. The duplicated row will be assigned a new ID."}
+- User: "duplicate row" → {"type": "action", "action": "duplicate", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Duplicating ${gridContext.selectedHcpcs ? `HCPCS code ${gridContext.selectedHcpcs}` : `row ID ${gridContext.selectedRowId}`}. The duplicated row will be assigned a new ID."}
 - User: "delete record 7" → Return: {"type": "action", "action": "delete", "parameters": {"rowId": 7}, "response": "Deleting record 7 from the current grid"}
 - User: "remove row 2 from master" → Return: {"type": "action", "action": "delete", "parameters": {"rowId": 2, "view": "master"}, "response": "Deleting record 2 from the master grid"}
 - User: "delete the current row" → Return: {"type": "action", "action": "delete", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Deleting the currently selected row"}
 - User: "remove the selected row" → Return: {"type": "action", "action": "delete", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Deleting the selected row"}
+- User: "delete selected" → Return: {"type": "action", "action": "delete", "response": "Deleting ${gridContext.selectedRowCount} selected row${gridContext.selectedRowCount === 1 ? '' : 's'}"}
+- User: "delete selected rows" → Return: {"type": "action", "action": "delete", "response": "Deleting ${gridContext.selectedRowCount} selected row${gridContext.selectedRowCount === 1 ? '' : 's'}"}
+- User: "remove selected" → Return: {"type": "action", "action": "delete", "response": "Removing ${gridContext.selectedRowCount} selected row${gridContext.selectedRowCount === 1 ? '' : 's'}"}
+- User: "delete all selected" → Return: {"type": "action", "action": "delete", "response": "Deleting all ${gridContext.selectedRowCount} selected row${gridContext.selectedRowCount === 1 ? '' : 's'}"}
 - User: "add a new record" → Return: {"type": "action", "action": "add", "response": "Adding a new blank record to the current grid"}
 - User: "add new row to merged grid" → Return: {"type": "action", "action": "add", "parameters": {"view": "merged"}, "response": "Adding a new blank record to the merged grid"}
 - User: "add record with HCPCS 99213" → Return: {"type": "action", "action": "add", "parameters": {"rowData": {"hcpcs": "99213"}}, "response": "Adding a new record with HCPCS code 99213"}

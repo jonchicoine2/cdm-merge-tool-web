@@ -49,6 +49,8 @@ interface GridContext {
   selectedGrid: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates';
   selectedRowId: number | string | null;
   selectedRowData: Record<string, unknown> | null;
+  selectedHcpcs: string | null;
+  selectedRowCount: number;
 }
 
 interface AIIntent {
@@ -80,6 +82,12 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
   const [isLoading, setIsLoading] = useState(false);
   const [width, setWidth] = useState(320); // Reduced from 400 to 320
   const [isResizing, setIsResizing] = useState(false);
+  
+  // Command history state
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1); // -1 means current input, 0+ means history index
+  const [tempInput, setTempInput] = useState(''); // Store current input when navigating history
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<HTMLDivElement>(null);
   const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -87,6 +95,48 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Command history functions
+  const addToHistory = (command: string) => {
+    if (command.trim() && command !== commandHistory[0]) {
+      setCommandHistory(prev => {
+        const newHistory = [command, ...prev];
+        console.log('[COMMAND HISTORY] Added command:', command, 'Total commands:', newHistory.length);
+        return newHistory.slice(0, 10); // Keep only last 10 commands
+      });
+    }
+    setHistoryIndex(-1);
+    setTempInput('');
+  };
+
+  const navigateHistory = (direction: 'up' | 'down') => {
+    if (commandHistory.length === 0) return;
+    
+    if (direction === 'up') {
+      if (historyIndex === -1) {
+        // Starting navigation, save current input
+        setTempInput(inputValue);
+        setHistoryIndex(0);
+        setInputValue(commandHistory[0]);
+      } else if (historyIndex < commandHistory.length - 1) {
+        // Go further back in history
+        const newIndex = historyIndex + 1;
+        setHistoryIndex(newIndex);
+        setInputValue(commandHistory[newIndex]);
+      }
+    } else if (direction === 'down') {
+      if (historyIndex > 0) {
+        // Go forward in history
+        const newIndex = historyIndex - 1;
+        setHistoryIndex(newIndex);
+        setInputValue(commandHistory[newIndex]);
+      } else if (historyIndex === 0) {
+        // Return to current input
+        setHistoryIndex(-1);
+        setInputValue(tempInput);
+      }
+    }
   };
 
   useEffect(() => {
@@ -194,10 +244,15 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
 
+    const messageToSend = inputValue.trim();
+    
+    // Add to command history
+    addToHistory(messageToSend);
+
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: inputValue,
+      content: messageToSend,
       timestamp: new Date(),
     };
 
@@ -206,14 +261,14 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
     setIsLoading(true);
 
     try {
+      console.log('[AI CHAT DEBUG] Full gridContext received:', gridContext);
       console.log('[AI CHAT DEBUG] Sending to API:', {
         message: inputValue,
-        gridContext: {
-          selectedGrid: gridContext.selectedGrid,
-          selectedRowId: gridContext.selectedRowId,
-          selectedRowData: gridContext.selectedRowData,
-          rowCount: gridContext.rowCount
-        }
+        selectedGrid: gridContext.selectedGrid,
+        selectedRowId: gridContext.selectedRowId,
+        selectedRowData: gridContext.selectedRowData,
+        availableGrids: gridContext.availableGrids,
+        rowCount: gridContext.rowCount
       });
 
       const response = await fetch('/api/ai/chat', {
@@ -269,6 +324,16 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      navigateHistory('up');
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      navigateHistory('down');
     }
   };
 
@@ -512,12 +577,28 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
               fullWidth
               multiline
               maxRows={3}
-              placeholder="Ask about your data..."
+              placeholder={historyIndex >= 0 ? "Navigating history (↑↓ to browse)" : "Ask about your data..."}
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) => {
+                setInputValue(e.target.value);
+                // Reset history navigation when user types
+                if (historyIndex >= 0) {
+                  setHistoryIndex(-1);
+                  setTempInput('');
+                }
+              }}
               onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyDown}
               disabled={isLoading}
               size="small"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: historyIndex >= 0 ? '#f5f5f5' : 'inherit',
+                  '& fieldset': {
+                    borderColor: historyIndex >= 0 ? '#1976d2' : undefined,
+                  }
+                }
+              }}
             />
             <IconButton
               onClick={handleSendMessage}
