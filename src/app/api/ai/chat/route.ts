@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+// Netlify function configuration
+export const runtime = 'nodejs';
+export const maxDuration = 15; // 15 seconds timeout for Netlify
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   timeout: 25000, // 25 seconds timeout
