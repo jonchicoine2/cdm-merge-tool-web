@@ -333,7 +333,7 @@ If user says "sort by desc" and available columns include "procedure_description
           setTimeout(() => reject(new Error('Request timeout (9s limit)')), 9000)
         )
       ]) as OpenAI.Chat.Completions.ChatCompletion;
-    } catch (timeoutError) {
+    } catch {
       // If first attempt times out, try with a shorter, simpler prompt
       console.log('[AI API DEBUG] First attempt timed out, trying simplified prompt');
       const simplifiedPrompt = `You are an AI assistant for the CDM Merge Tool.
