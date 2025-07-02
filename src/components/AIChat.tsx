@@ -448,10 +448,10 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
   const suggestedQueries = [
     "What is this app for?",
     "What are modifier settings?",
-    "Show me duplicates", 
+    "Duplicate Row",
+    "Show me duplicates",
     "Export the data",
     "How does the matching work?",
-    "What are modifiers?",
   ];
 
   return (

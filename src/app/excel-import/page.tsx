@@ -681,28 +681,45 @@ export default function ExcelImportPage() {
     showCompare
   ]);
 
-  // Memoized grid context that updates when selection state changes
-  const gridContext = useMemo(() => {
-    const context = getCurrentGridContext();
-    console.log('[GRID CONTEXT] Final context for AI:', {
-      selectedGrid: context.selectedGrid,
-      selectedRowId: context.selectedRowId,
-      selectedRowData: context.selectedRowData ? 'present' : 'null',
-      rowCount: context.rowCount
+  // Grid context that reflects current state without memoization for immediate updates
+  const gridContext = getCurrentGridContext();
+  
+  // Only log when there's a selection to avoid spam
+  if (gridContext.selectedRowId) {
+    console.log('[GRID CONTEXT] Current context for AI:', {
+      selectedGrid: gridContext.selectedGrid,
+      selectedRowId: gridContext.selectedRowId,
+      selectedRowData: gridContext.selectedRowData ? 'present' : 'null',
+      rowCount: gridContext.rowCount,
+      selectedRowCount: gridContext.selectedRowCount
     });
-    return context;
-  }, [getCurrentGridContext]);
+  }
 
   // Helper function to get currently selected row ID
   const getCurrentSelectedRowId = () => {
+    let selectedId = null;
     switch (aiSelectedGrid) {
-      case 'master': return selectedRowMaster;
-      case 'client': return selectedRowClient;
-      case 'merged': return selectedRowMerged;
-      case 'unmatched': return selectedRowUnmatched;
-      case 'duplicates': return selectedRowDuplicates;
-      default: return null;
+      case 'master':
+        selectedId = selectedRowsMaster.length > 0 ? selectedRowsMaster[0] : selectedRowMaster;
+        break;
+      case 'client':
+        selectedId = selectedRowsClient.length > 0 ? selectedRowsClient[0] : selectedRowClient;
+        break;
+      case 'merged':
+        selectedId = selectedRowsMerged.length > 0 ? selectedRowsMerged[0] : selectedRowMerged;
+        break;
+      case 'unmatched':
+        selectedId = selectedRowsUnmatched.length > 0 ? selectedRowsUnmatched[0] : selectedRowUnmatched;
+        break;
+      case 'duplicates':
+        selectedId = selectedRowsDuplicates.length > 0 ? selectedRowsDuplicates[0] : selectedRowDuplicates;
+        break;
+      default:
+        selectedId = null;
     }
+    
+    console.log(`[GET SELECTED ROW ID] Grid: ${aiSelectedGrid}, Selected ID: ${selectedId}`);
+    return selectedId;
   };
 
   const handleAIAction = (intent: AIIntent) => {
@@ -728,6 +745,7 @@ export default function ExcelImportPage() {
           response.includes('duplicating the selected row')) {
         
         const selectedRowId = getCurrentSelectedRowId();
+        console.log('[AI FALLBACK] Duplicate command detected, current selection:', selectedRowId);
         if (selectedRowId !== null) {
           console.log('[AI FALLBACK] Converting query to duplicate action, rowId:', selectedRowId);
           const duplicateIntent: AIIntent = {
@@ -739,6 +757,8 @@ export default function ExcelImportPage() {
           // Recursively call handleAIAction with the corrected intent
           handleAIAction(duplicateIntent);
           return;
+        } else {
+          console.error('[AI FALLBACK] No row selected for duplicate command');
         }
       }
     }
@@ -1036,32 +1056,35 @@ export default function ExcelImportPage() {
         ensureGridVisible(targetView);
       }
       
-      // Get HCPCS info for the row being duplicated
-      const getRowHcpcs = (data: Record<string, unknown> | null | undefined) => {
-        if (!data) return null;
-        const hcpcsKey = Object.keys(data).find(key => key.toLowerCase().includes('hcpcs'));
-        const modifierKey = Object.keys(data).find(key => key.toLowerCase().includes('modifier') || key.toLowerCase().includes('mod'));
-        const hcpcs = hcpcsKey ? String(data[hcpcsKey] || '').trim() : '';
-        const modifier = modifierKey ? String(data[modifierKey] || '').trim() : '';
-        return hcpcs ? (modifier ? `${hcpcs}-${modifier}` : hcpcs) : null;
-      };
-      
-      // Get the current row data for HCPCS identification
-      const currentRows = targetView === 'master' ? rowsMaster : targetView === 'client' ? rowsClient : mergedRows;
-      const rowToAnalyze = currentRows.find(row => row.id === rowId);
-      const hcpcsCode = getRowHcpcs(rowToAnalyze);
-      
-      // Call the duplicate function
-      const result = handleDuplicateRecord(rowId, targetView as 'master' | 'client' | 'merged');
-      console.log('[DUPLICATE ACTION] Duplicate result:', result);
-      
-      if (result.success && result.newRowId) {
-        const identifier = hcpcsCode ? `HCPCS code ${hcpcsCode}` : `row ID ${result.originalRowId}`;
-        console.log(`✅ Successfully duplicated ${identifier} in ${targetView} grid. New record ID: ${result.newRowId}`);
-      } else {
-        const identifier = hcpcsCode ? `HCPCS code ${hcpcsCode}` : `row ID ${result.originalRowId}`;
-        console.error(`❌ Failed to duplicate ${identifier} in ${targetView} grid`);
-      }
+      // Add a small delay to ensure state is synchronized
+      setTimeout(() => {
+        // Get HCPCS info for the row being duplicated
+        const getRowHcpcs = (data: Record<string, unknown> | null | undefined) => {
+          if (!data) return null;
+          const hcpcsKey = Object.keys(data).find(key => key.toLowerCase().includes('hcpcs'));
+          const modifierKey = Object.keys(data).find(key => key.toLowerCase().includes('modifier') || key.toLowerCase().includes('mod'));
+          const hcpcs = hcpcsKey ? String(data[hcpcsKey] || '').trim() : '';
+          const modifier = modifierKey ? String(data[modifierKey] || '').trim() : '';
+          return hcpcs ? (modifier ? `${hcpcs}-${modifier}` : hcpcs) : null;
+        };
+        
+        // Get the current row data for HCPCS identification
+        const currentRows = targetView === 'master' ? rowsMaster : targetView === 'client' ? rowsClient : mergedRows;
+        const rowToAnalyze = currentRows.find(row => row.id === rowId);
+        const hcpcsCode = getRowHcpcs(rowToAnalyze);
+        
+        // Call the duplicate function
+        const result = handleDuplicateRecord(rowId, targetView as 'master' | 'client' | 'merged');
+        console.log('[DUPLICATE ACTION] Duplicate result:', result);
+        
+        if (result.success && result.newRowId) {
+          const identifier = hcpcsCode ? `HCPCS code ${hcpcsCode}` : `row ID ${result.originalRowId}`;
+          console.log(`✅ Successfully duplicated ${identifier} in ${targetView} grid. New record ID: ${result.newRowId}`);
+        } else {
+          const identifier = hcpcsCode ? `HCPCS code ${hcpcsCode}` : `row ID ${result.originalRowId}`;
+          console.error(`❌ Failed to duplicate ${identifier} in ${targetView} grid`);
+        }
+      }, 100); // Small delay to ensure state synchronization
     }
 
     if (intent.action === 'delete') {
@@ -2686,8 +2709,12 @@ export default function ExcelImportPage() {
                       selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
                     }
                     console.log('[MASTER SELECTION] Setting selection:', { selectedId, selectedIds, aiSelectedGrid });
-                    setSelectedRowMaster(selectedId);
-                    setSelectedRowsMaster(selectedIds);
+                    
+                    // Use setTimeout to ensure state update is processed before AI can access it
+                    setTimeout(() => {
+                      setSelectedRowMaster(selectedId);
+                      setSelectedRowsMaster(selectedIds);
+                    }, 0);
                   }}
                   processRowUpdate={(newRow) => {
                     // Basic validation for edited cells
@@ -2993,8 +3020,12 @@ export default function ExcelImportPage() {
                       selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
                     }
                     console.log('[CLIENT SELECTION] Setting selection:', { selectedId, selectedIds, aiSelectedGrid });
-                    setSelectedRowClient(selectedId);
-                    setSelectedRowsClient(selectedIds);
+                    
+                    // Use setTimeout to ensure state update is processed before AI can access it
+                    setTimeout(() => {
+                      setSelectedRowClient(selectedId);
+                      setSelectedRowsClient(selectedIds);
+                    }, 0);
                   }}
                   processRowUpdate={(newRow) => {
                     // Basic validation for edited cells
@@ -3431,8 +3462,13 @@ export default function ExcelImportPage() {
                     selectedIds = Array.from(ids);
                     selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
                   }
-                  setSelectedRowMerged(selectedId);
-                  setSelectedRowsMerged(selectedIds);
+                  console.log('[MERGED SELECTION] Setting selection:', { selectedId, selectedIds, aiSelectedGrid });
+                  
+                  // Use setTimeout to ensure state update is processed before AI can access it
+                  setTimeout(() => {
+                    setSelectedRowMerged(selectedId);
+                    setSelectedRowsMerged(selectedIds);
+                  }, 0);
                 }}
                 processRowUpdate={(newRow) => {
                   // Basic validation for edited cells
@@ -3567,8 +3603,13 @@ export default function ExcelImportPage() {
                       selectedIds = Array.from(ids);
                       selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
                     }
-                    setSelectedRowUnmatched(selectedId);
-                    setSelectedRowsUnmatched(selectedIds);
+                    console.log('[UNMATCHED SELECTION] Setting selection:', { selectedId, selectedIds, aiSelectedGrid });
+                    
+                    // Use setTimeout to ensure state update is processed before AI can access it
+                    setTimeout(() => {
+                      setSelectedRowUnmatched(selectedId);
+                      setSelectedRowsUnmatched(selectedIds);
+                    }, 0);
                   }}
                   sx={getDataGridStyles('unmatched')}
                 />
@@ -3611,8 +3652,13 @@ export default function ExcelImportPage() {
                       selectedIds = Array.from(ids);
                       selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
                     }
-                    setSelectedRowDuplicates(selectedId);
-                    setSelectedRowsDuplicates(selectedIds);
+                    console.log('[DUPLICATES SELECTION] Setting selection:', { selectedId, selectedIds, aiSelectedGrid });
+                    
+                    // Use setTimeout to ensure state update is processed before AI can access it
+                    setTimeout(() => {
+                      setSelectedRowDuplicates(selectedId);
+                      setSelectedRowsDuplicates(selectedIds);
+                    }, 0);
                   }}
                   sx={getDataGridStyles('duplicates')}
                 />
