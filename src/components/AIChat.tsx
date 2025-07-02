@@ -241,10 +241,9 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
     setIsResizing(true);
   };
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
-
-    const messageToSend = inputValue.trim();
+  const handleSendMessage = async (messageOverride?: string) => {
+    const messageToSend = messageOverride?.trim() || inputValue.trim();
+    if (!messageToSend || isLoading) return;
     
     // Add to command history
     addToHistory(messageToSend);
@@ -263,7 +262,7 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
     try {
       console.log('[AI CHAT DEBUG] Full gridContext received:', gridContext);
       console.log('[AI CHAT DEBUG] Sending to API:', {
-        message: inputValue,
+        message: messageToSend,
         selectedGrid: gridContext.selectedGrid,
         selectedRowId: gridContext.selectedRowId,
         selectedRowData: gridContext.selectedRowData,
@@ -283,7 +282,7 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            message: inputValue,
+            message: messageToSend,
             gridContext,
           }),
           signal: controller.signal,
@@ -532,7 +531,7 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
                     label={query}
                     size="small"
                     variant="outlined"
-                    onClick={() => setInputValue(query)}
+                    onClick={() => handleSendMessage(query)}
                     sx={{ cursor: 'pointer' }}
                   />
                 ))}
