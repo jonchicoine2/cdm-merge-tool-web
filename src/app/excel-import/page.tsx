@@ -313,6 +313,7 @@ export default function ExcelImportPage() {
   const [unmatchedSortModel, setUnmatchedSortModel] = useState<GridSortModel>([]);
   const [duplicatesSortModel, setDuplicatesSortModel] = useState<GridSortModel>([]);
 
+
   // Filter states for each grid
   const [masterFilters, setMasterFilters] = useState<{column: string, condition: string, value: string}[]>([]);
   const [clientFilters, setClientFilters] = useState<{column: string, condition: string, value: string}[]>([]);
@@ -1428,6 +1429,50 @@ export default function ExcelImportPage() {
     return mapping;
   }, []);
 
+  // Function to set default HCPCS sorting for all grids
+  const setHcpcsDefaultSorting = useCallback(() => {
+    // Get HCPCS columns for master and client
+    const hcpcsColMaster = getHCPCSColumnMaster();
+    const hcpcsColClient = getHCPCSColumnClient();
+    
+    // Find HCPCS column in merged columns (case-insensitive search)
+    const hcpcsColMerged = mergedColumns.find(col =>
+      col.field.toLowerCase().includes('hcpcs')
+    )?.field;
+    
+    console.log('[HCPCS SORT] Applied default sorting - Master:', hcpcsColMaster, 'Client:', hcpcsColClient, 'Merged:', hcpcsColMerged);
+    
+    // Set default sort for master grid
+    if (hcpcsColMaster && columnsMaster.length > 0) {
+      const masterSort: GridSortModel = [{ field: hcpcsColMaster, sort: 'asc' }];
+      setMasterSortModel(masterSort);
+    }
+    
+    // Set default sort for client grid
+    if (hcpcsColClient && columnsClient.length > 0) {
+      const clientSort: GridSortModel = [{ field: hcpcsColClient, sort: 'asc' }];
+      setClientSortModel(clientSort);
+    }
+    
+    // Set default sort for merged grid (find HCPCS column directly)
+    if (hcpcsColMerged && mergedColumns.length > 0) {
+      const mergedSort: GridSortModel = [{ field: hcpcsColMerged, sort: 'asc' }];
+      setMergedSortModel(mergedSort);
+    }
+    
+    // Set default sort for unmatched grid (uses client column structure)
+    if (hcpcsColClient && unmatchedClient.length > 0) {
+      const unmatchedSort: GridSortModel = [{ field: hcpcsColClient, sort: 'asc' }];
+      setUnmatchedSortModel(unmatchedSort);
+    }
+    
+    // Set default sort for duplicates grid (uses client column structure)
+    if (hcpcsColClient && dupsClient.length > 0) {
+      const duplicatesSort: GridSortModel = [{ field: hcpcsColClient, sort: 'asc' }];
+      setDuplicatesSortModel(duplicatesSort);
+    }
+  }, [getHCPCSColumnMaster, getHCPCSColumnClient, columnsMaster, columnsClient, mergedColumns, unmatchedClient.length, dupsClient.length]);
+
   const handleCompare = useCallback(() => {
     // Start timing the comparison
     const startTime = performance.now();
@@ -1577,6 +1622,10 @@ export default function ExcelImportPage() {
     console.log('[STATS] Comparison statistics:', stats);
     
     setShowCompare(true);
+    
+    // Set HCPCS sorting for all grids after comparison - longer delay for merged grid
+    setTimeout(() => setHcpcsDefaultSorting(), 300);
+    
     // Diagnostics: log unmatched and duplicates
     console.log(`[DIAG] unmatchedClient count: ${unmatchedClient.length}`);
     console.log(`[DIAG] dupsClient count: ${dupsClient.length}`);
@@ -1591,6 +1640,14 @@ export default function ExcelImportPage() {
       handleCompare();
     }
   }, [rowsMaster.length, rowsClient.length, showCompare, handleCompare]);
+
+  // Apply HCPCS sorting when merged data is available
+  useEffect(() => {
+    if (mergedRows.length > 0 && mergedColumns.length > 0) {
+      console.log('[DEBUG] Merged data available, applying HCPCS sorting');
+      setTimeout(() => setHcpcsDefaultSorting(), 500);
+    }
+  }, [mergedRows.length, mergedColumns.length, setHcpcsDefaultSorting]);
 
   const handleExport = () => {
     if (mergedForExport.length === 0) return;
@@ -1706,6 +1763,8 @@ export default function ExcelImportPage() {
         // Save original data for cancel functionality
         setOriginalMasterData([...firstSheet.rows]);
         setHasUnsavedMasterChanges(false);
+        // Set HCPCS sorting after data is loaded
+        setTimeout(() => setHcpcsDefaultSorting(), 100);
       }
     } else {
       setClientSheetData(sheetData);
@@ -1719,6 +1778,8 @@ export default function ExcelImportPage() {
         // Save original data for cancel functionality
         setOriginalClientData([...firstSheet.rows]);
         setHasUnsavedChanges(false);
+        // Set HCPCS sorting after data is loaded
+        setTimeout(() => setHcpcsDefaultSorting(), 100);
       }
     }
   };
@@ -1802,6 +1863,8 @@ export default function ExcelImportPage() {
       // Save original data for cancel functionality
       setOriginalMasterData([...sheetData.rows]);
       setHasUnsavedMasterChanges(false);
+      // Set HCPCS sorting after tab change
+      setTimeout(() => setHcpcsDefaultSorting(), 100);
     }
   };
   
@@ -1816,6 +1879,8 @@ export default function ExcelImportPage() {
       // Save original data for cancel functionality
       setOriginalClientData([...sheetData.rows]);
       setHasUnsavedChanges(false);
+      // Set HCPCS sorting after tab change
+      setTimeout(() => setHcpcsDefaultSorting(), 100);
     }
   };
   

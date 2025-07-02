@@ -612,20 +612,21 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
 
           <List sx={{ p: 0 }}>
             {messages.map((message) => (
-              <ListItem key={message.id} sx={{ px: 1, py: 0.5, display: 'block' }}>
+              <ListItem key={message.id} sx={{ px: 0.5, py: 0.5, display: 'block' }}>
                 <Box
                   sx={{
                     display: 'flex',
                     alignItems: 'flex-start',
-                    gap: 1,
+                    gap: 0.75,
                     flexDirection: message.type === 'user' ? 'row-reverse' : 'row',
                   }}
                 >
                   <Avatar
                     sx={{
-                      width: 32,
-                      height: 32,
+                      width: 24,
+                      height: 24,
                       bgcolor: message.type === 'user' ? 'primary.main' : 'secondary.main',
+                      fontSize: '0.9rem',
                     }}
                   >
                     {message.type === 'user' ? <PersonIcon /> : <AIIcon />}
@@ -633,10 +634,11 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
                   <Box
                     sx={{
                       p: 1.5,
-                      maxWidth: '90%',
+                      maxWidth: '95%',
                       bgcolor: message.type === 'user' ? 'primary.light' : 'grey.100',
                       color: message.type === 'user' ? 'white' : 'text.primary',
                       borderRadius: 2,
+                      flex: 1,
                     }}
                   >
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
