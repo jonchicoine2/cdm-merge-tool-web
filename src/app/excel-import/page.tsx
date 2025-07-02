@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Chip, Fab, Tooltip } from "@mui/material";
 import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
@@ -1654,7 +1654,7 @@ export default function ExcelImportPage() {
     console.log(`[DIAG] dupsClient count: ${dupsClient.length}`);
     if (unmatchedClient.length > 0) console.log("[DIAG] Sample unmatched Client record:", unmatchedClient[0]);
     if (dupsClient.length > 0) console.log("[DIAG] Sample duplicate Client record:", dupsClient[0]);
-  }, [rowsMaster, rowsClient, columnsMaster, columnsClient, masterSheetNames, clientSheetNames, activeMasterTab, activeClientTab, modifierCriteria, createColumnMapping, getHCPCSColumnClient, getHCPCSColumnMaster, getModifierColumnClient, getModifierColumnMaster, getDescriptionCol]);
+  }, [rowsMaster, rowsClient, columnsMaster, columnsClient, masterSheetNames, clientSheetNames, activeMasterTab, activeClientTab, modifierCriteria, createColumnMapping, getHCPCSColumnClient, getHCPCSColumnMaster, getModifierColumnClient, getModifierColumnMaster, getDescriptionCol, setHcpcsDefaultSorting]);
 
   // Auto-trigger comparison when both files are loaded
   useEffect(() => {

@@ -31,22 +31,6 @@ interface GridContext {
   selectedRowCount: number;
 }
 
-interface AIIntent {
-  type: 'query' | 'action' | 'filter' | 'sort' | 'analysis' | 'documentation';
-  action?: 'sort' | 'filter' | 'search' | 'summarize' | 'count' | 'show' | 'switch' | 'clear_filters' | 'export' | 'explain' | 'duplicate' | 'delete' | 'add';
-  parameters?: {
-    column?: string;
-    value?: string;
-    direction?: 'asc' | 'desc';
-    condition?: 'equals' | 'not_equals' | 'contains' | 'not_contains' | 'starts_with' | 'ends_with' | 'is_empty' | 'is_not_empty' | 'greater_than' | 'less_than';
-    view?: string;
-    filename?: string;
-    topic?: string;
-    rowId?: number | string;
-    rowData?: {[key: string]: string | number | undefined};
-  };
-  response: string;
-}
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
