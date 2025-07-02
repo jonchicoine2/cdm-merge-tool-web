@@ -313,30 +313,38 @@ CRITICAL: In your JSON response, use the EXACT column field name from the availa
 Example: If user says "sort by description" and available columns include "description", use "description" in the parameters.column field.
 If user says "sort by desc" and available columns include "procedure_description", use "procedure_description" in the parameters.column field.`;
 
-    let completion: OpenAI.Chat.Completions.ChatCompletion;
+    // Create a streaming response
+    const encoder = new TextEncoder();
+    let responseBuffer = '';
     
-    try {
-      // First attempt with normal timeout
-      completion = await Promise.race([
-        openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: message },
-            { role: "system", content: "CRITICAL: You MUST respond with valid JSON format. Never respond with plain text. Examples:\n- Sort: {\"type\": \"action\", \"action\": \"sort\", \"parameters\": {\"column\": \"description\", \"direction\": \"asc\"}, \"response\": \"Sorting by description\"}\n- Switch: {\"type\": \"action\", \"action\": \"switch\", \"parameters\": {\"view\": \"master\"}, \"response\": \"Switching to master grid\"}" }
-          ],
-          temperature: 0.1,
-          max_tokens: 500,
-        }),
-        // Additional timeout safety net for Netlify
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Request timeout (9s limit)')), 9000)
-        )
-      ]) as OpenAI.Chat.Completions.ChatCompletion;
-    } catch {
-      // If first attempt times out, try with a shorter, simpler prompt
-      console.log('[AI API DEBUG] First attempt timed out, trying simplified prompt');
-      const simplifiedPrompt = `You are an AI assistant for the CDM Merge Tool.
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          let openaiStream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
+          
+          try {
+            // First attempt with streaming and normal timeout
+            openaiStream = await Promise.race([
+              openai.chat.completions.create({
+                model: "gpt-3.5-turbo",
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: message },
+                  { role: "system", content: "CRITICAL: You MUST respond with valid JSON format. Never respond with plain text. Examples:\n- Sort: {\"type\": \"action\", \"action\": \"sort\", \"parameters\": {\"column\": \"description\", \"direction\": \"asc\"}, \"response\": \"Sorting by description\"}\n- Switch: {\"type\": \"action\", \"action\": \"switch\", \"parameters\": {\"view\": \"master\"}, \"response\": \"Switching to master grid\"}" }
+                ],
+                temperature: 0.1,
+                max_tokens: 500,
+                stream: true,
+              }),
+              // Additional timeout safety net for Netlify
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Request timeout (9s limit)')), 9000)
+              )
+            ]) as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
+          } catch {
+            // If first attempt times out, try with a shorter, simpler prompt using streaming
+            console.log('[AI API DEBUG] First attempt timed out, trying simplified prompt');
+            const simplifiedPrompt = `You are an AI assistant for the CDM Merge Tool.
 
 Current context: ${optimizedGridContext.selectedGrid} grid with ${optimizedGridContext.rowCount} rows.
 Available columns: ${optimizedGridContext.columns.join(', ')}
@@ -352,105 +360,85 @@ Examples:
 - "sort by description" → {"type": "action", "action": "sort", "parameters": {"column": "description", "direction": "asc"}, "response": "Sorting by description"}
 - "sort master by description" → {"type": "action", "action": "sort", "parameters": {"column": "description", "direction": "asc", "view": "master"}, "response": "Sorting master grid by description"}
 - "show master" → {"type": "action", "action": "switch", "parameters": {"view": "master"}, "response": "Switching to master grid"}`;
-      
-      completion = await Promise.race([
-        openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
-          messages: [
-            { role: "system", content: simplifiedPrompt },
-            { role: "user", content: message }
-          ],
-          temperature: 0.1,
-          max_tokens: 300,
-        }),
-        // Shorter timeout for retry
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Request timeout (6s limit on retry)')), 6000)
-        )
-      ]) as OpenAI.Chat.Completions.ChatCompletion;
-    }
-
-    const responseContent = completion.choices[0]?.message?.content;
-    if (!responseContent) {
-      throw new Error('No response from OpenAI');
-    }
-    
-    const processingTime = Date.now() - startTime;
-    console.log('[AI API DEBUG] Raw AI response:', responseContent);
-    console.log('[AI API DEBUG] Processing time:', processingTime + 'ms');
-
-    try {
-      // Clean up response if it has extra text around JSON
-      let cleanedResponse = responseContent.trim();
-      
-      // Look for JSON block in the response
-      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        cleanedResponse = jsonMatch[0];
-      }
-      
-      console.log('[AI API DEBUG] Cleaned response for parsing:', cleanedResponse);
-      
-      const intent: AIIntent = JSON.parse(cleanedResponse);
-      console.log('[AI API DEBUG] Parsed intent:', intent);
-      
-      // Validate that intent has required fields
-      if (!intent.type || !intent.response) {
-        throw new Error('Invalid intent structure');
-      }
-      
-      return NextResponse.json({ intent });
-    } catch (error) {
-      console.log('[AI API DEBUG] JSON parsing failed:', error);
-      console.log('[AI API DEBUG] Falling back to query response');
-      
-      // Enhanced fallback - try to extract action from the response text
-      const lowerMessage = message.toLowerCase();
-      const lowerResponse = responseContent.toLowerCase();
-      
-      // Try to detect common actions in the response
-      if (lowerMessage.includes('sort') && (lowerMessage.includes('description') || lowerResponse.includes('description'))) {
-        return NextResponse.json({
-          intent: {
-            type: 'action',
-            action: 'sort',
-            parameters: {
-              column: 'description',
-              direction: lowerMessage.includes('desc') && !lowerMessage.includes('description') ? 'desc' : 'asc',
-              ...(lowerMessage.includes('master') && { view: 'master' }),
-              ...(lowerMessage.includes('client') && { view: 'client' })
-            },
-            response: `Sorting by description ${lowerMessage.includes('desc') && !lowerMessage.includes('description') ? 'descending' : 'ascending'}`
+            
+            const retryMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+              { role: "system", content: simplifiedPrompt },
+              { role: "user", content: message }
+            ];
+            console.log('[AI API DEBUG] OpenAI Retry Request:', JSON.stringify(retryMessages, null, 2));
+            
+            openaiStream = await Promise.race([
+              openai.chat.completions.create({
+                model: "gpt-3.5-turbo",
+                messages: retryMessages,
+                temperature: 0.1,
+                max_tokens: 300,
+                stream: true,
+              }),
+              // Shorter timeout for retry
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Request timeout (6s limit on retry)')), 6000)
+              )
+            ]) as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
           }
-        });
-      }
-      
-      if (lowerMessage.includes('master') && (lowerMessage.includes('show') || lowerMessage.includes('switch'))) {
-        return NextResponse.json({
-          intent: {
-            type: 'action',
-            action: 'switch',
-            parameters: { view: 'master' },
-            response: 'Switching to master grid'
+          
+          // Process the stream to build the full response buffer
+          for await (const chunk of openaiStream) {
+            const content = chunk.choices[0]?.delta?.content;
+            if (content) {
+              responseBuffer += content;
+            }
           }
-        });
-      }
-      
-      // Default fallback
-      return NextResponse.json({
-        intent: {
-          type: 'query',
-          response: responseContent
+
+          // Now that we have the full response buffer, parse it.
+          let intent;
+          try {
+            const jsonMatch = responseBuffer.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              intent = JSON.parse(jsonMatch[0]);
+              console.log('[AI API DEBUG] Full AI JSON Response:', JSON.stringify(intent, null, 2));
+            } else {
+              intent = { response: responseBuffer }; // Fallback for non-JSON
+            }
+          } catch (e) {
+            console.error("AI response parsing error:", e);
+            intent = { response: responseBuffer }; // Fallback for malformed JSON
+          }
+
+          // Stream the response text out to the client
+          if (intent && intent.response) {
+            for (const char of intent.response) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: char, complete: false })}\n\n`));
+              await new Promise(resolve => setTimeout(resolve, 5)); // 5ms delay for fast typing effect
+            }
+          }
+          
+          // Send complete signal with full response for action parsing
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '', complete: true, fullResponse: responseBuffer })}\n\n`));
+          controller.close();
+          
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMessage })}\n\n`));
+          controller.close();
         }
-      });
-    }
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
 
   } catch (error) {
     const processingTime = Date.now() - startTime;
     console.error('AI Chat API Error:', error);
     console.error('Processing time before error:', processingTime + 'ms');
     
-    // Provide more specific error messages
+    // Provide more specific error messages for non-streaming errors
     let errorMessage = 'Failed to process AI request';
     if (error instanceof Error) {
       if (error.message.includes('timeout') || error.message.includes('Request timeout')) {

@@ -259,6 +259,9 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
     setInputValue('');
     setIsLoading(true);
 
+    // Create AI message for streaming updates (declare outside try block)
+    const aiMessageId = (Date.now() + 1).toString();
+
     try {
       console.log('[AI CHAT DEBUG] Full gridContext received:', gridContext);
       console.log('[AI CHAT DEBUG] Sending to API:', {
@@ -270,11 +273,22 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
         rowCount: gridContext.rowCount
       });
 
-      // Add client-side timeout for Netlify compatibility
+      // Add client-side timeout for streaming compatibility
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout for streaming
+      const aiMessage: Message = {
+        id: aiMessageId,
+        type: 'ai',
+        content: '',
+        timestamp: new Date(),
+      };
 
-      let data;
+      // Add empty AI message to show streaming is starting
+      setMessages(prev => [...prev, aiMessage]);
+
+      let streamingContent = '';
+      let fullResponse = '';
+      
       try {
         const response = await fetch('/api/ai/chat', {
           method: 'POST',
@@ -296,28 +310,86 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
           throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
         }
 
-        data = await response.json();
-        
-        if (data.error) {
-          throw new Error(data.error);
+        if (!response.body) {
+          throw new Error('No response body');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        try {
+          console.log('[AI CHAT DEBUG] Starting to read stream...');
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              console.log('[AI CHAT DEBUG] Stream reading completed');
+              break;
+            }
+
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  console.log('[AI CHAT DEBUG] Received data chunk:', data);
+                  
+                  if (data.error) {
+                    throw new Error(data.error);
+                  }
+                  
+                  if (data.complete) {
+                    // Stream is complete, parse full response for actions
+                    fullResponse = data.fullResponse;
+                    console.log('[AI CHAT DEBUG] Full AI response received from server:', fullResponse);
+
+                    // The message content is already finalized from the streaming process.
+                    // We just need to parse the full response to find and execute the action.
+                    if (fullResponse && onAction) {
+                      try {
+                        // Clean up response if it has extra text around JSON
+                        let cleanedResponse = fullResponse.trim();
+
+                        // Look for JSON block in the response
+                        const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+                        if (!jsonMatch) return; // Not a JSON response, no action to take.
+
+                        cleanedResponse = jsonMatch[0];
+                        console.log('[AI CHAT DEBUG] Parsing action from:', cleanedResponse);
+                        const intent = JSON.parse(cleanedResponse);
+
+                        // Validate that intent has required fields and execute action
+                        if (intent.type && intent.response) {
+                          onAction(intent);
+                        }
+                      } catch (parseError) {
+                        console.log('[AI CHAT DEBUG] Action parsing failed:', parseError);
+                      }
+                    }
+                  } else if (data.content) {
+                    // Stream chunk received, update the message content
+                    streamingContent += data.content;
+                    
+                    // Update the AI message with new content
+                    setMessages(prev => prev.map(msg =>
+                      msg.id === aiMessageId
+                        ? { ...msg, content: streamingContent }
+                        : msg
+                    ));
+                  }
+                } catch (parseError) {
+                  console.warn('Failed to parse streaming data:', parseError);
+                }
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock();
         }
       } catch (fetchError) {
         clearTimeout(timeoutId);
         throw fetchError;
-      }
-
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'ai',
-        content: data.intent.response,
-        timestamp: new Date(),
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
-
-      // Execute the action if provided and callback exists
-      if (data.intent && onAction) {
-        onAction(data.intent);
       }
 
     } catch (error) {
@@ -341,13 +413,12 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
         errorContent += 'Unknown error occurred.';
       }
       
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'ai',
-        content: errorContent,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      // Update the existing AI message with error content, or remove it if empty
+      setMessages(prev => prev.map(msg => 
+        msg.id === aiMessageId 
+          ? { ...msg, content: errorContent }
+          : msg
+      ));
     } finally {
       setIsLoading(false);
     }
@@ -634,7 +705,7 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
               }}
             />
             <IconButton
-              onClick={handleSendMessage}
+              onClick={() => handleSendMessage()}
               disabled={!inputValue.trim() || isLoading}
               color="primary"
             >
