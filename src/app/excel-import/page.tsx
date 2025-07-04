@@ -2752,7 +2752,7 @@ export default function ExcelImportPage() {
                       }
                     });
                     
-                    const updatedRows = rowsMaster.map((row) =>
+                    const updatedRows = rowsMaster.map((row: ExcelRow) =>
                       row.id === validatedRow.id ? validatedRow : row
                     );
                     setRowsMaster(updatedRows);
@@ -2782,7 +2782,7 @@ export default function ExcelImportPage() {
                     
                     return validatedRow;
                   }}
-                  onProcessRowUpdateError={(error) => {
+                  onProcessRowUpdateError={(error: unknown) => {
                     console.error('Master row update error:', error);
                   }}
                   sx={getDataGridStyles('master')}
@@ -3063,7 +3063,7 @@ export default function ExcelImportPage() {
                       }
                     });
                     
-                    const updatedRows = rowsClient.map((row) =>
+                    const updatedRows = rowsClient.map((row: ExcelRow) =>
                       row.id === validatedRow.id ? validatedRow : row
                     );
                     setRowsClient(updatedRows);
@@ -3093,7 +3093,7 @@ export default function ExcelImportPage() {
                     
                     return validatedRow;
                   }}
-                  onProcessRowUpdateError={(error) => {
+                  onProcessRowUpdateError={(error: unknown) => {
                     console.error('Row update error:', error);
                   }}
                   sx={getDataGridStyles('client')}
@@ -3506,7 +3506,7 @@ export default function ExcelImportPage() {
                     }
                   });
                   
-                  const updatedRows = mergedRows.map((row) =>
+                  const updatedRows = mergedRows.map((row: ExcelRow) =>
                     row.id === validatedRow.id ? validatedRow : row
                   );
                   setMergedRows(updatedRows);
@@ -3524,7 +3524,7 @@ export default function ExcelImportPage() {
                   
                   return validatedRow;
                 }}
-                onProcessRowUpdateError={(error) => {
+                onProcessRowUpdateError={(error: unknown) => {
                   console.error('Merged row update error:', error);
                 }}
                 sx={getDataGridStyles('merged')}
