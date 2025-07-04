@@ -1566,8 +1566,8 @@ export default function ExcelImportPage() {
     const filteredClient = filterTrauma(rowsClient, descColClient, hcpcsColClient);
     // Diagnostics: log filtered counts
     console.log(`[DIAG] filteredMaster count: ${filteredMaster.length}, filteredClient count: ${filteredClient.length}`);
-    const mapMaster = new Map(filteredMaster.map(row => [getCompareKey(row, hcpcsColMaster, modifierColMaster), row]));
-    const mapClient = new Map(filteredClient.map(row => [getCompareKey(row, hcpcsColClient, modifierColClient), row]));
+    const mapMaster = new Map(filteredMaster.map((row: ExcelRow) => [getCompareKey(row, hcpcsColMaster, modifierColMaster), row]));
+    const mapClient = new Map(filteredClient.map((row: ExcelRow) => [getCompareKey(row, hcpcsColClient, modifierColClient), row]));
     // Diagnostics: log map keys
     console.log("[DIAG] mapMaster keys:", Array.from(mapMaster.keys()).slice(0, 10));
     console.log("[DIAG] mapClient keys:", Array.from(mapClient.keys()).slice(0, 10));
@@ -1580,7 +1580,7 @@ export default function ExcelImportPage() {
     
     // The merged result should ALWAYS use ALL master columns as the structure
     // This ensures no duplicate columns and maintains master sheet structure
-    const mergedColumns = columnsMaster.map(col => ({ ...col, editable: true }));
+    const mergedColumns = columnsMaster.map((col: GridColDef) => ({ ...col, editable: true }));
     setMergedColumns(mergedColumns);
     // Build merged rows: for each match, populate master columns with client data where possible
     const merged: ExcelRow[] = matchedKeys.map((key: string, idx: number) => {
@@ -1589,7 +1589,7 @@ export default function ExcelImportPage() {
       const mergedRow: ExcelRow = { id: rowMaster?.id ?? idx };
       
       // For each master column, populate with client data if mapping exists, otherwise use master data
-      mergedColumns.forEach((col) => {
+      mergedColumns.forEach((col: GridColDef) => {
         if (columnMapping[col.field]) {
           // This master column has a mapped client column - use client data
           const clientField = columnMapping[col.field];
@@ -1609,7 +1609,7 @@ export default function ExcelImportPage() {
 
     // --- New: Collect errors (Client not matched) and dups (Client with duplicate CDM numbers) ---
     // 1. Errors: records from Client not matched with Master
-    const unmatchedClient = filteredClient.filter(row => !mapMaster.has(getCompareKey(row, hcpcsColClient, modifierColClient)));
+    const unmatchedClient = filteredClient.filter((row: ExcelRow) => !mapMaster.has(getCompareKey(row, hcpcsColClient, modifierColClient)));
     setUnmatchedClient(unmatchedClient);
     // 2. Dups: records from Client with duplicate compare key (full field value, not parsed)
     // Use the raw value from the HCPCS column (and Modifier column if present) as the key
@@ -1620,12 +1620,12 @@ export default function ExcelImportPage() {
       return modifierCol ? `${hcpcs}-${modifier}` : hcpcs;
     };
     const rawKeyCount: Record<string, number> = {};
-    filteredClient.forEach(row => {
+    filteredClient.forEach((row: ExcelRow) => {
       const key = getRawKey(row, hcpcsColClient, modifierColClient);
       if (key) rawKeyCount[key] = (rawKeyCount[key] || 0) + 1;
     });
     const duplicateKeys = Object.keys(rawKeyCount).filter(key => rawKeyCount[key] > 1);
-    const dupsClient = filteredClient.filter(row => duplicateKeys.includes(getRawKey(row, hcpcsColClient, modifierColClient)));
+    const dupsClient = filteredClient.filter((row: ExcelRow) => duplicateKeys.includes(getRawKey(row, hcpcsColClient, modifierColClient)));
     setDupsClient(dupsClient);
     
     // Calculate comparison statistics
@@ -1692,7 +1692,7 @@ export default function ExcelImportPage() {
     }
     
     const wb = XLSX.utils.book_new();
-    const clean = (rows: ExcelRow[]) => rows.map(row => {
+    const clean = (rows: ExcelRow[]) => rows.map((row: ExcelRow) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { id, ...rest } = row;
       return rest;
@@ -1723,7 +1723,7 @@ export default function ExcelImportPage() {
     filename = filename.replace(/[<>:"/\\|?*]/g, '_');
     
     const wb = XLSX.utils.book_new();
-    const clean = (rows: ExcelRow[]) => rows.map(row => {
+    const clean = (rows: ExcelRow[]) => rows.map((row: ExcelRow) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { id, ...rest } = row;
       return rest;
@@ -2259,7 +2259,7 @@ export default function ExcelImportPage() {
   const handleDeleteRecord = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
     // Set up variables based on grid type
     if (gridType === 'master') {
-      const updatedRows = rowsMaster.filter(row => row.id !== rowId);
+      const updatedRows = rowsMaster.filter((row: ExcelRow) => row.id !== rowId);
       setRowsMaster(updatedRows);
       
       // Update sheet data
@@ -2284,7 +2284,7 @@ export default function ExcelImportPage() {
         master: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
       }));
     } else if (gridType === 'client') {
-      const updatedRows = rowsClient.filter(row => row.id !== rowId);
+      const updatedRows = rowsClient.filter((row: ExcelRow) => row.id !== rowId);
       setRowsClient(updatedRows);
       
       // Update sheet data
@@ -2309,7 +2309,7 @@ export default function ExcelImportPage() {
         client: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
       }));
     } else if (gridType === 'merged') {
-      const updatedRows = mergedRows.filter(row => row.id !== rowId);
+      const updatedRows = mergedRows.filter((row: ExcelRow) => row.id !== rowId);
       setMergedRows(updatedRows);
       setMergedForExport(updatedRows);
       setHasUnsavedMergedChanges(true);
@@ -2333,7 +2333,7 @@ export default function ExcelImportPage() {
     
     // Set up variables based on grid type
     if (gridType === 'master') {
-      const updatedRows = rowsMaster.filter(row => !rowIds.includes(row.id));
+      const updatedRows = rowsMaster.filter((row: ExcelRow) => !rowIds.includes(row.id));
       setRowsMaster(updatedRows);
       
       // Update sheet data
@@ -2358,7 +2358,7 @@ export default function ExcelImportPage() {
         master: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
       }));
     } else if (gridType === 'client') {
-      const updatedRows = rowsClient.filter(row => !rowIds.includes(row.id));
+      const updatedRows = rowsClient.filter((row: ExcelRow) => !rowIds.includes(row.id));
       setRowsClient(updatedRows);
       
       // Update sheet data
@@ -2383,7 +2383,7 @@ export default function ExcelImportPage() {
         client: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
       }));
     } else if (gridType === 'merged') {
-      const updatedRows = mergedRows.filter(row => !rowIds.includes(row.id));
+      const updatedRows = mergedRows.filter((row: ExcelRow) => !rowIds.includes(row.id));
       setMergedRows(updatedRows);
       setMergedForExport(updatedRows);
       setHasUnsavedMergedChanges(true);
