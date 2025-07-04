@@ -938,7 +938,7 @@ export default function ExcelImportPage() {
           break;
       }
       
-      console.log('[AI SORT DEBUG] Available columns for', targetView, ':', targetColumns.map(col => col.field));
+      console.log('[AI SORT DEBUG] Available columns for', targetView, ':', targetColumns.map((col: GridColDef) => col.field));
       
       // Try to find the exact column match or a case-insensitive match
       let matchedColumn = targetColumns.find((col: GridColDef) => col.field === column)?.field;
@@ -963,10 +963,10 @@ export default function ExcelImportPage() {
       });
       
       if (!matchedColumn) {
-        console.error('[AI SORT ERROR] Column not found:', column, 'Available columns:', targetColumns.map(col => col.field));
+        console.error('[AI SORT ERROR] Column not found:', column, 'Available columns:', targetColumns.map((col: GridColDef) => col.field));
         
         // Create a user-friendly error message
-        const availableColumnNames = targetColumns.map(col => col.field).join(', ');
+        const availableColumnNames = targetColumns.map((col: GridColDef) => col.field).join(', ');
         const errorMessage = `Sorry, I couldn't find a column named "${column}" in the ${targetView} grid. Available columns are: ${availableColumnNames}`;
         
         // You could add a callback here to show this error in the AI chat
@@ -1375,7 +1375,7 @@ export default function ExcelImportPage() {
   
   // Advanced column matching with multiple fallback strategies
   function findMatchingColumn(masterField: string, clientColumns: GridColDef[]): string | null {
-    const clientFields = clientColumns.map(col => col.field);
+    const clientFields = clientColumns.map((col: GridColDef) => col.field);
     
     // Strategy 1: Exact match
     if (clientFields.includes(masterField)) {
@@ -2181,7 +2181,7 @@ export default function ExcelImportPage() {
   const handleDuplicateRecord = (rowId: number | string, gridType: 'master' | 'client' | 'merged'): { success: boolean; newRowId?: number | string; originalRowId: number | string } => {
     // Set up variables based on grid type
     if (gridType === 'master') {
-      const recordToDuplicate = rowsMaster.find(row => row.id === rowId);
+      const recordToDuplicate = rowsMaster.find((row: ExcelRow) => row.id === rowId);
       if (!recordToDuplicate) {
         console.error(`Record with ID ${rowId} not found in master grid`);
         return { success: false, originalRowId: rowId };
@@ -2209,7 +2209,7 @@ export default function ExcelImportPage() {
       console.log(`Record duplicated in master grid. New record ID: ${newRecord.id}`);
       return { success: true, newRowId: newRecord.id, originalRowId: rowId };
     } else if (gridType === 'client') {
-      const recordToDuplicate = rowsClient.find(row => row.id === rowId);
+      const recordToDuplicate = rowsClient.find((row: ExcelRow) => row.id === rowId);
       if (!recordToDuplicate) {
         console.error(`Record with ID ${rowId} not found in client grid`);
         return { success: false, originalRowId: rowId };
@@ -2237,7 +2237,7 @@ export default function ExcelImportPage() {
       console.log(`Record duplicated in client grid. New record ID: ${newRecord.id}`);
       return { success: true, newRowId: newRecord.id, originalRowId: rowId };
     } else if (gridType === 'merged') {
-      const recordToDuplicate = mergedRows.find(row => row.id === rowId);
+      const recordToDuplicate = mergedRows.find((row: ExcelRow) => row.id === rowId);
       if (!recordToDuplicate) {
         console.error(`Record with ID ${rowId} not found in merged grid`);
         return { success: false, originalRowId: rowId };
