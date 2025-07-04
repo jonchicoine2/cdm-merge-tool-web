@@ -53,6 +53,13 @@ interface AIIntent {
   response?: string;
 }
 
+// Helper type matching the shape of duplicateValidationErrors state
+type DuplicateValidationErrors = {
+  master: { duplicateKeys: string[]; duplicateRows: ExcelRow[] };
+  client: { duplicateKeys: string[]; duplicateRows: ExcelRow[] };
+  merged: { duplicateKeys: string[]; duplicateRows: ExcelRow[] };
+};
+
 export default function ExcelImportPage() {
   const [rowsMaster, setRowsMaster] = useState<ExcelRow[]>([]);
   const [columnsMaster, setColumnsMaster] = useState<GridColDef[]>([]);
@@ -332,11 +339,7 @@ export default function ExcelImportPage() {
   const [hasUnsavedMergedChanges, setHasUnsavedMergedChanges] = useState(false);
 
   // Duplicate validation states
-  const [duplicateValidationErrors, setDuplicateValidationErrors] = useState<{
-    master: { duplicateKeys: string[], duplicateRows: ExcelRow[] },
-    client: { duplicateKeys: string[], duplicateRows: ExcelRow[] },
-    merged: { duplicateKeys: string[], duplicateRows: ExcelRow[] }
-  }>({
+  const [duplicateValidationErrors, setDuplicateValidationErrors] = useState<DuplicateValidationErrors>({
     master: { duplicateKeys: [], duplicateRows: [] },
     client: { duplicateKeys: [], duplicateRows: [] },
     merged: { duplicateKeys: [], duplicateRows: [] }
@@ -938,16 +941,16 @@ export default function ExcelImportPage() {
       console.log('[AI SORT DEBUG] Available columns for', targetView, ':', targetColumns.map(col => col.field));
       
       // Try to find the exact column match or a case-insensitive match
-      let matchedColumn = targetColumns.find(col => col.field === column)?.field;
+      let matchedColumn = targetColumns.find((col: GridColDef) => col.field === column)?.field;
       if (!matchedColumn) {
         // Try case-insensitive match
-        matchedColumn = targetColumns.find(col => 
+        matchedColumn = targetColumns.find((col: GridColDef) => 
           col.field.toLowerCase() === column.toLowerCase()
         )?.field;
       }
       if (!matchedColumn) {
         // Try partial match (column name contains the search term or vice versa)
-        matchedColumn = targetColumns.find(col => 
+        matchedColumn = targetColumns.find((col: GridColDef) => 
           col.field.toLowerCase().includes(column.toLowerCase()) ||
           column.toLowerCase().includes(col.field.toLowerCase())
         )?.field;
@@ -1072,7 +1075,7 @@ export default function ExcelImportPage() {
         
         // Get the current row data for HCPCS identification
         const currentRows = targetView === 'master' ? rowsMaster : targetView === 'client' ? rowsClient : mergedRows;
-        const rowToAnalyze = currentRows.find(row => row.id === rowId);
+        const rowToAnalyze = currentRows.find((row: ExcelRow) => row.id === rowId);
         const hcpcsCode = getRowHcpcs(rowToAnalyze);
         
         // Call the duplicate function
@@ -1134,8 +1137,8 @@ export default function ExcelImportPage() {
         if (selectedRowIds.length > 0) {
           // Get HCPCS codes for the rows being deleted for better feedback
           const currentRows = targetView === 'master' ? rowsMaster : targetView === 'client' ? rowsClient : mergedRows;
-          const rowsToDelete = currentRows.filter(row => selectedRowIds.includes(row.id));
-          const hcpcsCodes = rowsToDelete.map(row => {
+          const rowsToDelete = currentRows.filter((row: ExcelRow) => selectedRowIds.includes(row.id));
+          const hcpcsCodes = rowsToDelete.map((row: ExcelRow) => {
             const hcpcsKey = Object.keys(row).find(key => key.toLowerCase().includes('hcpcs'));
             const modifierKey = Object.keys(row).find(key => key.toLowerCase().includes('modifier') || key.toLowerCase().includes('mod'));
             const hcpcs = hcpcsKey ? String(row[hcpcsKey] || '').trim() : '';
@@ -1313,28 +1316,28 @@ export default function ExcelImportPage() {
 
   // Find HCPCS and Modifier columns for each file independently
   const getHCPCSColumnMaster = useCallback(() => {
-    const hcpcsColumn = columnsMaster.find(col => 
+    const hcpcsColumn = columnsMaster.find((col: GridColDef) => 
       findMatchingColumn("HCPCS", [col]) === col.field
     );
     return hcpcsColumn?.field || null;
   }, [columnsMaster]);
   
   const getHCPCSColumnClient = useCallback(() => {
-    const hcpcsColumn = columnsClient.find(col => 
+    const hcpcsColumn = columnsClient.find((col: GridColDef) => 
       findMatchingColumn("HCPCS", [col]) === col.field
     );
     return hcpcsColumn?.field || null;
   }, [columnsClient]);
   
   const getModifierColumnMaster = useCallback(() => {
-    const modifierColumn = columnsMaster.find(col => 
+    const modifierColumn = columnsMaster.find((col: GridColDef) => 
       findMatchingColumn("MODIFIER", [col]) === col.field
     );
     return modifierColumn?.field || null;
   }, [columnsMaster]);
   
   const getModifierColumnClient = useCallback(() => {
-    const modifierColumn = columnsClient.find(col => 
+    const modifierColumn = columnsClient.find((col: GridColDef) => 
       findMatchingColumn("MODIFIER", [col]) === col.field
     );
     return modifierColumn?.field || null;
@@ -1364,7 +1367,7 @@ export default function ExcelImportPage() {
 
   // Helper to get description column name (case-insensitive)
   const getDescriptionCol = useCallback((cols: GridColDef[]): string | null => {
-    const descColumn = cols.find(col => 
+    const descColumn = cols.find((col: GridColDef) => 
       findMatchingColumn("DESCRIPTION", [col]) === col.field
     );
     return descColumn?.field || null;
@@ -1461,7 +1464,7 @@ export default function ExcelImportPage() {
     const hcpcsColClient = getHCPCSColumnClient();
     
     // Find HCPCS column in merged columns (case-insensitive search)
-    const hcpcsColMerged = mergedColumns.find(col =>
+    const hcpcsColMerged = mergedColumns.find((col: GridColDef) =>
       col.field.toLowerCase().includes('hcpcs')
     )?.field;
     
@@ -1519,8 +1522,8 @@ export default function ExcelImportPage() {
     const descColClient = getDescriptionCol(columnsClient);
 
     // Diagnostics: log columns and sample rows
-    console.log("[DIAG] columnsMaster:", columnsMaster.map(c => c.field));
-    console.log("[DIAG] columnsClient:", columnsClient.map(c => c.field));
+    console.log("[DIAG] columnsMaster:", columnsMaster.map((c: GridColDef) => c.field));
+    console.log("[DIAG] columnsClient:", columnsClient.map((c: GridColDef) => c.field));
     console.log("[DIAG] hcpcsColMaster:", hcpcsColMaster, ", hcpcsColClient:", hcpcsColClient, ", modifierColMaster:", modifierColMaster, ", modifierColClient:", modifierColClient);
     if (rowsMaster.length > 0) console.log("[DIAG] Sample rowMaster:", rowsMaster[0]);
     if (rowsClient.length > 0) console.log("[DIAG] Sample rowClient:", rowsClient[0]);
@@ -1770,7 +1773,7 @@ export default function ExcelImportPage() {
     // Make both client and master data editable
     const isEditable = true;
     
-    sheetNames.forEach(sheetName => {
+    sheetNames.forEach((sheetName: string) => {
       const worksheet = workbook.Sheets[sheetName];
       const processed = processSheetData(worksheet, isEditable);
       sheetData[sheetName] = processed;
@@ -1984,7 +1987,7 @@ export default function ExcelImportPage() {
       // Validate for duplicates before saving
       const validation = validateForDuplicates(rowsClient, 'client');
       if (validation.hasDuplicates) {
-        setDuplicateValidationErrors(prev => ({
+        setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
           ...prev,
           client: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
         }));
@@ -1993,7 +1996,7 @@ export default function ExcelImportPage() {
       }
       
       // Clear any previous validation errors and save
-      setDuplicateValidationErrors(prev => ({
+      setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
         ...prev,
         client: { duplicateKeys: [], duplicateRows: [] }
       }));
@@ -2006,7 +2009,7 @@ export default function ExcelImportPage() {
       // Validate for duplicates before saving
       const validation = validateForDuplicates(rowsMaster, 'master');
       if (validation.hasDuplicates) {
-        setDuplicateValidationErrors(prev => ({
+        setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
           ...prev,
           master: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
         }));
@@ -2015,7 +2018,7 @@ export default function ExcelImportPage() {
       }
       
       // Clear any previous validation errors and save
-      setDuplicateValidationErrors(prev => ({
+      setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
         ...prev,
         master: { duplicateKeys: [], duplicateRows: [] }
       }));
@@ -2028,7 +2031,7 @@ export default function ExcelImportPage() {
       // Validate for duplicates before saving
       const validation = validateForDuplicates(mergedRows, 'merged');
       if (validation.hasDuplicates) {
-        setDuplicateValidationErrors(prev => ({
+        setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
           ...prev,
           merged: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
         }));
@@ -2037,7 +2040,7 @@ export default function ExcelImportPage() {
       }
       
       // Clear any previous validation errors and save
-      setDuplicateValidationErrors(prev => ({
+      setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
         ...prev,
         merged: { duplicateKeys: [], duplicateRows: [] }
       }));
@@ -2066,7 +2069,7 @@ export default function ExcelImportPage() {
       }
       
       // Clear validation errors
-      setDuplicateValidationErrors(prev => ({
+      setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
         ...prev,
         client: { duplicateKeys: [], duplicateRows: [] }
       }));
@@ -2093,7 +2096,7 @@ export default function ExcelImportPage() {
       }
       
       // Clear validation errors
-      setDuplicateValidationErrors(prev => ({
+      setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
         ...prev,
         master: { duplicateKeys: [], duplicateRows: [] }
       }));
@@ -2107,7 +2110,7 @@ export default function ExcelImportPage() {
       setMergedRows([...originalMergedData]);
       
       // Clear validation errors
-      setDuplicateValidationErrors(prev => ({
+      setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
         ...prev,
         merged: { duplicateKeys: [], duplicateRows: [] }
       }));
@@ -2152,7 +2155,7 @@ export default function ExcelImportPage() {
     const keyCount: Record<string, number> = {};
     const keyToRows: Record<string, ExcelRow[]> = {};
     
-    rows.forEach(row => {
+    rows.forEach((row: ExcelRow) => {
       const key = getRawKey(row);
       if (key) {
         keyCount[key] = (keyCount[key] || 0) + 1;
@@ -2276,7 +2279,7 @@ export default function ExcelImportPage() {
       
       // Re-validate for duplicates after delete to potentially re-enable save button
       const validation = validateForDuplicates(updatedRows, 'master');
-      setDuplicateValidationErrors(prev => ({
+      setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
         ...prev,
         master: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
       }));
@@ -2301,7 +2304,7 @@ export default function ExcelImportPage() {
       
       // Re-validate for duplicates after delete to potentially re-enable save button
       const validation = validateForDuplicates(updatedRows, 'client');
-      setDuplicateValidationErrors(prev => ({
+      setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
         ...prev,
         client: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
       }));
@@ -2313,7 +2316,7 @@ export default function ExcelImportPage() {
       
       // Re-validate for duplicates after delete to potentially re-enable save button
       const validation = validateForDuplicates(updatedRows, 'merged');
-      setDuplicateValidationErrors(prev => ({
+      setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
         ...prev,
         merged: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
       }));
@@ -2350,7 +2353,7 @@ export default function ExcelImportPage() {
       
       // Re-validate for duplicates after bulk delete to potentially re-enable save button
       const validation = validateForDuplicates(updatedRows, 'master');
-      setDuplicateValidationErrors(prev => ({
+      setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
         ...prev,
         master: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
       }));
@@ -2375,7 +2378,7 @@ export default function ExcelImportPage() {
       
       // Re-validate for duplicates after bulk delete to potentially re-enable save button
       const validation = validateForDuplicates(updatedRows, 'client');
-      setDuplicateValidationErrors(prev => ({
+      setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
         ...prev,
         client: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
       }));
@@ -2387,7 +2390,7 @@ export default function ExcelImportPage() {
       
       // Re-validate for duplicates after bulk delete to potentially re-enable save button
       const validation = validateForDuplicates(updatedRows, 'merged');
-      setDuplicateValidationErrors(prev => ({
+      setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
         ...prev,
         merged: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
       }));
@@ -2778,7 +2781,7 @@ export default function ExcelImportPage() {
                     
                     // Re-validate for duplicates after row update to potentially re-enable save button
                     const validation = validateForDuplicates(updatedRows, 'master');
-                    setDuplicateValidationErrors(prev => ({
+                    setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
                       ...prev,
                       master: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
                     }));
@@ -3089,7 +3092,7 @@ export default function ExcelImportPage() {
                     
                     // Re-validate for duplicates after row update to potentially re-enable save button
                     const validation = validateForDuplicates(updatedRows, 'client');
-                    setDuplicateValidationErrors(prev => ({
+                    setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
                       ...prev,
                       client: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
                     }));
@@ -3520,7 +3523,7 @@ export default function ExcelImportPage() {
                   
                   // Re-validate for duplicates after row update to potentially re-enable save button
                   const validation = validateForDuplicates(updatedRows, 'merged');
-                  setDuplicateValidationErrors(prev => ({
+                  setDuplicateValidationErrors((prev: DuplicateValidationErrors) => ({
                     ...prev,
                     merged: { duplicateKeys: validation.duplicateKeys, duplicateRows: validation.duplicateRows }
                   }));
