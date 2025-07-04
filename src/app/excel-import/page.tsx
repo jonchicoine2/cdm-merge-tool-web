@@ -6,6 +6,8 @@ import SearchIcon from "@mui/icons-material/Search";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import * as XLSX from "xlsx";
 import AIChat from "../../components/AIChat";
+import FileInfoCard from "../../components/FileInfoCard";
+import ComparisonStatsPanel from "../../components/ComparisonStatsPanel";
 
 // Define a type for Excel rows with dynamic fields, plus id
 interface ExcelRow {
@@ -149,8 +151,8 @@ export default function ExcelImportPage() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
   
-  // File information card component with consistent theming
-  const FileInfoCard = ({ metadata, type }: { metadata: FileMetadata | null, type: 'Master' | 'Client' }) => {
+  // [DEPRECATED] Inlined FileInfoCard (retained temporarily; renamed to avoid conflicts)
+  const FileInfoCardOld = ({ metadata, type }: { metadata: FileMetadata | null, type: 'Master' | 'Client' }) => {
     console.log(`[DEBUG] FileInfoCard render - ${type}:`, metadata, 'isClient:', isClient);
     
     if (!isClient) {
@@ -224,8 +226,8 @@ export default function ExcelImportPage() {
     );
   };
   
-  // Comparison statistics panel component
-  const ComparisonStatsPanel = ({ stats }: { stats: ComparisonStats | null }) => {
+  // [DEPRECATED] Inlined ComparisonStatsPanel (retained temporarily; renamed to avoid conflicts)
+  const ComparisonStatsPanelOld = ({ stats }: { stats: ComparisonStats | null }) => {
     if (!stats) return null;
     
     return (
