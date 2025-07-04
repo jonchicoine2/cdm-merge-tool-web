@@ -361,7 +361,7 @@ export default function ExcelImportPage() {
     if (!searchTerm.trim()) return rows;
     
     const lowercaseSearch = searchTerm.toLowerCase();
-    return rows.filter(row => 
+    return rows.filter((row: ExcelRow) => 
       Object.values(row).some(value => 
         String(value).toLowerCase().includes(lowercaseSearch)
       )
@@ -372,7 +372,7 @@ export default function ExcelImportPage() {
   const applyFilters = (rows: ExcelRow[], filters: {column: string, condition: string, value: string}[]): ExcelRow[] => {
     if (filters.length === 0) return rows;
     
-    return rows.filter(row => {
+    return rows.filter((row: ExcelRow) => {
       return filters.every(filter => {
         const cellValue = String(row[filter.column] || '').toLowerCase();
         const filterValue = filter.value.toLowerCase();
@@ -558,23 +558,23 @@ export default function ExcelImportPage() {
         case 'master':
           const masterSelectedId = selectedRowsMaster.length > 0 ? selectedRowsMaster[0] : selectedRowMaster;
           console.log('[ROW SELECTION DEBUG] Master grid selected ID:', masterSelectedId);
-          return { selectedRowId: masterSelectedId, selectedRowData: masterSelectedId ? (rows.find(row => row.id === masterSelectedId) || null) : null };
+          return { selectedRowId: masterSelectedId, selectedRowData: masterSelectedId ? (rows.find((row: ExcelRow) => row.id === masterSelectedId) || null) : null };
         case 'client':
           const clientSelectedId = selectedRowsClient.length > 0 ? selectedRowsClient[0] : selectedRowClient;
           console.log('[ROW SELECTION DEBUG] Client grid selected ID:', clientSelectedId);
-          return { selectedRowId: clientSelectedId, selectedRowData: clientSelectedId ? (rows.find(row => row.id === clientSelectedId) || null) : null };
+          return { selectedRowId: clientSelectedId, selectedRowData: clientSelectedId ? (rows.find((row: ExcelRow) => row.id === clientSelectedId) || null) : null };
         case 'merged':
           const mergedSelectedId = selectedRowsMerged.length > 0 ? selectedRowsMerged[0] : selectedRowMerged;
           console.log('[ROW SELECTION DEBUG] Merged grid selected ID:', mergedSelectedId);
-          return { selectedRowId: mergedSelectedId, selectedRowData: mergedSelectedId ? (rows.find(row => row.id === mergedSelectedId) || null) : null };
+          return { selectedRowId: mergedSelectedId, selectedRowData: mergedSelectedId ? (rows.find((row: ExcelRow) => row.id === mergedSelectedId) || null) : null };
         case 'unmatched':
           const unmatchedSelectedId = selectedRowsUnmatched.length > 0 ? selectedRowsUnmatched[0] : selectedRowUnmatched;
           console.log('[ROW SELECTION DEBUG] Unmatched grid selected ID:', unmatchedSelectedId);
-          return { selectedRowId: unmatchedSelectedId, selectedRowData: unmatchedSelectedId ? (rows.find(row => row.id === unmatchedSelectedId) || null) : null };
+          return { selectedRowId: unmatchedSelectedId, selectedRowData: unmatchedSelectedId ? (rows.find((row: ExcelRow) => row.id === unmatchedSelectedId) || null) : null };
         case 'duplicates':
           const duplicatesSelectedId = selectedRowsDuplicates.length > 0 ? selectedRowsDuplicates[0] : selectedRowDuplicates;
           console.log('[ROW SELECTION DEBUG] Duplicates grid selected ID:', duplicatesSelectedId);
-          return { selectedRowId: duplicatesSelectedId, selectedRowData: duplicatesSelectedId ? (rows.find(row => row.id === duplicatesSelectedId) || null) : null };
+          return { selectedRowId: duplicatesSelectedId, selectedRowData: duplicatesSelectedId ? (rows.find((row: ExcelRow) => row.id === duplicatesSelectedId) || null) : null };
         default:
           return { selectedRowId: null, selectedRowData: null };
       }
@@ -642,7 +642,7 @@ export default function ExcelImportPage() {
     });
     
     return {
-      columns: columns.map(col => col.field),
+      columns: columns.map((col: GridColDef) => col.field),
       rowCount: rows.length,
       sampleData: rows.slice(0, 5),
       currentView: aiSelectedGrid,
@@ -850,19 +850,19 @@ export default function ExcelImportPage() {
       // Add filter to the correct grid
       switch (targetView) {
         case 'master':
-          setMasterFilters(prev => [...prev.filter(f => f.column !== column), newFilter]);
+          setMasterFilters((prev: {column: string; condition: string; value: string}[]) => [...prev.filter((f: {column: string}) => f.column !== column), newFilter]);
           break;
         case 'client':
-          setClientFilters(prev => [...prev.filter(f => f.column !== column), newFilter]);
+          setClientFilters((prev: {column: string; condition: string; value: string}[]) => [...prev.filter((f: {column: string}) => f.column !== column), newFilter]);
           break;
         case 'merged':
-          setMergedFilters(prev => [...prev.filter(f => f.column !== column), newFilter]);
+          setMergedFilters((prev: {column: string; condition: string; value: string}[]) => [...prev.filter((f: {column: string}) => f.column !== column), newFilter]);
           break;
         case 'unmatched':
-          setUnmatchedFilters(prev => [...prev.filter(f => f.column !== column), newFilter]);
+          setUnmatchedFilters((prev: {column: string; condition: string; value: string}[]) => [...prev.filter((f: {column: string}) => f.column !== column), newFilter]);
           break;
         case 'duplicates':
-          setDuplicatesFilters(prev => [...prev.filter(f => f.column !== column), newFilter]);
+          setDuplicatesFilters((prev: {column: string; condition: string; value: string}[]) => [...prev.filter((f: {column: string}) => f.column !== column), newFilter]);
           break;
       }
       
