@@ -6,6 +6,26 @@ import SearchIcon from "@mui/icons-material/Search";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import * as XLSX from "xlsx";
 import AIChat from "../../components/AIChat";
+import dynamic from 'next/dynamic';
+
+// Create a NoSSR wrapper component to disable server-side rendering
+const NoSSR = dynamic(() => Promise.resolve(({ children }: { children: React.ReactNode }) => <>{children}</>), {
+  ssr: false,
+  loading: () => (
+    <Box sx={{ 
+      p: 4, 
+      background: 'linear-gradient(135deg, #f8fbff 0%, #e3f2fd 50%, #f0f8ff 100%)',
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <Typography variant="h4" sx={{ color: '#1976d2' }}>
+        Loading Excel Import Tool...
+      </Typography>
+    </Box>
+  )
+});
 
 // Define a type for Excel rows with dynamic fields, plus id
 interface ExcelRow {
@@ -84,16 +104,10 @@ export default function ExcelImportPage() {
   // Comparison statistics state
   const [comparisonStats, setComparisonStats] = useState<ComparisonStats | null>(null);
   
-  // Client-side hydration state
-  const [isClient, setIsClient] = useState(false);
-  
-  // Initialize client-side state
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  // Client-side hydration state (no longer needed with NoSSR)
+  // const [isClient, setIsClient] = useState(false);
   
   useEffect(() => {
-    if (!isClient) return;
     const lastMaster = localStorage.getItem("lastMasterFile");
     const lastMasterData = localStorage.getItem("lastMasterData");
     const lastMasterMetadata = localStorage.getItem("lastMasterMetadata");
@@ -132,7 +146,7 @@ export default function ExcelImportPage() {
         console.error('Failed to parse client metadata:', e);
       }
     }
-  }, [isClient]);
+  }, []);
   
   // Debug tab state
   useEffect(() => {
@@ -151,12 +165,7 @@ export default function ExcelImportPage() {
   
   // File information card component with consistent theming
   const FileInfoCard = ({ metadata, type }: { metadata: FileMetadata | null, type: 'Master' | 'Client' }) => {
-    console.log(`[DEBUG] FileInfoCard render - ${type}:`, metadata, 'isClient:', isClient);
-    
-    if (!isClient) {
-      console.log(`[DEBUG] Not client-side yet, not rendering ${type} card`);
-      return null;
-    }
+    console.log(`[DEBUG] FileInfoCard render - ${type}:`, metadata);
     
     if (!metadata) {
       console.log(`[DEBUG] No metadata for ${type}, not rendering card`);
@@ -2476,25 +2485,8 @@ export default function ExcelImportPage() {
     }
   };
 
-  // Don't render anything on server side to prevent hydration mismatch
-  if (!isClient) {
-    return (
-      <Box sx={{ 
-        p: 4, 
-        background: 'linear-gradient(135deg, #f8fbff 0%, #e3f2fd 50%, #f0f8ff 100%)',
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <Typography variant="h4" sx={{ color: '#1976d2' }}>
-          Loading...
-        </Typography>
-      </Box>
-    );
-  }
-
   return (
+    <NoSSR>
     <Box sx={{ 
       p: 4, 
       background: 'linear-gradient(135deg, #f8fbff 0%, #e3f2fd 50%, #f0f8ff 100%)',
@@ -3146,7 +3138,7 @@ export default function ExcelImportPage() {
       </Box>
       
       {/* Load Last File buttons */}
-      {isClient && (lastMasterData || lastClientData) && (
+      {(lastMasterData || lastClientData) && (
         <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
           {lastMasterData && lastClientData && lastMasterFile && lastClientFile && (
             <Button 
@@ -3239,7 +3231,7 @@ export default function ExcelImportPage() {
         >
           📁 Export Merged Data
         </Button>
-        {(!isClient || !(lastMasterData || lastClientData)) && (
+        {!(lastMasterData || lastClientData) && (
           <Button 
             variant="contained" 
             onClick={handleReset} 
@@ -3702,5 +3694,6 @@ export default function ExcelImportPage() {
         onWidthChange={handleChatWidthChange}
       />
     </Box>
+    </NoSSR>
   );
 }

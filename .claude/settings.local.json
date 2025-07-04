@@ -10,7 +10,14 @@
       "Bash(npx tsc:*)",
       "Bash(pkill:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "mcp__allpepper-memory-bank__list_project_files",
+      "Bash(curl:*)",
+      "Bash(lsof:*)",
+      "Bash(npm run lint)",
+      "Bash(ls:*)",
+      "Bash(echo:*)",
+      "Bash(awk:*)"
     ],
     "deny": []
   }

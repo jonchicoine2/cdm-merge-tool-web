@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-// Netlify function configuration
+// API route configuration
 export const runtime = 'nodejs';
-export const maxDuration = 15; // 15 seconds timeout for Netlify
+export const maxDuration = 120; // 2 minutes timeout for local development
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  timeout: 25000, // 25 seconds timeout
+  timeout: 90000, // 90 seconds timeout
   maxRetries: 2, // Retry failed requests twice
 });
 
@@ -32,21 +32,584 @@ interface GridContext {
 }
 
 
+// Function to classify request type
+function classifyRequest(message: string): 'analysis' | 'command' | 'documentation' | 'validation' {
+  const lowerMessage = message.toLowerCase();
+  
+  // Documentation keywords - questions about the app itself
+  const documentationKeywords = [
+    'what is this app', 'what does this app', 'what is the app', 'what does the app',
+    'what is this tool', 'what does this tool', 'what is the tool', 'what does the tool',
+    'what are modifier settings', 'what is modifier', 'what are modifiers',
+    'how does this work', 'how does the app work', 'how does the tool work',
+    'what is cdm merge', 'what does cdm merge', 'what is the purpose',
+    'what is this for', 'what is this used for', 'what does this do'
+  ];
+  
+  // Check for documentation keywords first (most specific)
+  const hasDocumentationKeyword = documentationKeywords.some(keyword =>
+    lowerMessage.includes(keyword)
+  );
+  
+  if (hasDocumentationKeyword) {
+    return 'documentation';
+  }
+  
+  // Command keywords - simple operations that work with samples (check early to avoid confusion)
+  const commandKeywords = [
+    'sort', 'filter', 'hide', 'show', 'export', 'delete', 'duplicate',
+    'switch', 'clear', 'search', 'count rows', 'how many'
+  ];
+  
+  const hasCommandKeyword = commandKeywords.some(keyword =>
+    lowerMessage.includes(keyword)
+  );
+  
+  if (hasCommandKeyword) {
+    return 'command';
+  }
+  
+  // Analysis keywords - requests that need full dataset (check first for comprehensive requests)
+  const analysisKeywords = [
+    'analyze', 'analysis', 'insights', 'patterns', 'trends', 'distribution',
+    'correlation', 'outliers', 'anomalies', 'statistics', 'statistical',
+    'compare all', 'across all', 'find patterns', 'data quality',
+    'what insights', 'identify trends', 'detect outliers', 'anomaly detection',
+    'comprehensive analysis', 'full analysis', 'deep analysis', 'quality issues',
+    'data inconsistencies', 'thorough', 'comprehensive'
+  ];
+  
+  // Validation keywords - direct data checking requests (specific HCPCS validation only)
+  const validationKeywords = [
+    'validate codes', 'check codes', 'invalid codes only', 'hcpcs validation',
+    'code validation', 'validate hcpcs', 'check hcpcs codes',
+    'validate cpt', 'validate merged', 'check cpt', 'check merged',
+    'validate all codes', 'check all codes', 'cpt validation', 'merged validation'
+  ];
+  
+  // Check for analysis keywords first (comprehensive requests take priority)
+  const hasAnalysisKeyword = analysisKeywords.some(keyword =>
+    lowerMessage.includes(keyword)
+  );
+  
+  if (hasAnalysisKeyword) {
+    return 'analysis';
+  }
+  
+  // Check for validation keywords (specific HCPCS code validation only)
+  const hasValidationKeyword = validationKeywords.some(keyword =>
+    lowerMessage.includes(keyword)
+  );
+  
+  if (hasValidationKeyword) {
+    return 'validation';
+  }
+  
+  // Medical knowledge questions - questions about specific codes, descriptions, or medical concepts
+  const medicalQuestionPatterns = [
+    /is\s+.*\s+valid\s+description/i,
+    /is\s+.*\s+correct\s+description/i,
+    /is\s+.*\s+appropriate\s+description/i,
+    /valid\s+description\s+for/i,
+    /correct\s+description\s+for/i,
+    /appropriate\s+description\s+for/i,
+    /is\s+\d{5}\s+.*\s+valid/i,
+    /does\s+\d{5}\s+cover/i,
+    /what\s+is\s+\d{5}/i,
+    /so\s+is\s+.*\s+valid/i,
+    /fracture.*manipulation.*\d{5}/i
+  ];
+  
+  const isMedicalQuestion = medicalQuestionPatterns.some(pattern =>
+    pattern.test(message)
+  );
+  
+  if (isMedicalQuestion) {
+    return 'analysis'; // Treat as analysis but will be handled specially
+  }
+  
+  // Default: if it's a question about the data, treat as analysis
+  // if it's an action phrase, treat as command
+  if (lowerMessage.includes('what') || lowerMessage.includes('how') ||
+      lowerMessage.includes('why') || lowerMessage.includes('which') ||
+      lowerMessage.includes('is ') || lowerMessage.includes('are ') ||
+      lowerMessage.includes('does ') || lowerMessage.includes('do ') ||
+      lowerMessage.includes('can ') || lowerMessage.includes('should ') ||
+      lowerMessage.includes('would ') || lowerMessage.includes('could ') ||
+      lowerMessage.includes('?')) {
+    return 'analysis';
+  }
+  
+  return 'command'; // Default to command for safety
+}
+
+// Function to determine if batch processing is needed using hybrid approach
+async function shouldTriggerBatchProcessing(message: string, requestType: string, gridContext: GridContext): Promise<boolean> {
+  const lowerMessage = message.toLowerCase();
+  
+  // 1. Explicit batch keywords - high confidence, no AI needed
+  const explicitBatchKeywords = [
+    'analyze all data',
+    'validate all records',
+    'check all codes',
+    'validate all codes',
+    'process complete dataset',
+    'validate complete dataset',
+    'analyze complete dataset',
+    'check complete dataset',
+    'process entire dataset',
+    'validate entire dataset',
+    'analyze entire dataset',
+    'check entire dataset',
+    'validate merged cpt',
+    'validate cpt codes',
+    'validate merged codes',
+    'check merged cpt',
+    'check cpt codes',
+    'check merged codes',
+    'batch validation',
+    'batch analysis',
+    'full dataset analysis',
+    'comprehensive validation',
+    'comprehensive analysis'
+  ];
+  
+  // Check for explicit batch requests
+  const hasExplicitBatchKeyword = explicitBatchKeywords.some(keyword =>
+    lowerMessage.includes(keyword)
+  );
+  
+  // Also check for common validation patterns that should trigger batch
+  const validationPatterns = [
+    /validate\s+.*\s*cpt/i,
+    /validate\s+.*\s*codes/i,
+    /check\s+.*\s*cpt/i,
+    /check\s+.*\s*codes/i,
+    /validate\s+merged/i,
+    /check\s+merged/i
+  ];
+  
+  const hasValidationPattern = validationPatterns.some(pattern =>
+    pattern.test(message)
+  );
+  
+  console.log('[BATCH DEBUG] Checking batch triggers for:', message);
+  console.log('[BATCH DEBUG] hasExplicitBatchKeyword:', hasExplicitBatchKeyword);
+  console.log('[BATCH DEBUG] hasValidationPattern:', hasValidationPattern);
+  console.log('[BATCH DEBUG] explicitBatchKeywords tested:', explicitBatchKeywords.filter(k => lowerMessage.includes(k)));
+  console.log('[BATCH DEBUG] validationPatterns tested:', validationPatterns.filter(p => p.test(message)));
+  
+  if (hasExplicitBatchKeyword || hasValidationPattern) {
+    console.log('[BATCH DEBUG] Explicit batch keyword or validation pattern detected:', message);
+    return true;
+  }
+  
+  // 2. Never trigger batch for these cases
+  const neverBatchKeywords = [
+    'sort', 'filter', 'hide', 'show', 'search', 'count rows', 'how many',
+    'switch', 'export', 'delete', 'duplicate', 'add', 'what is', 'how does',
+    'explain', 'tell me about', 'can you explain'
+  ];
+  
+  const hasNeverBatchKeyword = neverBatchKeywords.some(keyword =>
+    lowerMessage.includes(keyword)
+  );
+  
+  if (hasNeverBatchKeyword) {
+    console.log('[BATCH DEBUG] Never-batch keyword detected, skipping batch processing');
+    return false;
+  }
+  
+  // 3. Borderline cases - use AI to decide (only for analysis/validation with large datasets)
+  if ((requestType === 'analysis' || requestType === 'validation') && gridContext.sampleData.length > 500) {
+    const borderlineKeywords = [
+      'analyze', 'analysis', 'validate', 'validation', 'check', 'review',
+      'quality', 'issues', 'problems', 'errors', 'invalid', 'inconsistencies'
+    ];
+    
+    const hasBorderlineKeyword = borderlineKeywords.some(keyword =>
+      lowerMessage.includes(keyword)
+    );
+    
+    if (hasBorderlineKeyword) {
+      console.log('[BATCH DEBUG] Borderline case detected, consulting AI for batch decision');
+      
+      try {
+        // Quick AI call to determine intent
+        const batchDecisionPrompt = `Determine if this user request requires comprehensive batch processing of ALL records vs working with a sample.
+
+User Request: "${message}"
+Dataset Size: ${gridContext.sampleData.length} records
+Request Type: ${requestType}
+
+BATCH PROCESSING should only be used when the user explicitly wants:
+- Complete validation of ALL codes/records
+- Comprehensive analysis of the ENTIRE dataset
+- Full quality checking across ALL data
+
+SAMPLE PROCESSING is appropriate for:
+- General questions about data patterns
+- Quick analysis or insights
+- Exploring data characteristics
+- Questions that can be answered with representative samples
+
+Respond with exactly: "BATCH" or "SAMPLE"`;
+
+        const response = await openai.chat.completions.create({
+          model: "gpt-3.5-turbo",
+          messages: [
+            { role: "system", content: batchDecisionPrompt },
+            { role: "user", content: `Should this request use batch processing: "${message}"` }
+          ],
+          temperature: 0.1,
+          max_tokens: 10,
+        });
+
+        const decision = response.choices[0]?.message?.content?.trim().toUpperCase();
+        const shouldBatch = decision === 'BATCH';
+        
+        console.log('[BATCH DEBUG] AI decision for borderline case:', decision, '-> shouldBatch:', shouldBatch);
+        return shouldBatch;
+        
+      } catch (error) {
+        console.error('[BATCH DEBUG] AI decision failed, defaulting to no batch:', error);
+        return false; // Default to no batch if AI call fails
+      }
+    }
+  }
+  
+  // 4. Default: no batch processing
+  return false;
+}
+
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   
   try {
-    const { message, gridContext }: { message: string; gridContext: GridContext } = await request.json();
+    const { message, gridContext, chatContext }: { 
+      message: string; 
+      gridContext: GridContext; 
+      chatContext?: Array<{role: 'user' | 'assistant', content: string}> 
+    } = await request.json();
     
-    // Optimize gridContext to reduce payload size
-    const optimizedGridContext = {
-      ...gridContext,
-      // Limit sample data to reduce request size
-      sampleData: gridContext.sampleData.slice(0, 2),
-    };
+    // Classify the request type and check for batch processing requests
+    const requestType = classifyRequest(message);
+    console.log('[AI API DEBUG] Message:', message);
+    console.log('[AI API DEBUG] Classified as requestType:', requestType);
+    
+    // Check if this is a follow-up question that shouldn't trigger batch processing
+    // IMPORTANT: Don't override documentation requests as follow-up questions
+    // ALSO: Don't override validation/analysis requests that need comprehensive processing
+    
+    // Medical knowledge questions - these should be treated as follow-up questions
+    const medicalQuestionPatterns = [
+      /is\s+.*\s+valid\s+description/i,
+      /is\s+.*\s+correct\s+description/i,
+      /is\s+.*\s+appropriate\s+description/i,
+      /valid\s+description\s+for/i,
+      /correct\s+description\s+for/i,
+      /appropriate\s+description\s+for/i,
+      /is\s+\d{5}\s+.*\s+valid/i,
+      /does\s+\d{5}\s+cover/i,
+      /what\s+is\s+\d{5}/i,
+      /so\s+is\s+.*\s+valid/i,
+      /fracture.*manipulation.*\d{5}/i
+    ];
+    
+    const isMedicalQuestion = medicalQuestionPatterns.some(pattern =>
+      pattern.test(message)
+    );
+    
+    const isFollowUpQuestion = requestType !== 'documentation' &&
+                              requestType !== 'validation' && (
+                              isMedicalQuestion ||
+                              (requestType !== 'analysis' && (
+                                message.toLowerCase().includes('why is') ||
+                                message.toLowerCase().includes('why does') ||
+                                message.toLowerCase().includes('explain why') ||
+                                message.toLowerCase().includes('what does') ||
+                                message.toLowerCase().includes('how is') ||
+                                message.toLowerCase().includes('what is') ||
+                                message.toLowerCase().includes('can you explain') ||
+                                message.toLowerCase().includes('tell me about') ||
+                                message.toLowerCase().includes('what makes') ||
+                                message.toLowerCase().includes('how does') ||
+                                (message.includes('?') && message.split(' ').length < 10)
+                              )));
+    
+    console.log('[AI API DEBUG] isFollowUpQuestion:', isFollowUpQuestion);
+    console.log('[AI API DEBUG] Dataset size:', gridContext.sampleData.length);
+    
+    // Use hybrid approach for batch processing detection
+    const isBatchRequest = !isFollowUpQuestion && await shouldTriggerBatchProcessing(message, requestType, gridContext);
+    
+    console.log('[AI API DEBUG] Final result - requestType:', requestType, 'isBatchRequest:', isBatchRequest, 'isFollowUpQuestion:', isFollowUpQuestion);
+    
+    // Handle batch processing for validation requests or large datasets with AI analysis
+    if (isBatchRequest && (requestType === 'validation' || gridContext.sampleData.length > 500)) {
+      const batchSize = 500;
+      const totalRecords = gridContext.sampleData.length;
+      const batches = Math.ceil(totalRecords / batchSize);
+      
+      console.log(`[AI API DEBUG] Processing ${totalRecords} records in ${batches} sequential AI batches of ${batchSize}`);
+      
+      const allFindings: string[] = [];
+      const consolidatedResults = {
+        invalidCodes: [] as string[],
+        missingFields: 0,
+        inconsistencies: [] as string[],
+        totalAnalyzed: 0
+      };
+      
+      // Return streaming response with progress updates
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            // Send initial progress
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `🔄 **Analyzing ${totalRecords} records across ${batches} batches...**\n\n` })}\n\n`));
+            
+            // Process each batch sequentially with progress updates
+            for (let i = 0; i < batches; i++) {
+              const start = i * batchSize;
+              const end = Math.min(start + batchSize, totalRecords);
+              const batchData = gridContext.sampleData.slice(start, end);
+              
+              // Send progress update
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `📊 Processing batch ${i + 1}/${batches}...` })}\n\n`));
+              
+              console.log(`[AI API DEBUG] AI analyzing batch ${i + 1}/${batches}: records ${start + 1}-${end}`);
+              
+              // Enhanced system prompt for batch processing
+              const batchSystemPrompt = `BATCH VALIDATION ANALYSIS - Batch ${i + 1} of ${batches}
+
+Data: ${JSON.stringify(batchData)}
+Records: ${batchData.length} (rows ${start + 1}-${end} of ${totalRecords} total)
+Columns: ${gridContext.columns.join(', ')}
+
+HCPCS VALIDATION:
+IMPORTANT: We are dealing with HCPCS codes which include BOTH Level I (CPT) and Level II codes:
+- HCPCS Level I = CPT codes (5 digits, 10000-99999)
+- HCPCS Level II = Letter codes (A-V + 4 digits)
+
+1. FORMAT CHECK:
+   - HCPCS Level I (CPT codes): 5 digits (10000-99999) + optional modifier
+   - HCPCS Level II: Letter (A-V) + 4 digits + optional modifier
+   
+2. EXISTENCE CHECK (use your knowledge of actual HCPCS/CPT codes):
+   - CPT codes (Level I HCPCS): Verify against official CPT code sets
+   - HCPCS Level II codes: Verify against official HCPCS Level II code sets
+   - Flag codes that don't exist in either code set
+   
+3. MODIFIER VALIDATION:
+   - Common valid modifiers: 25, 26, 50, 51, 59, 76, 77, 78, 79, TC, etc.
+   - Anatomical modifiers: F1-F9, T1-T9, FA, LT, RT, etc.
+
+TASK: Analyze this batch for:
+1. Invalid HCPCS codes (format + existence)
+2. Missing critical fields (CDM, Description)  
+3. Data inconsistencies
+
+CRITICAL: You MUST respond with ONLY the following JSON format, no other text:
+{"invalidCodes": ["code1 (reason)", "code2 (reason)"], "missingFields": number, "inconsistencies": ["issue1", "issue2"], "summary": "Brief findings for this batch"}
+
+Example response:
+{"invalidCodes": ["INVALID1 (not a valid CPT code)", "99999 (code does not exist)"], "missingFields": 15, "inconsistencies": ["CDM values inconsistent", "QTY always 1"], "summary": "Found 2 invalid codes, 15 missing fields, 2 inconsistencies"}`;
+
+              try {
+                const batchResponse = await openai.chat.completions.create({
+                  model: "gpt-4o",
+                  messages: [
+                    { role: "system", content: batchSystemPrompt },
+                    { role: "user", content: `Analyze batch ${i + 1}: records ${start + 1}-${end}` }
+                  ],
+                  temperature: 0.1,
+                  max_tokens: 2000,
+                });
+
+                const batchResult = batchResponse.choices[0]?.message?.content;
+                if (batchResult) {
+                  console.log(`[AI API DEBUG] Batch ${i + 1} raw response:`, batchResult);
+                  try {
+                    // Try to find JSON in the response
+                    const jsonMatch = batchResult.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                      const parsed = JSON.parse(jsonMatch[0]);
+                      console.log(`[AI API DEBUG] Batch ${i + 1} parsed:`, parsed);
+                      
+                      consolidatedResults.invalidCodes.push(...(parsed.invalidCodes || []));
+                      consolidatedResults.missingFields += (parsed.missingFields || 0);
+                      consolidatedResults.inconsistencies.push(...(parsed.inconsistencies || []));
+                      consolidatedResults.totalAnalyzed += batchData.length;
+                      allFindings.push(`Batch ${i + 1}: ${parsed.summary || 'Analysis completed'}`);
+                      
+                      // Send clean batch completion update
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: ` ✅\n` })}\n\n`));
+                    } else {
+                      // No JSON found, still count as analyzed
+                      consolidatedResults.totalAnalyzed += batchData.length;
+                      allFindings.push(`Batch ${i + 1}: Analysis completed (${batchData.length} records)`);
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: ` ⚠️\n` })}\n\n`));
+                    }
+                  } catch (parseError) {
+                    console.log(`[AI API DEBUG] Batch ${i + 1} parse error:`, parseError);
+                    // Still count as analyzed even if parsing failed
+                    consolidatedResults.totalAnalyzed += batchData.length;
+                    allFindings.push(`Batch ${i + 1}: Analysis completed (${batchData.length} records)`);
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: ` ❌\n` })}\n\n`));
+                  }
+                }
+              } catch (error) {
+                console.error(`[AI API DEBUG] Batch ${i + 1} failed:`, error);
+                allFindings.push(`Batch ${i + 1}: Analysis failed - ${batchData.length} records skipped`);
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `❌ Batch ${i + 1} failed: ${batchData.length} records skipped\n` })}\n\n`));
+              }
+            }
+            
+            // Compile comprehensive results
+            const summary = [
+              `\n## 📋 **Analysis Complete**\n`,
+              `**Analyzed:** ${consolidatedResults.totalAnalyzed}/${totalRecords} records\n`,
+              
+              consolidatedResults.invalidCodes.length > 0 
+                ? `\n### ❌ Invalid HCPCS Codes (${consolidatedResults.invalidCodes.length} found)\n${consolidatedResults.invalidCodes.slice(0, 10).map(code => `• ${code}`).join('\n')}${consolidatedResults.invalidCodes.length > 10 ? `\n• ...and ${consolidatedResults.invalidCodes.length - 10} more invalid codes` : ''}\n`
+                : `\n### ✅ HCPCS Code Validation\nAll HCPCS codes are valid.\n`,
+              
+              consolidatedResults.missingFields > 0 
+                ? `\n### ⚠️ Missing Fields\n${consolidatedResults.missingFields} records have missing critical fields.\n`
+                : `\n### ✅ Data Completeness\nAll critical fields are populated.\n`,
+              
+              consolidatedResults.inconsistencies.length > 0
+                ? `\n### ⚠️ Data Quality Issues\n${consolidatedResults.inconsistencies.slice(0, 5).map(issue => `• ${issue}`).join('\n')}${consolidatedResults.inconsistencies.length > 5 ? `\n• ...and ${consolidatedResults.inconsistencies.length - 5} more issues` : ''}\n`
+                : `\n### ✅ Data Consistency\nNo major data inconsistencies detected.\n`
+            ].join('');
+            
+            // Send final summary
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: summary })}\n\n`));
+            
+            // Send completion signal
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, fullResponse: JSON.stringify({ type: 'query', response: summary }) })}\n\n`));
+            controller.close();
+            
+          } catch (error) {
+            console.error('[AI API DEBUG] Batch processing failed:', error);
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `❌ Batch processing failed: ${error instanceof Error ? error.message : 'Unknown error'}` })}\n\n`));
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, fullResponse: JSON.stringify({ type: 'query', response: 'Batch processing failed' }) })}\n\n`));
+            controller.close();
+          }
+        }
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    }
+
+    // Handle follow-up questions with simple passthrough
+    if (isFollowUpQuestion) {
+      console.log('[AI API DEBUG] Processing follow-up question');
+      
+      const followUpSystemPrompt = `You are an AI assistant helping with HCPCS code analysis and healthcare data questions.
+
+Context: The user is working with healthcare data containing HCPCS codes (which include both CPT codes and HCPCS Level II codes).
+
+HCPCS Background:
+- HCPCS Level I = CPT codes (5 digits, 10000-99999) like 99213, 11000, 23500
+- HCPCS Level II = Letter codes (A-V + 4 digits) like A0001, J1234
+- Modifiers: Used to provide additional information (25, 50, LT, RT, etc.)
+
+Previous Context: The user has been analyzing their healthcare data for code validation and quality issues.
+
+Current Question: ${message}
+
+Provide a helpful, informative answer about HCPCS codes, modifiers, or healthcare data analysis. Be conversational and educational.`;
+
+      try {
+        // Build messages array with optional chat context
+        const messages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = [
+          { role: "system", content: followUpSystemPrompt },
+          ...(chatContext || []).map(ctx => ({ role: ctx.role, content: ctx.content })),
+          { role: "user", content: message }
+        ];
+
+        console.log('[AI API DEBUG] Follow-up with context:', chatContext?.length || 0, 'previous messages');
+
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages,
+          temperature: 0.3,
+          max_tokens: 800,
+          stream: true,
+        });
+
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+          async start(controller) {
+            try {
+              let fullContent = '';
+              
+              for await (const chunk of response) {
+                const content = chunk.choices[0]?.delta?.content || '';
+                if (content) {
+                  fullContent += content;
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+                }
+              }
+              
+              // Send completion signal
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, fullResponse: JSON.stringify({ type: 'query', response: fullContent }) })}\n\n`));
+              controller.close();
+            } catch (error) {
+              console.error('[AI API DEBUG] Follow-up question failed:', error);
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `Sorry, I encountered an error answering your question: ${error instanceof Error ? error.message : 'Unknown error'}` })}\n\n`));
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, fullResponse: JSON.stringify({ type: 'query', response: 'Error occurred' }) })}\n\n`));
+              controller.close();
+            }
+          }
+        });
+
+        return new Response(stream, {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          },
+        });
+      } catch (error) {
+        console.error('[AI API DEBUG] Follow-up processing error:', error);
+        return NextResponse.json({ 
+          type: 'query', 
+          response: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+        });
+      }
+    }
+
+    // Regular processing for smaller datasets
+    const optimizedGridContext = requestType === 'analysis' || requestType === 'validation'
+      ? {
+          ...gridContext,
+          // For analysis/validation: send up to 400 rows for comprehensive checking with GPT-4
+          sampleData: gridContext.sampleData.slice(0, 400),
+        }
+      : requestType === 'documentation'
+      ? {
+          ...gridContext,
+          // For documentation: minimal data needed
+          sampleData: gridContext.sampleData.slice(0, 1),
+        }
+      : {
+          ...gridContext,
+          // For commands: keep current optimization
+          sampleData: gridContext.sampleData.slice(0, 2),
+        };
     
     console.log('[AI API DEBUG] Received request:', {
       message,
+      requestType,
       selectedGrid: gridContext.selectedGrid,
       selectedRowId: gridContext.selectedRowId,
       selectedHcpcs: gridContext.selectedHcpcs,
@@ -54,8 +617,29 @@ export async function POST(request: NextRequest) {
       selectedRowData: gridContext.selectedRowData ? 'present' : 'null',
       hasRowSelection: !!gridContext.selectedRowId,
       rowCount: gridContext.rowCount,
+      originalSampleSize: gridContext.sampleData.length,
+      optimizedSampleSize: optimizedGridContext.sampleData.length,
       requestSize: JSON.stringify({ message, gridContext: optimizedGridContext }).length
     });
+
+    // Check if we have actual data to analyze
+    if (requestType === 'analysis' && (!gridContext.sampleData || gridContext.sampleData.length === 0)) {
+      console.log('[AI API DEBUG] No data available for analysis');
+      return NextResponse.json({
+        type: 'query',
+        response: 'I don\'t see any data loaded in the system yet. Please upload your Excel files (master and client data) first, then I can analyze your data for quality issues, patterns, and insights.'
+      });
+    }
+    
+    // Additional debugging for analysis requests
+    if (requestType === 'analysis') {
+      console.log('[AI API DEBUG] Analysis request detected with data:', {
+        sampleDataLength: gridContext.sampleData?.length || 0,
+        columns: gridContext.columns,
+        selectedGrid: gridContext.selectedGrid,
+        rowCount: gridContext.rowCount
+      });
+    }
     
 
     console.log('API Key present:', !!process.env.OPENAI_API_KEY);
@@ -101,7 +685,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const systemPrompt = `You are an AI assistant for the CDM Merge Tool, a specialized Excel data comparison application for healthcare data management. 
+    // Enhanced system prompt for analysis requests
+    const baseSystemPrompt = `You are an AI assistant for the CDM Merge Tool, a specialized Excel data comparison application for healthcare data management. 
 
 ## About CDM Merge Tool
 
@@ -297,6 +882,112 @@ CRITICAL: In your JSON response, use the EXACT column field name from the availa
 Example: If user says "sort by description" and available columns include "description", use "description" in the parameters.column field.
 If user says "sort by desc" and available columns include "procedure_description", use "procedure_description" in the parameters.column field.`;
 
+    // Create enhanced system prompt for analysis vs commands vs documentation vs validation
+    const systemPrompt = requestType === 'validation'
+      ? `DATA VALIDATION TASK - REPORT FINDINGS ONLY
+
+Data: ${JSON.stringify(optimizedGridContext.sampleData)}
+Records: ${optimizedGridContext.sampleData.length}
+
+HCPCS VALIDATION:
+IMPORTANT: We are dealing with HCPCS codes which include BOTH Level I (CPT) and Level II codes:
+- HCPCS Level I = CPT codes (5 digits, 10000-99999)
+- HCPCS Level II = Letter codes (A-V + 4 digits)
+
+1. FORMAT CHECK:
+   - HCPCS Level I (CPT codes): 5 digits (10000-99999) + optional modifier
+   - HCPCS Level II: Letter (A-V) + 4 digits + optional modifier
+   
+2. EXISTENCE CHECK (use your knowledge of actual HCPCS/CPT codes):
+   - CPT codes (Level I HCPCS): Verify against official CPT code sets
+   - HCPCS Level II codes: Verify against official HCPCS Level II code sets
+   - Flag codes that don't exist in either code set
+   - Note: Some codes may be retired/deleted or newly added after training cutoff
+   
+3. MODIFIER VALIDATION:
+   - Common valid modifiers: 25, 26, 50, 51, 59, 76, 77, 78, 79, TC, etc.
+   - Anatomical modifiers: F1-F9, T1-T9, FA, LT, RT, etc.
+   - Flag obviously invalid modifiers
+
+TASK: CHECK ALL HCPCS CODES FOR FORMAT, EXISTENCE, AND MODIFIER VALIDITY.
+CRITICAL: Your response MUST be of type "query" and contain ONLY the findings. DO NOT generate any actions (e.g., filter, hide, delete).
+
+Response: {"type": "query", "response": "Invalid HCPCS codes found: [list specific invalid codes, e.g., '99213 (starts with number), ABC (invalid format)']. If none, state 'No invalid HCPCS codes found.'"}
+
+REPORT RESULTS IMMEDIATELY. NO EXPLANATIONS. NO ACTIONS.`
+      : requestType === 'analysis'
+      ? `ANALYZE THIS DATA NOW. NO EXPLANATIONS.
+
+Data: ${JSON.stringify(optimizedGridContext.sampleData)}
+Columns: ${optimizedGridContext.columns.join(', ')}
+Records: ${optimizedGridContext.sampleData.length}
+
+HCPCS VALIDATION RULES:
+IMPORTANT: We are dealing with HCPCS codes which include BOTH Level I (CPT) and Level II codes:
+- HCPCS Level I = CPT codes (5 digits, 10000-99999) + optional modifier (e.g., 99213, 11000, 23500-50)
+- HCPCS Level II = Letter (A-V) + 4 digits + optional modifier (e.g., A0001, J1234-25)
+- Valid examples: 99213, 11000, 23500-50, A0001, B4034, J1234-25
+
+TASK: ANALYZE DATA FOR INSIGHTS AND REPORT FINDINGS.
+CRITICAL: Your response MUST be of type "query" and contain ONLY the findings. DO NOT generate any actions (e.g., filter, hide, delete).
+
+Response: {"type": "query", "response": "RESULTS: [Detailed analysis findings with specific examples]."}
+
+REPORT RESULTS IMMEDIATELY. NO EXPLANATIONS. NO ACTIONS.`
+      : requestType === 'documentation'
+      ? `You are an AI assistant for the CDM Merge Tool, a specialized Excel data comparison application for healthcare data management.
+
+## About CDM Merge Tool
+
+**Purpose**: The CDM Merge Tool processes Clinical Decision-Making (CDM) data by comparing master reference files with client data files to identify matches, duplicates, and discrepancies in healthcare data.
+
+**Key Features**:
+- Healthcare data reconciliation and HCPCS code validation
+- Duplicate detection and data quality assurance
+- Multi-sheet Excel file support with intelligent column mapping
+- Advanced matching algorithms (exact, fuzzy, normalized)
+- Comprehensive reporting with matched/unmatched/duplicate categorization
+- In-place data editing with validation for all grids (master, client, merged)
+- Record management: duplicate, delete, and add records via AI commands
+- Save/cancel functionality for data edits with change tracking
+
+**Matching Rules**: Uses HCPCS codes + modifiers as primary matching criteria. Match key format: "HCPCS Code + Modifier" (e.g., "99213" + "25" = "9921325").
+
+**Modifier Settings Control Root Code Matching**:
+The modifier settings dialog allows users to specify which modifier codes should be treated as "root codes" (without the modifier suffix) during matching:
+
+1. **Root 00**: Include codes with modifier "00" - strips "00" modifier for matching
+2. **Root 25**: Include codes with modifier "25" - strips "25" modifier for matching
+3. **Root 50**: Include codes with modifier "50" - strips "50" modifier for matching
+4. **Root 59**: Include codes with modifier "59" - strips "59" modifier for matching
+5. **Root XU**: Include codes with modifier "XU" - strips "XU" modifier for matching
+6. **Root 76**: Include codes with modifier "76" - strips "76" modifier for matching
+7. **Ignore Trauma**: Excludes trauma team codes (99284, 99285, 99291) with "trauma team" descriptions
+
+**How It Works**: When root modifiers are enabled, codes like "99213-25" will match as just "99213" if Root 25 is checked. This allows modified codes to match their base procedure codes.
+
+**Output**: Generates Excel reports with three sheets:
+1. **Merged**: All matched records with combined data
+2. **Unmatched_Client**: Client records with no master match (need review)
+3. **Duplicate_Client**: Client records with duplicate keys (need deduplication)
+
+**Use Cases**: Healthcare billing validation, compliance auditing, data migration, and quality control for medical procedure codes and billing data.
+
+**Documentation Questions**: Answer questions about app purpose, matching rules, modifiers, problems solved, and technical details. Provide informative but conversational responses focusing on practical understanding.
+
+Return JSON with this structure for documentation responses:
+{
+  "type": "query",
+  "response": "Detailed explanation in natural, conversational language"
+}
+
+Example responses:
+- "what is this app for?" → {"type": "query", "response": "This is VIC's internal CDM Merge Tool - designed specifically for our team to streamline charge master data updates. The app merges Master and Client Excel files by matching HCPCS codes, then updates the Master with CDM data from the Client to create a clean merged dataset for export. Key features include HCPCS matching, configurable modifier settings for VIC's specific data requirements, quality control to identify unmatched records and duplicates, and export-ready output. This tool handles the tedious manual work of CDM merging while ensuring data accuracy and giving you visibility into any potential issues that need attention."}
+- "what are modifier settings?" → {"type": "query", "response": "Modifier settings let you specify which modifier codes should be treated as root codes during matching. For example, if Root 25 is enabled, codes like '99213-25' will match as just '99213'. Available options include Root 00, Root 25, Root 50, Root 59, Root XU, Root 76, and Ignore Trauma (excludes trauma team codes). This allows modified procedure codes to match their base codes when needed."}
+
+IMPORTANT: Always respond with natural, conversational language. Never show JSON examples or technical structures to users.`
+      : baseSystemPrompt;
+
     // Create a streaming response
     const encoder = new TextEncoder();
     let responseBuffer = '';
@@ -306,39 +997,89 @@ If user says "sort by desc" and available columns include "procedure_description
         try {
           let openaiStream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
           
+          // Select model based on request type - GPT-4o for analysis, GPT-3.5-turbo for commands
+          const selectedModel = requestType === 'analysis' || requestType === 'validation' 
+            ? "gpt-4o" 
+            : "gpt-3.5-turbo";
+          const maxTokens = requestType === 'analysis' || requestType === 'validation' ? 4000 : requestType === 'documentation' ? 1000 : 500; // Appropriate tokens for GPT-4 analysis
+          
+          console.log('[AI API DEBUG] Using model:', selectedModel, 'for request type:', requestType);
+          console.log('[AI API DEBUG] Dataset size for analysis:', optimizedGridContext.sampleData.length, 'records');
+          
           try {
             // First attempt with streaming and normal timeout
+            // Build messages array with optional chat context
+            const regularMessages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = [
+              { role: "system", content: systemPrompt },
+              ...(chatContext || []).map(ctx => ({ role: ctx.role, content: ctx.content })),
+              { role: "user", content: message },
+              { role: "system", content: requestType === 'validation' || requestType === 'analysis'
+                ? "CRITICAL: Your response MUST be of type \"query\". DO NOT generate any actions (e.g., filter, hide, delete). Provide findings immediately. Example: {\"type\": \"query\", \"response\": \"Invalid HCPCS codes found: 99213 (starts with number), XYZ123 (invalid letter).\"}"
+                : "CRITICAL: You MUST respond with valid JSON format. Never respond with plain text. Examples:\n- Sort: {\"type\": \"action\", \"action\": \"sort\", \"parameters\": {\"column\": \"description\", \"direction\": \"asc\"}, \"response\": \"Sorting by description\"}\n- Switch: {\"type\": \"action\", \"action\": \"switch\", \"parameters\": {\"view\": \"master\"}, \"response\": \"Switching to master grid\"}" }
+            ];
+
+            console.log('[AI API DEBUG] Regular processing with context:', chatContext?.length || 0, 'previous messages');
+
             openaiStream = await Promise.race([
               openai.chat.completions.create({
-                model: "gpt-3.5-turbo",
-                messages: [
-                  { role: "system", content: systemPrompt },
-                  { role: "user", content: message },
-                  { role: "system", content: "CRITICAL: You MUST respond with valid JSON format. Never respond with plain text. Examples:\n- Sort: {\"type\": \"action\", \"action\": \"sort\", \"parameters\": {\"column\": \"description\", \"direction\": \"asc\"}, \"response\": \"Sorting by description\"}\n- Switch: {\"type\": \"action\", \"action\": \"switch\", \"parameters\": {\"view\": \"master\"}, \"response\": \"Switching to master grid\"}" }
-                ],
+                model: selectedModel,
+                messages: regularMessages,
                 temperature: 0.1,
-                max_tokens: 500,
+                max_tokens: maxTokens,
                 stream: true,
               }),
               // Additional timeout safety net for Netlify
               new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Request timeout (9s limit)')), 9000)
+                setTimeout(() => reject(new Error('Request timeout (12s limit)')), 12000)
               )
             ]) as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
-          } catch {
-            // If first attempt times out, try with a shorter, simpler prompt using streaming
-            console.log('[AI API DEBUG] First attempt timed out, trying simplified prompt');
-            const simplifiedPrompt = `You are an AI assistant for the CDM Merge Tool.
+          } catch (firstAttemptError) {
+            // If first attempt fails, implement intelligent fallback
+            console.log('[AI API DEBUG] First attempt failed:', firstAttemptError);
+            
+            // For analysis/validation requests that failed, fallback to GPT-3.5 with sampled data
+            const fallbackModel = requestType === 'analysis' || requestType === 'validation' 
+              ? "gpt-4" // Try GPT-4 non-turbo as fallback for analysis
+              : "gpt-3.5-turbo";
+            const fallbackMaxTokens = requestType === 'analysis' || requestType === 'validation' ? 4000 : requestType === 'documentation' ? 800 : 300;
+            
+            // Create fallback context with appropriate data for request type
+            const fallbackGridContext = {
+              ...gridContext,
+              sampleData: requestType === 'analysis' || requestType === 'validation'
+                ? gridContext.sampleData.slice(0, 100) // Use 100 rows for analysis/validation fallback
+                : gridContext.sampleData.slice(0, 2), // Use minimal sample for other fallbacks
+            };
+            
+            console.log('[AI API DEBUG] Falling back to:', fallbackModel, 'with reduced dataset');
+            
+            const simplifiedPrompt = requestType === 'documentation'
+              ? `You are an AI assistant for the CDM Merge Tool - a healthcare data comparison application.
 
-Current context: ${optimizedGridContext.selectedGrid} grid with ${optimizedGridContext.rowCount} rows.
-Available columns: ${optimizedGridContext.columns.join(', ')}
-Available grids: ${Object.entries(optimizedGridContext.availableGrids).filter(([, grid]) => grid.hasData).map(([name, grid]) => `${name}(${grid.rowCount})`).join(', ')}
+The CDM Merge Tool processes Clinical Decision-Making (CDM) data by comparing master reference files with client data files to identify matches, duplicates, and discrepancies in healthcare data.
+
+Key features: HCPCS code matching, modifier settings, duplicate detection, data quality assurance, Excel export.
+
+For documentation questions, respond with JSON:
+{"type": "query", "response": "Detailed explanation"}
+
+Examples:
+- "what is this app for?" → {"type": "query", "response": "This is VIC's internal CDM Merge Tool - designed specifically for our team to streamline charge master data updates. The app merges Master and Client Excel files by matching HCPCS codes, then updates the Master with CDM data from the Client to create a clean merged dataset for export. Key features include HCPCS matching, configurable modifier settings for VIC's specific data requirements, quality control to identify unmatched records and duplicates, and export-ready output. This tool handles the tedious manual work of CDM merging while ensuring data accuracy and giving you visibility into any potential issues that need attention."}
+- "what are modifier settings?" → {"type": "query", "response": "Modifier settings let you specify which modifier codes should be treated as root codes during matching. For example, if Root 25 is enabled, codes like '99213-25' will match as just '99213'. Available options include Root 00, Root 25, Root 50, Root 59, Root XU, Root 76, and Ignore Trauma (excludes trauma team codes). This allows modified procedure codes to match their base codes when needed."}`
+              : `You are an AI assistant for the CDM Merge Tool.
+
+Current context: ${fallbackGridContext.selectedGrid} grid with ${fallbackGridContext.rowCount} rows.
+Available columns: ${fallbackGridContext.columns.join(', ')}
+Available grids: ${Object.entries(fallbackGridContext.availableGrids).filter(([, grid]) => grid.hasData).map(([name, grid]) => `${name}(${grid.rowCount})`).join(', ')}
+Sample data: ${JSON.stringify(fallbackGridContext.sampleData)}
 
 For user commands, respond with JSON:
 - Sort: {"type": "action", "action": "sort", "parameters": {"column": "exact_column_name", "direction": "asc|desc"}, "response": "Sorting by X"}
 - Filter: {"type": "action", "action": "filter", "parameters": {"column": "exact_column_name", "condition": "is_empty|equals|contains", "value": "search_value"}, "response": "Filtering..."}
 - Switch grid: {"type": "action", "action": "switch", "parameters": {"view": "master|client|merged|unmatched|duplicates"}, "response": "Switching to X grid"}
 - Questions: {"type": "query", "response": "Answer text"}
+
+${requestType === 'analysis' || requestType === 'validation' ? `For ${requestType} requests, examine all provided data thoroughly and provide specific findings with concrete examples. Do not mention sampling limitations.` : ''}
 
 Examples:
 - "sort by description" → {"type": "action", "action": "sort", "parameters": {"column": "description", "direction": "asc"}, "response": "Sorting by description"}
@@ -349,14 +1090,13 @@ Examples:
               { role: "system", content: simplifiedPrompt },
               { role: "user", content: message }
             ];
-            console.log('[AI API DEBUG] OpenAI Retry Request:', JSON.stringify(retryMessages, null, 2));
             
             openaiStream = await Promise.race([
               openai.chat.completions.create({
-                model: "gpt-3.5-turbo",
+                model: fallbackModel,
                 messages: retryMessages,
                 temperature: 0.1,
-                max_tokens: 300,
+                max_tokens: fallbackMaxTokens,
                 stream: true,
               }),
               // Shorter timeout for retry

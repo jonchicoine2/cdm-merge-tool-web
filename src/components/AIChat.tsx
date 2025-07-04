@@ -16,6 +16,8 @@ import {
   FormControl,
   Button,
   Drawer,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import {
   Send as SendIcon,
@@ -82,6 +84,7 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
   const [isLoading, setIsLoading] = useState(false);
   const [width, setWidth] = useState(320); // Reduced from 400 to 320
   const [isResizing, setIsResizing] = useState(false);
+  const [includeContext, setIncludeContext] = useState(false);
   
   // Command history state
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -101,9 +104,15 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
   const addToHistory = (command: string) => {
     if (command.trim() && command !== commandHistory[0]) {
       setCommandHistory(prev => {
-        const newHistory = [command, ...prev];
+        const newHistory = [command, ...prev].slice(0, 10); // Keep only last 10 commands
         console.log('[COMMAND HISTORY] Added command:', command, 'Total commands:', newHistory.length);
-        return newHistory.slice(0, 10); // Keep only last 10 commands
+        
+        // Save to localStorage
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ai-chat-history', JSON.stringify(newHistory));
+        }
+        
+        return newHistory;
       });
     }
     setHistoryIndex(-1);
@@ -142,6 +151,30 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Load command history and context setting from localStorage on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedHistory = localStorage.getItem('ai-chat-history');
+        if (savedHistory) {
+          const parsedHistory = JSON.parse(savedHistory);
+          if (Array.isArray(parsedHistory)) {
+            setCommandHistory(parsedHistory);
+            console.log('[COMMAND HISTORY] Loaded from localStorage:', parsedHistory.length, 'commands');
+          }
+        }
+        
+        const savedContextSetting = localStorage.getItem('ai-chat-include-context');
+        if (savedContextSetting !== null) {
+          setIncludeContext(savedContextSetting === 'true');
+          console.log('[CONTEXT SETTING] Loaded from localStorage:', savedContextSetting);
+        }
+      } catch (error) {
+        console.warn('[CHAT SETTINGS] Error loading from localStorage:', error);
+      }
+    }
+  }, []);
 
   // Throttled width change notification
   const notifyWidthChange = useCallback((newWidth: number) => {
@@ -270,12 +303,14 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
         selectedRowId: gridContext.selectedRowId,
         selectedRowData: gridContext.selectedRowData,
         availableGrids: gridContext.availableGrids,
-        rowCount: gridContext.rowCount
+        rowCount: gridContext.rowCount,
+        sampleDataLength: gridContext.sampleData?.length || 0,
+        sampleDataPreview: gridContext.sampleData?.slice(0, 2) || []
       });
 
       // Add client-side timeout for streaming compatibility
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout for streaming
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout for streaming
       const aiMessage: Message = {
         id: aiMessageId,
         type: 'ai',
@@ -290,6 +325,14 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
       let fullResponse = '';
       
       try {
+        // Prepare chat context if enabled (last 3 Q&A pairs)
+        const chatContext = includeContext ? messages.slice(-6).map(msg => ({
+          role: msg.type === 'user' ? 'user' : 'assistant',
+          content: msg.content
+        })) : [];
+
+        console.log('[AI CHAT DEBUG] Including chat context:', includeContext, 'Messages:', chatContext.length);
+
         const response = await fetch('/api/ai/chat', {
           method: 'POST',
           headers: {
@@ -298,6 +341,7 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
           body: JSON.stringify({
             message: messageToSend,
             gridContext,
+            chatContext: chatContext.length > 0 ? chatContext : undefined,
           }),
           signal: controller.signal,
         });
@@ -445,13 +489,26 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
     setMessages([]);
   };
 
+  const handleContextToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.checked;
+    setIncludeContext(newValue);
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ai-chat-include-context', newValue.toString());
+      console.log('[CONTEXT SETTING] Saved to localStorage:', newValue);
+    }
+  };
+
   const suggestedQueries = [
     "What is this app for?",
     "What are modifier settings?",
     "Duplicate Row",
     "Show me duplicates",
     "Export the data",
-    "How does the matching work?",
+    "Analyze my data patterns",
+    "Find data quality issues",
+    "What insights can you find?",
   ];
 
   return (
@@ -558,6 +615,34 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
                     ))}
                   </Select>
                 </FormControl>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={includeContext}
+                      onChange={handleContextToggle}
+                      size="small"
+                      sx={{
+                        '& .MuiSwitch-switchBase.Mui-checked': {
+                          color: 'white',
+                        },
+                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                          backgroundColor: 'rgba(255,255,255,0.5)',
+                        },
+                        '& .MuiSwitch-track': {
+                          backgroundColor: 'rgba(255,255,255,0.3)',
+                        },
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography variant="caption" sx={{ opacity: 0.8, color: 'white', fontSize: '0.7rem' }}>
+                      Include chat context
+                    </Typography>
+                  }
+                  sx={{ margin: 0 }}
+                />
               </Box>
             </Box>
           </Box>
