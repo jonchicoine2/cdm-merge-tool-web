@@ -2168,7 +2168,7 @@ export default function ExcelImportPage() {
     
     // Find duplicate keys (keys that appear more than once)
     const duplicateKeys = Object.keys(keyCount).filter(key => keyCount[key] > 1);
-    const duplicateRows = duplicateKeys.flatMap(key => keyToRows[key]);
+    const duplicateRows = duplicateKeys.flatMap((key: string) => keyToRows[key]);
     
     return {
       hasDuplicates: duplicateKeys.length > 0,
@@ -2187,7 +2187,7 @@ export default function ExcelImportPage() {
         return { success: false, originalRowId: rowId };
       }
       
-      const maxId = Math.max(...rowsMaster.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
+      const maxId = Math.max(...rowsMaster.map((row: ExcelRow) => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
       const newRecord = { ...recordToDuplicate, id: maxId + 1 };
       const updatedRows = [...rowsMaster, newRecord];
       setRowsMaster(updatedRows);
@@ -2215,7 +2215,7 @@ export default function ExcelImportPage() {
         return { success: false, originalRowId: rowId };
       }
       
-      const maxId = Math.max(...rowsClient.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
+      const maxId = Math.max(...rowsClient.map((row: ExcelRow) => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
       const newRecord = { ...recordToDuplicate, id: maxId + 1 };
       const updatedRows = [...rowsClient, newRecord];
       setRowsClient(updatedRows);
@@ -2243,7 +2243,7 @@ export default function ExcelImportPage() {
         return { success: false, originalRowId: rowId };
       }
       
-      const maxId = Math.max(...mergedRows.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
+      const maxId = Math.max(...mergedRows.map((row: ExcelRow) => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
       const newRecord = { ...recordToDuplicate, id: maxId + 1 };
       const updatedRows = [...mergedRows, newRecord];
       setMergedRows(updatedRows);
@@ -2405,14 +2405,12 @@ export default function ExcelImportPage() {
   const handleAddRecord = (gridType: 'master' | 'client' | 'merged', rowData?: {[key: string]: string | number | undefined}) => {
     // Set up variables based on grid type
     if (gridType === 'master') {
-      const maxId = rowsMaster.length > 0 ? Math.max(...rowsMaster.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0)) : 0;
+      const maxId = rowsMaster.length > 0 ? Math.max(...rowsMaster.map((row: ExcelRow) => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0)) : 0;
       const newRecord: ExcelRow = { id: maxId + 1 };
       
       // Initialize all columns with empty values or provided data
-      columnsMaster.forEach(col => {
-        if (col.field !== 'id') {
-          newRecord[col.field] = rowData?.[col.field] || '';
-        }
+      columnsMaster.forEach((col: GridColDef) => {
+        newRecord[col.field] = rowData?.[col.field] ?? "";
       });
       
       const updatedRows = [...rowsMaster, newRecord];
@@ -2434,14 +2432,12 @@ export default function ExcelImportPage() {
       setHasUnsavedMasterChanges(true);
       console.log(`New record added to master grid. New record ID: ${newRecord.id}`);
     } else if (gridType === 'client') {
-      const maxId = rowsClient.length > 0 ? Math.max(...rowsClient.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0)) : 0;
+      const maxId = rowsClient.length > 0 ? Math.max(...rowsClient.map((row: ExcelRow) => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0)) : 0;
       const newRecord: ExcelRow = { id: maxId + 1 };
       
       // Initialize all columns with empty values or provided data
-      columnsClient.forEach(col => {
-        if (col.field !== 'id') {
-          newRecord[col.field] = rowData?.[col.field] || '';
-        }
+      columnsClient.forEach((col: GridColDef) => {
+        newRecord[col.field] = rowData?.[col.field] ?? "";
       });
       
       const updatedRows = [...rowsClient, newRecord];
@@ -2463,14 +2459,12 @@ export default function ExcelImportPage() {
       setHasUnsavedChanges(true);
       console.log(`New record added to client grid. New record ID: ${newRecord.id}`);
     } else if (gridType === 'merged') {
-      const maxId = mergedRows.length > 0 ? Math.max(...mergedRows.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0)) : 0;
+      const maxId = mergedRows.length > 0 ? Math.max(...mergedRows.map((row: ExcelRow) => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0)) : 0;
       const newRecord: ExcelRow = { id: maxId + 1 };
       
       // Initialize all columns with empty values or provided data
-      mergedColumns.forEach(col => {
-        if (col.field !== 'id') {
-          newRecord[col.field] = rowData?.[col.field] || '';
-        }
+      mergedColumns.forEach((col: GridColDef) => {
+        newRecord[col.field] = rowData?.[col.field] ?? "";
       });
       
       const updatedRows = [...mergedRows, newRecord];
@@ -2577,7 +2571,7 @@ export default function ExcelImportPage() {
                     }
                   }}
                 >
-                  {masterSheetNames.map((sheetName, index) => (
+                  {masterSheetNames.map((sheetName: string, index: number) => (
                     <Tab key={index} label={sheetName} />
                   ))}
                 </Tabs>
@@ -2704,7 +2698,7 @@ export default function ExcelImportPage() {
                   sortModel={masterSortModel}
                   onSortModelChange={setMasterSortModel}
                   checkboxSelection
-                  onRowSelectionModelChange={(newRowSelectionModel) => {
+                  onRowSelectionModelChange={(newRowSelectionModel: any) => {
                     // Handle the new DataGrid selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
@@ -2721,7 +2715,7 @@ export default function ExcelImportPage() {
                       setSelectedRowsMaster(selectedIds);
                     }, 0);
                   }}
-                  processRowUpdate={(newRow) => {
+                  processRowUpdate={(newRow: ExcelRow) => {
                     // Basic validation for edited cells
                     const validatedRow = { ...newRow };
                     
@@ -2888,7 +2882,7 @@ export default function ExcelImportPage() {
                     }
                   }}
                 >
-                  {clientSheetNames.map((sheetName, index) => (
+                  {clientSheetNames.map((sheetName: string, index: number) => (
                     <Tab key={index} label={sheetName} />
                   ))}
                 </Tabs>
@@ -3015,7 +3009,7 @@ export default function ExcelImportPage() {
                   sortModel={clientSortModel}
                   onSortModelChange={setClientSortModel}
                   checkboxSelection
-                  onRowSelectionModelChange={(newRowSelectionModel) => {
+                  onRowSelectionModelChange={(newRowSelectionModel: any) => {
                     // Handle the new DataGrid selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
@@ -3032,7 +3026,7 @@ export default function ExcelImportPage() {
                       setSelectedRowsClient(selectedIds);
                     }, 0);
                   }}
-                  processRowUpdate={(newRow) => {
+                  processRowUpdate={(newRow: ExcelRow) => {
                     // Basic validation for edited cells
                     const validatedRow = { ...newRow };
                     
@@ -3458,7 +3452,7 @@ export default function ExcelImportPage() {
                 sortModel={mergedSortModel}
                 onSortModelChange={setMergedSortModel}
                 checkboxSelection
-                onRowSelectionModelChange={(newRowSelectionModel) => {
+                onRowSelectionModelChange={(newRowSelectionModel: any) => {
                   // Handle the new DataGrid selection model format
                   let selectedId = null;
                   let selectedIds: (number | string)[] = [];
@@ -3475,7 +3469,7 @@ export default function ExcelImportPage() {
                     setSelectedRowsMerged(selectedIds);
                   }, 0);
                 }}
-                processRowUpdate={(newRow) => {
+                processRowUpdate={(newRow: ExcelRow) => {
                   // Basic validation for edited cells
                   const validatedRow = { ...newRow };
                   
@@ -3599,7 +3593,7 @@ export default function ExcelImportPage() {
                   sortModel={unmatchedSortModel}
                   onSortModelChange={setUnmatchedSortModel}
                   checkboxSelection
-                  onRowSelectionModelChange={(newRowSelectionModel) => {
+                  onRowSelectionModelChange={(newRowSelectionModel: any) => {
                     // Handle the new DataGrid selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
@@ -3648,7 +3642,7 @@ export default function ExcelImportPage() {
                   sortModel={duplicatesSortModel}
                   onSortModelChange={setDuplicatesSortModel}
                   checkboxSelection
-                  onRowSelectionModelChange={(newRowSelectionModel) => {
+                  onRowSelectionModelChange={(newRowSelectionModel: any) => {
                     // Handle the new DataGrid selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
