@@ -2582,7 +2582,7 @@ export default function ExcelImportPage() {
                 variant="outlined"
                 placeholder="Search master data..."
                 value={searchMaster}
-                onChange={(e) => setSearchMaster(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchMaster(e.target.value)}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -2805,8 +2805,8 @@ export default function ExcelImportPage() {
               }}
               onDragEnter={handleDragEnter("Master")}
               onDragLeave={handleDragLeave("Master")}
-              onDragOver={(e) => handleDragOver(e, "Master")}
-              onDrop={(e) => handleDrop(e, "Master")}
+              onDragOver={(e: React.DragEvent<HTMLDivElement>) => handleDragOver(e, "Master")}
+              onDrop={(e: React.DragEvent<HTMLDivElement>) => handleDrop(e, "Master")}
             >
               <Typography variant="h4" sx={{ 
                 mb: 3, 
@@ -2819,7 +2819,7 @@ export default function ExcelImportPage() {
                 <input
                   type="file"
                   hidden
-                  onChange={(e) => handleFileUpload(e, "Master")}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileUpload(e, "Master")}
                   ref={fileMasterInputRef}
                   accept=".xlsx, .xls"
                 />
@@ -2893,7 +2893,7 @@ export default function ExcelImportPage() {
                 variant="outlined"
                 placeholder="Search client data..."
                 value={searchClient}
-                onChange={(e) => setSearchClient(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchClient(e.target.value)}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -3116,8 +3116,8 @@ export default function ExcelImportPage() {
               }}
               onDragEnter={handleDragEnter("Client")}
               onDragLeave={handleDragLeave("Client")}
-              onDragOver={(e) => handleDragOver(e, "Client")}
-              onDrop={(e) => handleDrop(e, "Client")}
+              onDragOver={(e: React.DragEvent<HTMLDivElement>) => handleDragOver(e, "Client")}
+              onDrop={(e: React.DragEvent<HTMLDivElement>) => handleDrop(e, "Client")}
             >
               <Typography variant="h4" sx={{ 
                 mb: 3, 
@@ -3130,7 +3130,7 @@ export default function ExcelImportPage() {
                 <input
                   type="file"
                   hidden
-                  onChange={(e) => handleFileUpload(e, "Client")}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileUpload(e, "Client")}
                   ref={fileClientInputRef}
                   accept=".xlsx, .xls"
                 />
@@ -3336,7 +3336,7 @@ export default function ExcelImportPage() {
               variant="outlined"
               placeholder="Search merged data..."
               value={searchMerged}
-              onChange={(e) => setSearchMerged(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchMerged(e.target.value)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
