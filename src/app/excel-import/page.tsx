@@ -118,8 +118,8 @@ export default function ExcelImportPage() {
         // Convert uploadTime back to Date object
         metadata.uploadTime = new Date(metadata.uploadTime);
         setMasterFileMetadata(metadata);
-      } catch (e) {
-        console.error('Failed to parse master metadata:', e);
+      } catch (error: unknown) {
+        console.error('Failed to parse master metadata:', error);
       }
     }
     const lastClient = localStorage.getItem("lastClientFile");
@@ -137,8 +137,8 @@ export default function ExcelImportPage() {
         // Convert uploadTime back to Date object
         metadata.uploadTime = new Date(metadata.uploadTime);
         setClientFileMetadata(metadata);
-      } catch (e) {
-        console.error('Failed to parse client metadata:', e);
+      } catch (error: unknown) {
+        console.error('Failed to parse client metadata:', error);
       }
     }
   }, [isClient]);
@@ -1869,8 +1869,8 @@ export default function ExcelImportPage() {
             setClientFileMetadata(metadata);
             console.log('[DEBUG] Client metadata restored AFTER processing:', metadata);
           }
-        } catch (e) {
-          console.error(`Failed to restore ${which.toLowerCase()} metadata after processing:`, e);
+        } catch (error: unknown) {
+          console.error(`Failed to restore ${which.toLowerCase()} metadata after processing:`, error);
         }
       } else {
         console.log(`[DEBUG] No stored metadata found for ${which} with key:`, metadataKey);
