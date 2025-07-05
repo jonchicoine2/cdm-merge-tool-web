@@ -283,6 +283,136 @@ Respond with exactly: "BATCH" or "SAMPLE"`;
   return false;
 }
 
+// Enhanced HCPCS code lookup with GPT-4o fallback
+async function handleHcpcsCodeQuestion(message: string) {
+  const encoder = new TextEncoder();
+  
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        // Extract the HCPCS code from the message
+        const codeMatch = message.match(/(?:hcpcs|cpt)?\s*(?:code\s*)?([A-Z]?\d{4,5}(?:-[A-Z0-9]+)?)/i);
+        const hcpcsCode = codeMatch ? codeMatch[1].toUpperCase() : '';
+        
+        console.log('[HCPCS LOOKUP] Extracted code:', hcpcsCode);
+        
+        // Try GPT-4o-mini first
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '🔍 Looking up HCPCS code information...\n\n' })}\n\n`));
+        
+        const miniPrompt = `You are a medical coding expert. The user is asking about HCPCS code ${hcpcsCode}.
+
+IMPORTANT: HCPCS codes include both CPT codes (Level I) and HCPCS Level II codes:
+- CPT codes: 5 digits (10000-99999) like 99213, 27447, 36415
+- HCPCS Level II: Letter + 4 digits like A4206, J1745, L3702
+
+Provide detailed information about this code including:
+1. What procedure/service/item it represents
+2. Category/specialty it belongs to  
+3. Any important usage notes or requirements
+4. Typical reimbursement considerations if relevant
+
+If you cannot find this code or are unsure about its validity, respond with exactly: "CODE_NOT_FOUND"
+
+User question: ${message}`;
+
+        try {
+          const miniResponse = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: miniPrompt }],
+            temperature: 0.1,
+            max_tokens: 800,
+          });
+
+          const miniResult = miniResponse.choices[0]?.message?.content || '';
+          console.log('[HCPCS LOOKUP] GPT-4o-mini response:', miniResult.substring(0, 200) + '...');
+
+          // Check if GPT-4o-mini couldn't find the code - use more specific patterns
+          if (miniResult.includes('CODE_NOT_FOUND') || 
+              miniResult.toLowerCase().includes('code not found') ||
+              miniResult.toLowerCase().includes('unable to find') ||
+              /^(this\s+)?code\s+(is\s+)?not\s+(valid|recognized|found)/i.test(miniResult) ||
+              /^(the\s+)?hcpcs\s+code.*not\s+(valid|recognized|found)/i.test(miniResult)) {
+            
+            console.log('[HCPCS LOOKUP] GPT-4o-mini could not find code, falling back to GPT-4o');
+            
+            // Inform user we're trying a more powerful model
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '⚠️ Initial lookup unsuccessful. Trying with more comprehensive medical database...\n\n' })}\n\n`));
+            
+            const gpt4Prompt = `You are a comprehensive medical coding expert with access to the most current HCPCS/CPT code database. 
+
+User is asking about HCPCS code ${hcpcsCode}.
+
+CRITICAL: This code may be:
+- A newer code added recently
+- A specialized code not in common databases  
+- A deleted/retired code with historical information
+- A valid code that requires deeper medical knowledge
+
+Please provide the most accurate information possible about this code. If it's a valid code, explain what it covers. If it's retired, mention when and why. If you truly cannot identify it, provide guidance on where to verify it.
+
+User question: ${message}`;
+
+            const gpt4Response = await openai.chat.completions.create({
+              model: "gpt-4o",
+              messages: [{ role: "user", content: gpt4Prompt }],
+              temperature: 0.1,
+              max_tokens: 1000,
+              stream: true,
+            });
+
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '🎯 **Enhanced Lookup Results:**\n\n' })}\n\n`));
+
+            let fullContent = '';
+            for await (const chunk of gpt4Response) {
+              const content = chunk.choices[0]?.delta?.content || '';
+              if (content) {
+                fullContent += content;
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+              }
+            }
+
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '\n\n*Used enhanced medical coding database (GPT-4o) for comprehensive lookup.*' })}\n\n`));
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, fullResponse: JSON.stringify({ type: 'query', response: fullContent }) })}\n\n`));
+            
+          } else {
+            // GPT-4o-mini found the code successfully
+            for (const char of miniResult) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: char })}\n\n`));
+            }
+            
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, fullResponse: JSON.stringify({ type: 'query', response: miniResult }) })}\n\n`));
+          }
+          
+        } catch (error) {
+          console.error('[HCPCS LOOKUP] Error:', error);
+          const errorMsg = `Sorry, I encountered an error looking up HCPCS code ${hcpcsCode}. Please try again or consult official medical coding resources.`;
+          
+          for (const char of errorMsg) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: char })}\n\n`));
+          }
+          
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, fullResponse: JSON.stringify({ type: 'query', response: errorMsg }) })}\n\n`));
+        }
+        
+        controller.close();
+        
+      } catch (error) {
+        console.error('[HCPCS LOOKUP] Stream error:', error);
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'HCPCS lookup failed' })}\n\n`));
+        controller.close();
+      }
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
+}
+
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   
@@ -661,6 +791,15 @@ Provide a helpful, informative answer about HCPCS codes, modifiers, or healthcar
     }
     
     console.log('[COMMAND PARSER] No simple command detected, falling back to AI');
+
+    // Check if this is an HCPCS code question that might benefit from GPT-4o fallback
+    const isHcpcsCodeQuestion = /what is.*(?:hcpcs|cpt).*code.*for|what.*(?:hcpcs|cpt).*\d+.*for|explain.*(?:hcpcs|cpt)/i.test(message);
+
+    // Special handling for HCPCS code questions with GPT-4o fallback
+    if (isHcpcsCodeQuestion) {
+      console.log('[HCPCS LOOKUP] Detected HCPCS code question, using enhanced lookup with fallback');
+      return await handleHcpcsCodeQuestion(message);
+    }
 
     // Check if we have actual data to analyze
     if (requestType === 'analysis' && (!gridContext.sampleData || gridContext.sampleData.length === 0)) {
