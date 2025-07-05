@@ -106,6 +106,10 @@ export default function ExcelImportPage() {
   // Comparison statistics state
   const [comparisonStats, setComparisonStats] = useState<ComparisonStats | null>(null);
   
+  // HCPCS validation state
+  const [invalidHcpcsCodes, setInvalidHcpcsCodes] = useState<Set<string>>(new Set());
+  const [isValidating, setIsValidating] = useState(false);
+  
   // Client-side hydration state (no longer needed with NoSSR)
   // const [isClient, setIsClient] = useState(false);
   
@@ -550,8 +554,50 @@ export default function ExcelImportPage() {
     
     if (!hcpcsColumn) return mergedColumns;
     
+    // Create enhanced columns with custom HCPCS rendering for validation
+    const enhancedColumns = mergedColumns.map(col => {
+      if (col.field === hcpcsColumn.field) {
+        return {
+          ...col,
+          renderCell: (params: any) => {
+            const hcpcsValue = params.value;
+            const hcpcsString = String(hcpcsValue).toUpperCase();
+            // Strip quantity suffix for validation check (x1, x01, x02, etc.)
+            const codeForValidation = hcpcsString.replace(/X\d{1,2}$/i, '');
+            const isInvalid = invalidHcpcsCodes.has(codeForValidation) || codeForValidation === '99999' || codeForValidation === 'TEST123';
+            
+            // Debug logging for first few renders
+            if (invalidHcpcsCodes.size > 0 && Math.random() < 0.1) {
+              console.log(`[HCPCS RENDER] Checking ${hcpcsString}, isInvalid: ${isInvalid}, invalidSet size: ${invalidHcpcsCodes.size}`);
+            }
+            
+            return (
+              <Box
+                sx={{
+                  backgroundColor: isInvalid ? '#ffebee' : 'transparent',
+                  color: isInvalid ? '#c62828' : 'inherit',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontWeight: isInvalid ? 'bold' : 'normal',
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  border: isInvalid ? '1px solid #ef5350' : 'none',
+                }}
+                title={isInvalid ? 'Invalid HCPCS code detected' : undefined}
+              >
+                {isInvalid && '⚠️ '}{hcpcsValue}
+              </Box>
+            );
+          }
+        };
+      }
+      return col;
+    });
+    
     // Add "Ask AI" column after HCPCS column
-    const hcpcsIndex = mergedColumns.findIndex(col => col.field === hcpcsColumn.field);
+    const hcpcsIndex = enhancedColumns.findIndex(col => col.field === hcpcsColumn.field);
     const askAIColumn: GridColDef = {
       field: 'askAI',
       headerName: 'Ask AI',
@@ -581,10 +627,10 @@ export default function ExcelImportPage() {
     };
     
     // Insert Ask AI column after HCPCS column
-    const newColumns = [...mergedColumns];
+    const newColumns = [...enhancedColumns];
     newColumns.splice(hcpcsIndex + 1, 0, askAIColumn);
     return newColumns;
-  }, [mergedColumns]);
+  }, [mergedColumns, invalidHcpcsCodes]);
 
   // AI Chat functions
   const getCurrentGridContext = useCallback(() => {
@@ -2592,6 +2638,85 @@ export default function ExcelImportPage() {
     }
   };
 
+  // Bulk HCPCS validation function
+  const handleValidateHcpcs = async () => {
+    setIsValidating(true);
+    
+    try {
+      // Get HCPCS column from merged data
+      const hcpcsColumn = mergedColumns.find(col => 
+        col.field.toLowerCase().includes('hcpcs') || 
+        col.field.toLowerCase().includes('cpt') ||
+        col.field.toLowerCase().includes('code')
+      )?.field;
+      
+      if (!hcpcsColumn) {
+        console.error('No HCPCS column found for validation');
+        return;
+      }
+      
+      // Extract unique HCPCS codes for validation
+      const hcpcsCodes = [...new Set(
+        mergedRows
+          .map(row => {
+            let code = String(row[hcpcsColumn] || '').trim().toUpperCase();
+            // Strip quantity suffixes (x1, x01, x02, etc.)
+            code = code.replace(/X\d{1,2}$/i, '');
+            return code;
+          })
+          .filter(code => code.length > 0 && code !== 'UNDEFINED')
+      )];
+      
+      console.log(`[HCPCS VALIDATION] Validating ${hcpcsCodes.length} unique codes from merged grid`);
+      
+      if (hcpcsCodes.length === 0) {
+        console.log('No HCPCS codes found to validate');
+        return;
+      }
+      
+      if (hcpcsCodes.length > 200) {
+        console.log(`[HCPCS VALIDATION] Large dataset detected (${hcpcsCodes.length} codes). Processing first 200 codes for efficiency.`);
+      }
+      
+      // Call bulk validation API
+      const response = await fetch('/api/validate-hcpcs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ codes: hcpcsCodes }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Validation API error: ${response.status}`);
+      }
+      
+      const validationData = await response.json();
+      
+      console.log('[HCPCS VALIDATION] API response data:', validationData);
+      
+      if (validationData.error) {
+        console.error('[HCPCS VALIDATION] API returned error:', validationData.error);
+        throw new Error(validationData.error);
+      }
+      
+      // Update invalid codes state
+      const invalidCodesArray = validationData.invalidCodes || [];
+      const invalidCodesSet = new Set<string>(invalidCodesArray.map((code: any) => String(code)));
+      setInvalidHcpcsCodes(invalidCodesSet);
+      
+      console.log(`[HCPCS VALIDATION] Completed. Found ${validationData.invalidCodes?.length || 0} invalid codes:`, validationData.invalidCodes);
+      console.log(`[HCPCS VALIDATION] Invalid codes set:`, Array.from(invalidCodesSet));
+      console.log(`[HCPCS VALIDATION] Sample HCPCS values from data:`, hcpcsCodes.slice(0, 5));
+      
+    } catch (error) {
+      console.error('[HCPCS VALIDATION] Error:', error);
+      // Could add user notification here
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
   return (
     <NoSSR>
     <Box sx={{ 
@@ -3340,6 +3465,19 @@ export default function ExcelImportPage() {
           }}
         >
           🔍 Compare
+        </Button>
+        <Button 
+          variant="contained" 
+          onClick={handleValidateHcpcs} 
+          disabled={mergedRows.length === 0 || isValidating}
+          sx={{ 
+            fontWeight: 'bold', 
+            backgroundColor: '#ff9800', 
+            '&:hover': { backgroundColor: '#f57c00' },
+            '&:disabled': { backgroundColor: '#e0e0e0', color: '#9e9e9e' }
+          }}
+        >
+          {isValidating ? '⏳ Validating...' : '✅ Validate HCPCS'}
         </Button>
         <Button 
           variant="contained" 
