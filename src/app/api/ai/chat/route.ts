@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { parseCommand } from '../../../../utils/commandParser';
 
 // API route configuration
 export const runtime = 'nodejs';
@@ -621,6 +622,45 @@ Provide a helpful, informative answer about HCPCS codes, modifiers, or healthcar
       optimizedSampleSize: optimizedGridContext.sampleData.length,
       requestSize: JSON.stringify({ message, gridContext: optimizedGridContext }).length
     });
+    
+    console.log('[AI API DEBUG] Full gridContext being sent to AI:', JSON.stringify(optimizedGridContext, null, 2));
+
+    // STEP 1: Try to parse as simple command first (no AI needed)
+    const parsedCommand = parseCommand(message, gridContext);
+    if (parsedCommand) {
+      console.log('[COMMAND PARSER] Successfully parsed command:', parsedCommand);
+      console.log('[COMMAND PARSER] Skipping AI - returning direct response');
+      
+      // Return the parsed command directly as a streaming response to match expected format
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          // Stream the response text
+          if (parsedCommand.response) {
+            for (const char of parsedCommand.response) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: char })}\n\n`));
+            }
+          }
+          
+          // Send completion signal with full response for action parsing
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+            complete: true, 
+            fullResponse: JSON.stringify(parsedCommand) 
+          })}\n\n`));
+          controller.close();
+        }
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    }
+    
+    console.log('[COMMAND PARSER] No simple command detected, falling back to AI');
 
     // Check if we have actual data to analyze
     if (requestType === 'analysis' && (!gridContext.sampleData || gridContext.sampleData.length === 0)) {
@@ -824,10 +864,10 @@ Example user interactions:
 - User: "remove row 2 from master" → Return: {"type": "action", "action": "delete", "parameters": {"rowId": 2, "view": "master"}, "response": "Deleting record 2 from the master grid"}
 - User: "delete the current row" → Return: {"type": "action", "action": "delete", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Deleting the currently selected row"}
 - User: "remove the selected row" → Return: {"type": "action", "action": "delete", "parameters": {"rowId": ${gridContext.selectedRowId}}, "response": "Deleting the selected row"}
-- User: "delete selected" → Return: {"type": "action", "action": "delete", "response": "Deleting ${gridContext.selectedRowCount} selected row${gridContext.selectedRowCount === 1 ? '' : 's'}"}
-- User: "delete selected rows" → Return: {"type": "action", "action": "delete", "response": "Deleting ${gridContext.selectedRowCount} selected row${gridContext.selectedRowCount === 1 ? '' : 's'}"}
-- User: "remove selected" → Return: {"type": "action", "action": "delete", "response": "Removing ${gridContext.selectedRowCount} selected row${gridContext.selectedRowCount === 1 ? '' : 's'}"}
-- User: "delete all selected" → Return: {"type": "action", "action": "delete", "response": "Deleting all ${gridContext.selectedRowCount} selected row${gridContext.selectedRowCount === 1 ? '' : 's'}"}
+- User: "delete selected" → Return: {"type": "action", "action": "delete", "parameters": ${gridContext.selectedRowId ? `{"rowId": ${gridContext.selectedRowId}}` : '{}'}, "response": "Deleting ${gridContext.selectedRowCount} selected row${gridContext.selectedRowCount === 1 ? '' : 's'}"}
+- User: "delete selected rows" → Return: {"type": "action", "action": "delete", "parameters": ${gridContext.selectedRowId ? `{"rowId": ${gridContext.selectedRowId}}` : '{}'}, "response": "Deleting ${gridContext.selectedRowCount} selected row${gridContext.selectedRowCount === 1 ? '' : 's'}"}
+- User: "remove selected" → Return: {"type": "action", "action": "delete", "parameters": ${gridContext.selectedRowId ? `{"rowId": ${gridContext.selectedRowId}}` : '{}'}, "response": "Removing ${gridContext.selectedRowCount} selected row${gridContext.selectedRowCount === 1 ? '' : 's'}"}
+- User: "delete all selected" → Return: {"type": "action", "action": "delete", "parameters": ${gridContext.selectedRowId ? `{"rowId": ${gridContext.selectedRowId}}` : '{}'}, "response": "Deleting all ${gridContext.selectedRowCount} selected row${gridContext.selectedRowCount === 1 ? '' : 's'}"}
 - User: "add a new record" → Return: {"type": "action", "action": "add", "response": "Adding a new blank record to the current grid"}
 - User: "add new row to merged grid" → Return: {"type": "action", "action": "add", "parameters": {"view": "merged"}, "response": "Adding a new blank record to the merged grid"}
 - User: "add record with HCPCS 99213" → Return: {"type": "action", "action": "add", "parameters": {"rowData": {"hcpcs": "99213"}}, "response": "Adding a new record with HCPCS code 99213"}
@@ -997,10 +1037,8 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
         try {
           let openaiStream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
           
-          // Select model based on request type - GPT-4o for analysis, GPT-3.5-turbo for commands
-          const selectedModel = requestType === 'analysis' || requestType === 'validation' 
-            ? "gpt-4o" 
-            : "gpt-3.5-turbo";
+          // Select model based on request type - Use GPT-4o-mini for cost efficiency with complex prompt
+          const selectedModel = "gpt-4o-mini";
           const maxTokens = requestType === 'analysis' || requestType === 'validation' ? 4000 : requestType === 'documentation' ? 1000 : 500; // Appropriate tokens for GPT-4 analysis
           
           console.log('[AI API DEBUG] Using model:', selectedModel, 'for request type:', requestType);
@@ -1019,6 +1057,9 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
             ];
 
             console.log('[AI API DEBUG] Regular processing with context:', chatContext?.length || 0, 'previous messages');
+            console.log('[AI API DEBUG] System prompt being sent to AI:', systemPrompt.substring(0, 500) + '...');
+            console.log('[AI API DEBUG] User message being sent to AI:', message);
+            console.log('[AI API DEBUG] Full messages array being sent to OpenAI:', JSON.stringify(regularMessages, null, 2));
 
             openaiStream = await Promise.race([
               openai.chat.completions.create({
@@ -1037,10 +1078,8 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
             // If first attempt fails, implement intelligent fallback
             console.log('[AI API DEBUG] First attempt failed:', firstAttemptError);
             
-            // For analysis/validation requests that failed, fallback to GPT-3.5 with sampled data
-            const fallbackModel = requestType === 'analysis' || requestType === 'validation' 
-              ? "gpt-4" // Try GPT-4 non-turbo as fallback for analysis
-              : "gpt-3.5-turbo";
+            // For any requests that failed, fallback to GPT-4 (non-turbo)
+            const fallbackModel = "gpt-4";
             const fallbackMaxTokens = requestType === 'analysis' || requestType === 'validation' ? 4000 : requestType === 'documentation' ? 800 : 300;
             
             // Create fallback context with appropriate data for request type

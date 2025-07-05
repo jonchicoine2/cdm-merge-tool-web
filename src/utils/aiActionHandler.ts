@@ -485,6 +485,14 @@ export const createAIActionHandler = (props: AIActionHandlerProps) => {
         }
         
         console.log(`[DELETE ACTION] Bulk delete requested for ${targetView} grid. Selected rows:`, selectedRowIds);
+        console.log(`[DELETE ACTION] Current selection arrays:`, {
+          master: { multi: props.selectedRowsMaster, single: props.selectedRowMaster },
+          client: { multi: props.selectedRowsClient, single: props.selectedRowClient },
+          merged: { multi: props.selectedRowsMerged, single: props.selectedRowMerged },
+          unmatched: { multi: props.selectedRowsUnmatched, single: props.selectedRowUnmatched },
+          duplicates: { multi: props.selectedRowsDuplicates, single: props.selectedRowDuplicates }
+        });
+        console.log(`[DELETE ACTION] getCurrentSelectedRowId returns:`, props.getCurrentSelectedRowId());
         
         if (selectedRowIds.length > 0) {
           // Get HCPCS codes for the rows being deleted for better feedback

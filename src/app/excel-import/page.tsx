@@ -519,6 +519,13 @@ export default function ExcelImportPage() {
       '& .MuiDataGrid-row': {
         pointerEvents: isActive ? 'auto' : 'none',
       },
+      // Always allow checkbox selection regardless of active state
+      '& .MuiDataGrid-checkboxInput': {
+        pointerEvents: 'auto',
+      },
+      '& .MuiCheckbox-root': {
+        pointerEvents: 'auto',
+      },
     } as const;
   };
 
@@ -573,7 +580,12 @@ export default function ExcelImportPage() {
         case 'merged':
           const mergedSelectedId = selectedRowsMerged.length > 0 ? selectedRowsMerged[0] : selectedRowMerged;
           console.log('[ROW SELECTION DEBUG] Merged grid selected ID:', mergedSelectedId);
-          return { selectedRowId: mergedSelectedId, selectedRowData: mergedSelectedId ? (rows.find(row => row.id === mergedSelectedId) || null) : null };
+          console.log('[ROW SELECTION DEBUG] selectedRowsMerged:', selectedRowsMerged);
+          console.log('[ROW SELECTION DEBUG] selectedRowMerged:', selectedRowMerged);
+          console.log('[ROW SELECTION DEBUG] rows length:', rows.length);
+          const foundRow = mergedSelectedId ? (rows.find(row => row.id === mergedSelectedId) || null) : null;
+          console.log('[ROW SELECTION DEBUG] Found row data:', foundRow ? 'found' : 'not found');
+          return { selectedRowId: mergedSelectedId, selectedRowData: foundRow };
         case 'unmatched':
           const unmatchedSelectedId = selectedRowsUnmatched.length > 0 ? selectedRowsUnmatched[0] : selectedRowUnmatched;
           console.log('[ROW SELECTION DEBUG] Unmatched grid selected ID:', unmatchedSelectedId);
@@ -588,6 +600,8 @@ export default function ExcelImportPage() {
     };
     
     const { selectedRowId, selectedRowData } = getSelectedRowInfo();
+    
+    console.log('[DEBUG CONTEXT] Final selected row info:', { selectedRowId, selectedRowData: selectedRowData ? 'present' : 'null' });
     
     // Extract HCPCS information for user-friendly row identification
     const getHcpcsInfo = (rowData: Record<string, unknown> | null) => {
@@ -617,20 +631,30 @@ export default function ExcelImportPage() {
     
     // Get count of selected rows for current grid
     const getSelectedRowCount = () => {
+      let count = 0;
       switch (aiSelectedGrid) {
         case 'master':
-          return selectedRowsMaster.length || (selectedRowMaster ? 1 : 0);
+          count = selectedRowsMaster.length || (selectedRowMaster ? 1 : 0);
+          break;
         case 'client':
-          return selectedRowsClient.length || (selectedRowClient ? 1 : 0);
+          count = selectedRowsClient.length || (selectedRowClient ? 1 : 0);
+          break;
         case 'merged':
-          return selectedRowsMerged.length || (selectedRowMerged ? 1 : 0);
+          count = selectedRowsMerged.length || (selectedRowMerged ? 1 : 0);
+          break;
         case 'unmatched':
-          return selectedRowsUnmatched.length || (selectedRowUnmatched ? 1 : 0);
+          count = selectedRowsUnmatched.length || (selectedRowUnmatched ? 1 : 0);
+          break;
         case 'duplicates':
-          return selectedRowsDuplicates.length || (selectedRowDuplicates ? 1 : 0);
+          count = selectedRowsDuplicates.length || (selectedRowDuplicates ? 1 : 0);
+          break;
         default:
-          return 0;
+          count = 0;
       }
+      console.log(`[GET SELECTED COUNT] Grid: ${aiSelectedGrid}, Count: ${count}, Arrays:`, {
+        selectedRowsMaster, selectedRowsClient, selectedRowsMerged, selectedRowsUnmatched, selectedRowsDuplicates
+      });
+      return count;
     };
     
     const selectedRowCount = getSelectedRowCount();
@@ -646,6 +670,14 @@ export default function ExcelImportPage() {
         client: { single: selectedRowClient, multi: selectedRowsClient },
         merged: { single: selectedRowMerged, multi: selectedRowsMerged }
       }
+    });
+    
+    console.log('[CONTEXT CREATION] Raw selection arrays:', {
+      selectedRowsMaster,
+      selectedRowsClient,
+      selectedRowsMerged,
+      selectedRowsUnmatched,
+      selectedRowsDuplicates
     });
     
     return {
@@ -1930,6 +1962,18 @@ export default function ExcelImportPage() {
     if (lastMasterData && lastClientData && lastMasterFile && lastClientFile) {
       console.log('[DEBUG] Starting restore session - processing sheets first, then metadata');
       
+      // Clear all selection state before restoring to prevent DataGrid errors
+      setSelectedRowMaster(null);
+      setSelectedRowsMaster([]);
+      setSelectedRowClient(null);
+      setSelectedRowsClient([]);
+      setSelectedRowMerged(null);
+      setSelectedRowsMerged([]);
+      setSelectedRowUnmatched(null);
+      setSelectedRowsUnmatched([]);
+      setSelectedRowDuplicates(null);
+      setSelectedRowsDuplicates([]);
+      
       // Process file data first, then restore metadata AFTER processing
       restoreFileData(lastMasterData, "Master", lastMasterFile, true);
       restoreFileData(lastClientData, "Client", lastClientFile, true);
@@ -1960,6 +2004,19 @@ export default function ExcelImportPage() {
     setMasterFileMetadata(null);
     setClientFileMetadata(null);
     setComparisonStats(null);
+    
+    // Clear all selection state
+    setSelectedRowMaster(null);
+    setSelectedRowsMaster([]);
+    setSelectedRowClient(null);
+    setSelectedRowsClient([]);
+    setSelectedRowMerged(null);
+    setSelectedRowsMerged([]);
+    setSelectedRowUnmatched(null);
+    setSelectedRowsUnmatched([]);
+    setSelectedRowDuplicates(null);
+    setSelectedRowsDuplicates([]);
+    
     if (fileMasterInputRef.current) fileMasterInputRef.current.value = "";
     if (fileClientInputRef.current) fileClientInputRef.current.value = "";
   };
@@ -2692,21 +2749,30 @@ export default function ExcelImportPage() {
                   onSortModelChange={setMasterSortModel}
                   checkboxSelection
                   onRowSelectionModelChange={(newRowSelectionModel) => {
-                    // Handle the new DataGrid selection model format
+                    // Handle the DataGrid selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
-                    if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
+                    
+                    if (Array.isArray(newRowSelectionModel)) {
+                      // Legacy format: array of IDs
+                      selectedIds = newRowSelectionModel as (number | string)[];
+                      selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
+                    } else if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
+                      // New format: {type: 'include', ids: Set(...)}
                       const ids = newRowSelectionModel.ids as Set<number | string>;
                       selectedIds = Array.from(ids);
                       selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
                     }
-                    console.log('[MASTER SELECTION] Setting selection:', { selectedId, selectedIds, aiSelectedGrid });
                     
-                    // Use setTimeout to ensure state update is processed before AI can access it
+                    console.log('[MASTER SELECTION] Raw newRowSelectionModel:', newRowSelectionModel);
+                    console.log('[MASTER SELECTION] Processed selection:', { selectedId, selectedIds, aiSelectedGrid });
+                    console.log('[MASTER SELECTION] Is array?', Array.isArray(newRowSelectionModel));
+                    
+                    // Update state with a small delay to ensure proper synchronization
                     setTimeout(() => {
                       setSelectedRowMaster(selectedId);
                       setSelectedRowsMaster(selectedIds);
-                    }, 0);
+                    }, 10);
                   }}
                   processRowUpdate={(newRow) => {
                     // Basic validation for edited cells
@@ -3003,21 +3069,28 @@ export default function ExcelImportPage() {
                   onSortModelChange={setClientSortModel}
                   checkboxSelection
                   onRowSelectionModelChange={(newRowSelectionModel) => {
-                    // Handle the new DataGrid selection model format
+                    // Handle the DataGrid selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
-                    if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
+                    
+                    if (Array.isArray(newRowSelectionModel)) {
+                      // Legacy format: array of IDs
+                      selectedIds = newRowSelectionModel as (number | string)[];
+                      selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
+                    } else if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
+                      // New format: {type: 'include', ids: Set(...)}
                       const ids = newRowSelectionModel.ids as Set<number | string>;
                       selectedIds = Array.from(ids);
                       selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
                     }
+                    
                     console.log('[CLIENT SELECTION] Setting selection:', { selectedId, selectedIds, aiSelectedGrid });
                     
-                    // Use setTimeout to ensure state update is processed before AI can access it
+                    // Update state with a small delay to ensure proper synchronization
                     setTimeout(() => {
                       setSelectedRowClient(selectedId);
                       setSelectedRowsClient(selectedIds);
-                    }, 0);
+                    }, 10);
                   }}
                   processRowUpdate={(newRow) => {
                     // Basic validation for edited cells
@@ -3446,21 +3519,34 @@ export default function ExcelImportPage() {
                 onSortModelChange={setMergedSortModel}
                 checkboxSelection
                 onRowSelectionModelChange={(newRowSelectionModel) => {
-                  // Handle the new DataGrid selection model format
+                  console.log('[MERGED GRID] Selection change triggered! aiSelectedGrid:', aiSelectedGrid);
+                  console.log('[MERGED GRID] Raw newRowSelectionModel:', newRowSelectionModel);
+                  console.log('[MERGED GRID] Type of newRowSelectionModel:', typeof newRowSelectionModel);
+                  console.log('[MERGED GRID] Is Array?', Array.isArray(newRowSelectionModel));
+                  console.log('[MERGED GRID] Length:', Array.isArray(newRowSelectionModel) ? newRowSelectionModel.length : 'N/A');
+                  
+                  // Handle the DataGrid selection model format
                   let selectedId = null;
                   let selectedIds: (number | string)[] = [];
-                  if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
+                  
+                  if (Array.isArray(newRowSelectionModel)) {
+                    // Legacy format: array of IDs
+                    selectedIds = newRowSelectionModel as (number | string)[];
+                    selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
+                  } else if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
+                    // New format: {type: 'include', ids: Set(...)}
                     const ids = newRowSelectionModel.ids as Set<number | string>;
                     selectedIds = Array.from(ids);
                     selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
                   }
+                  
                   console.log('[MERGED SELECTION] Setting selection:', { selectedId, selectedIds, aiSelectedGrid });
                   
-                  // Use setTimeout to ensure state update is processed before AI can access it
+                  // Update state with a small delay to ensure proper synchronization
                   setTimeout(() => {
                     setSelectedRowMerged(selectedId);
                     setSelectedRowsMerged(selectedIds);
-                  }, 0);
+                  }, 10);
                 }}
                 processRowUpdate={(newRow) => {
                   // Basic validation for edited cells
@@ -3587,21 +3673,28 @@ export default function ExcelImportPage() {
                   onSortModelChange={setUnmatchedSortModel}
                   checkboxSelection
                   onRowSelectionModelChange={(newRowSelectionModel) => {
-                    // Handle the new DataGrid selection model format
+                    // Handle the DataGrid selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
-                    if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
+                    
+                    if (Array.isArray(newRowSelectionModel)) {
+                      // Legacy format: array of IDs
+                      selectedIds = newRowSelectionModel as (number | string)[];
+                      selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
+                    } else if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
+                      // New format: {type: 'include', ids: Set(...)}
                       const ids = newRowSelectionModel.ids as Set<number | string>;
                       selectedIds = Array.from(ids);
                       selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
                     }
+                    
                     console.log('[UNMATCHED SELECTION] Setting selection:', { selectedId, selectedIds, aiSelectedGrid });
                     
-                    // Use setTimeout to ensure state update is processed before AI can access it
+                    // Update state with a small delay to ensure proper synchronization
                     setTimeout(() => {
                       setSelectedRowUnmatched(selectedId);
                       setSelectedRowsUnmatched(selectedIds);
-                    }, 0);
+                    }, 10);
                   }}
                   sx={getDataGridStyles('unmatched')}
                 />
@@ -3636,21 +3729,28 @@ export default function ExcelImportPage() {
                   onSortModelChange={setDuplicatesSortModel}
                   checkboxSelection
                   onRowSelectionModelChange={(newRowSelectionModel) => {
-                    // Handle the new DataGrid selection model format
+                    // Handle the DataGrid selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
-                    if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
+                    
+                    if (Array.isArray(newRowSelectionModel)) {
+                      // Legacy format: array of IDs
+                      selectedIds = newRowSelectionModel as (number | string)[];
+                      selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
+                    } else if (newRowSelectionModel && typeof newRowSelectionModel === 'object' && 'ids' in newRowSelectionModel) {
+                      // New format: {type: 'include', ids: Set(...)}
                       const ids = newRowSelectionModel.ids as Set<number | string>;
                       selectedIds = Array.from(ids);
                       selectedId = selectedIds.length > 0 ? selectedIds[0] : null;
                     }
+                    
                     console.log('[DUPLICATES SELECTION] Setting selection:', { selectedId, selectedIds, aiSelectedGrid });
                     
-                    // Use setTimeout to ensure state update is processed before AI can access it
+                    // Update state with a small delay to ensure proper synchronization
                     setTimeout(() => {
                       setSelectedRowDuplicates(selectedId);
                       setSelectedRowsDuplicates(selectedIds);
-                    }, 0);
+                    }, 10);
                   }}
                   sx={getDataGridStyles('duplicates')}
                 />
