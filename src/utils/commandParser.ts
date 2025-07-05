@@ -239,11 +239,60 @@ export function parseCommand(message: string, gridContext: GridContext): ParsedC
     };
   }
   
+  // Check for standalone invalid code filter commands first
+  const standaloneInvalidPatterns = [
+    /^invalid\s+codes?\s*$/i,
+    /^show\s+invalid\s*$/i,
+    /^only\s+invalid\s*$/i,
+    /^just\s+invalid\s*$/i,
+    /^invalid\s+hcpcs\s*$/i,
+    /^bad\s+codes?\s*$/i,
+    /^error\s+codes?\s*$/i,
+    /^problem\s+codes?\s*$/i
+  ];
+  
+  if (standaloneInvalidPatterns.some(pattern => pattern.test(msg))) {
+    console.log('[COMMAND PARSER] Detected standalone invalid code filter command');
+    return {
+      type: 'action',
+      action: 'filter',
+      parameters: { 
+        condition: 'invalid_hcpcs'
+      },
+      response: 'Showing only rows with invalid HCPCS codes'
+    };
+  }
+  
   // Filter commands - basic patterns
   const filterMatch = msg.match(/(?:hide|filter|show only)\s+(?:rows\s+)?(?:with\s+|where\s+)?(.+)/);
   if (filterMatch) {
     const filterText = filterMatch[1].trim();
     console.log('[COMMAND PARSER] Detected filter command:', filterText);
+    
+    // Check for invalid HCPCS filter commands - handle many variations
+    const invalidCodePatterns = [
+      /invalid.*code/i,
+      /invalid.*hcpcs/i,
+      /only.*invalid/i,
+      /just.*invalid/i,
+      /filter.*valid.*code/i,  // "filter valid codes" means hide valid, show invalid
+      /hide.*valid/i,
+      /exclude.*valid/i,
+      /bad.*code/i,
+      /error.*code/i,
+      /problem.*code/i
+    ];
+    
+    if (invalidCodePatterns.some(pattern => pattern.test(filterText))) {
+      return {
+        type: 'action',
+        action: 'filter',
+        parameters: { 
+          condition: 'invalid_hcpcs'
+        },
+        response: 'Showing only rows with invalid HCPCS codes'
+      };
+    }
     
     // Try to extract column and condition
     if (filterText.includes('blank') || filterText.includes('empty')) {

@@ -335,8 +335,8 @@ User question: ${message}`;
             
             console.log('[HCPCS LOOKUP] GPT-4o-mini could not find code, falling back to GPT-4o');
             
-            // Inform user we're trying a more powerful model
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '⚠️ Initial lookup unsuccessful. Trying with more comprehensive medical database...\n\n' })}\n\n`));
+            // Log fallback internally but don't inform user
+            // controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '⚠️ Initial lookup unsuccessful. Trying with more comprehensive medical database...\n\n' })}\n\n`));
             
             const gpt4Prompt = `You are a comprehensive medical coding expert with access to the most current HCPCS/CPT code database. 
 
@@ -360,7 +360,7 @@ User question: ${message}`;
               stream: true,
             });
 
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '🎯 **Enhanced Lookup Results:**\n\n' })}\n\n`));
+            // Removed enhanced lookup header message
 
             let fullContent = '';
             for await (const chunk of gpt4Response) {
@@ -371,7 +371,7 @@ User question: ${message}`;
               }
             }
 
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '\n\n*Used enhanced medical coding database (GPT-4o) for comprehensive lookup.*' })}\n\n`));
+            // Removed enhanced database footer message
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, fullResponse: JSON.stringify({ type: 'query', response: fullContent }) })}\n\n`));
             
           } else {

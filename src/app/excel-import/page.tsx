@@ -108,7 +108,10 @@ export default function ExcelImportPage() {
   
   // HCPCS validation state
   const [invalidHcpcsCodes, setInvalidHcpcsCodes] = useState<Set<string>>(new Set());
+  const [validationDetails, setValidationDetails] = useState<{[code: string]: {reason: string}} | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [validationProgress, setValidationProgress] = useState<{current: number, total: number} | null>(null);
+  const [hasValidationFilter, setHasValidationFilter] = useState(false);
   
   // Client-side hydration state (no longer needed with NoSSR)
   // const [isClient, setIsClient] = useState(false);
@@ -416,6 +419,22 @@ export default function ExcelImportPage() {
             const numValue2 = parseFloat(cellValue);
             const numFilter2 = parseFloat(filterValue);
             return !isNaN(numValue2) && !isNaN(numFilter2) && numValue2 < numFilter2;
+          case 'invalid_hcpcs':
+            // Find the HCPCS column for this row
+            const hcpcsKey = Object.keys(row).find(key => 
+              key.toLowerCase().includes('hcpcs') || key.toLowerCase().includes('cpt') || key.toLowerCase().includes('code')
+            );
+            
+            if (!hcpcsKey) return false;
+            
+            const hcpcsValue = String(row[hcpcsKey] || '').toUpperCase().trim();
+            // Strip quantity suffix for validation check (x1, x01, x02, etc.)
+            const codeForValidation = hcpcsValue.replace(/X\d{1,2}$/i, '');
+            
+            // Check if the code is invalid
+            return invalidHcpcsCodes.has(codeForValidation) || 
+                   codeForValidation === '99999' || 
+                   codeForValidation === 'TEST123';
           default:
             return true;
         }
@@ -585,7 +604,9 @@ export default function ExcelImportPage() {
                   alignItems: 'center',
                   border: isInvalid ? '1px solid #ef5350' : 'none',
                 }}
-                title={isInvalid ? 'Invalid HCPCS code detected' : undefined}
+                title={isInvalid ? 
+                  validationDetails?.[codeForValidation]?.reason || 'Invalid HCPCS code detected' 
+                  : undefined}
               >
                 {isInvalid && '⚠️ '}{hcpcsValue}
               </Box>
@@ -630,7 +651,7 @@ export default function ExcelImportPage() {
     const newColumns = [...enhancedColumns];
     newColumns.splice(hcpcsIndex + 1, 0, askAIColumn);
     return newColumns;
-  }, [mergedColumns, invalidHcpcsCodes]);
+  }, [mergedColumns, invalidHcpcsCodes, validationDetails]);
 
   // AI Chat functions
   const getCurrentGridContext = useCallback(() => {
@@ -965,8 +986,8 @@ export default function ExcelImportPage() {
       }
     }
 
-    if (intent.action === 'filter' && intent.parameters?.column && intent.parameters?.condition) {
-      const column = intent.parameters.column;
+    if (intent.action === 'filter' && intent.parameters?.condition) {
+      const column = intent.parameters.column || 'hcpcs'; // Default column for special conditions
       const condition = intent.parameters.condition;
       const value = intent.parameters.value || '';
       const targetView = intent.parameters?.view || aiSelectedGrid;
@@ -981,6 +1002,9 @@ export default function ExcelImportPage() {
       }
       
       const newFilter = { column, condition, value };
+      
+      console.log('[FILTER DEBUG] Applying filter:', newFilter, 'to grid:', targetView);
+      console.log('[FILTER DEBUG] Invalid HCPCS codes count:', invalidHcpcsCodes.size);
       
       // Add filter to the correct grid
       switch (targetView) {
@@ -2674,47 +2698,104 @@ export default function ExcelImportPage() {
         return;
       }
       
-      if (hcpcsCodes.length > 200) {
-        console.log(`[HCPCS VALIDATION] Large dataset detected (${hcpcsCodes.length} codes). Processing first 200 codes for efficiency.`);
+      // Process in batches to handle large datasets
+      const batchSize = 200;
+      const allInvalidCodes: string[] = [];
+      const allValidationDetails: {[code: string]: {reason: string}} = {};
+      const totalBatches = Math.ceil(hcpcsCodes.length / batchSize);
+      
+      console.log(`[HCPCS VALIDATION] Processing ${hcpcsCodes.length} codes in ${totalBatches} batches of ${batchSize}`);
+      setValidationProgress({ current: 0, total: totalBatches });
+      
+      for (let i = 0; i < totalBatches; i++) {
+        setValidationProgress({ current: i + 1, total: totalBatches });
+        const startIndex = i * batchSize;
+        const endIndex = Math.min(startIndex + batchSize, hcpcsCodes.length);
+        const batch = hcpcsCodes.slice(startIndex, endIndex);
+        
+        console.log(`[HCPCS VALIDATION] Processing batch ${i + 1}/${totalBatches} (${batch.length} codes):`, batch.slice(0, 10));
+        
+        try {
+          const response = await fetch('/api/validate-hcpcs', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ codes: batch }),
+          });
+          
+          if (!response.ok) {
+            console.error(`[HCPCS VALIDATION] Batch ${i + 1} failed with status: ${response.status}`);
+            continue; // Skip this batch and continue with the next
+          }
+          
+          const validationData = await response.json();
+          
+          if (validationData.error) {
+            console.error(`[HCPCS VALIDATION] Batch ${i + 1} returned error:`, validationData.error);
+            continue; // Skip this batch and continue with the next
+          }
+          
+          // Collect invalid codes from this batch
+          const batchInvalidCodes = validationData.invalidCodes || [];
+          allInvalidCodes.push(...batchInvalidCodes);
+          
+          // Collect validation details from this batch
+          if (validationData.validationResults) {
+            Object.assign(allValidationDetails, validationData.validationResults);
+          }
+          
+          console.log(`[HCPCS VALIDATION] Batch ${i + 1} completed. Found ${batchInvalidCodes.length} invalid codes:`, batchInvalidCodes);
+          
+          // Log detailed results if available
+          if (validationData.detailedResults) {
+            const invalidDetails = validationData.detailedResults.filter((r: any) => !r.baseCptValid || r.modifierValid === false);
+            console.log(`[HCPCS VALIDATION] Batch ${i + 1} detailed invalid results:`, invalidDetails);
+          }
+          
+          // Small delay between batches to avoid overwhelming the API
+          if (i < totalBatches - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+          
+        } catch (batchError) {
+          console.error(`[HCPCS VALIDATION] Batch ${i + 1} failed:`, batchError);
+          // Continue with next batch
+        }
       }
       
-      // Call bulk validation API
-      const response = await fetch('/api/validate-hcpcs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ codes: hcpcsCodes }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Validation API error: ${response.status}`);
-      }
-      
-      const validationData = await response.json();
-      
-      console.log('[HCPCS VALIDATION] API response data:', validationData);
-      
-      if (validationData.error) {
-        console.error('[HCPCS VALIDATION] API returned error:', validationData.error);
-        throw new Error(validationData.error);
-      }
-      
-      // Update invalid codes state
-      const invalidCodesArray = validationData.invalidCodes || [];
-      const invalidCodesSet = new Set<string>(invalidCodesArray.map((code: any) => String(code)));
+      // Update invalid codes state with all results
+      const invalidCodesSet = new Set<string>(allInvalidCodes.map((code: any) => String(code)));
       setInvalidHcpcsCodes(invalidCodesSet);
+      setValidationDetails(allValidationDetails);
       
-      console.log(`[HCPCS VALIDATION] Completed. Found ${validationData.invalidCodes?.length || 0} invalid codes:`, validationData.invalidCodes);
+      console.log(`[HCPCS VALIDATION] All batches completed. Found ${allInvalidCodes.length} total invalid codes:`, allInvalidCodes);
       console.log(`[HCPCS VALIDATION] Invalid codes set:`, Array.from(invalidCodesSet));
+      console.log(`[HCPCS VALIDATION] Validation details:`, allValidationDetails);
       console.log(`[HCPCS VALIDATION] Sample HCPCS values from data:`, hcpcsCodes.slice(0, 5));
+      
+      // Automatically apply filter to show only invalid codes if any were found
+      if (allInvalidCodes.length > 0) {
+        const newFilter = { column: 'hcpcs', condition: 'invalid_hcpcs', value: '' };
+        setMergedFilters([newFilter]);
+        setHasValidationFilter(true);
+        console.log('[HCPCS VALIDATION] Applied filter to show only invalid codes');
+      }
       
     } catch (error) {
       console.error('[HCPCS VALIDATION] Error:', error);
       // Could add user notification here
     } finally {
       setIsValidating(false);
+      setValidationProgress(null);
     }
+  };
+
+  // Clear validation filter function
+  const handleClearValidationFilter = () => {
+    setMergedFilters([]);
+    setHasValidationFilter(false);
+    console.log('[HCPCS VALIDATION] Cleared validation filter');
   };
 
   return (
@@ -3468,19 +3549,6 @@ export default function ExcelImportPage() {
         </Button>
         <Button 
           variant="contained" 
-          onClick={handleValidateHcpcs} 
-          disabled={mergedRows.length === 0 || isValidating}
-          sx={{ 
-            fontWeight: 'bold', 
-            backgroundColor: '#ff9800', 
-            '&:hover': { backgroundColor: '#f57c00' },
-            '&:disabled': { backgroundColor: '#e0e0e0', color: '#9e9e9e' }
-          }}
-        >
-          {isValidating ? '⏳ Validating...' : '✅ Validate HCPCS'}
-        </Button>
-        <Button 
-          variant="contained" 
           onClick={handleExport} 
           disabled={mergedForExport.length === 0}
           sx={{ 
@@ -3585,42 +3653,65 @@ export default function ExcelImportPage() {
               ...getGridContainerStyles('merged')
             }}
           >
-            <TextField
-              fullWidth
-              variant="outlined"
-              placeholder="Search merged data..."
-              value={searchMerged}
-              onChange={(e) => setSearchMerged(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ 
-                mb: 2,
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'white',
-                  '& fieldset': {
-                    borderColor: '#ccc',
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                placeholder="Search merged data..."
+                value={searchMerged}
+                onChange={(e) => setSearchMerged(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'white',
+                    '& fieldset': {
+                      borderColor: '#ccc',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: '#999',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#1976d2',
+                    },
                   },
-                  '&:hover fieldset': {
-                    borderColor: '#999',
+                  '& .MuiInputBase-input': {
+                    color: 'black',
                   },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#1976d2',
-                  },
-                },
-                '& .MuiInputBase-input': {
-                  color: 'black',
-                },
-                '& .MuiInputBase-input::placeholder': {
-                  color: '#666',
-                  opacity: 1,
+                  '& .MuiInputBase-input::placeholder': {
+                    color: '#666',
+                    opacity: 1,
+                  }
+                }}
+              />
+              <Button 
+                variant="contained" 
+                onClick={hasValidationFilter ? handleClearValidationFilter : handleValidateHcpcs} 
+                disabled={mergedRows.length === 0 || isValidating}
+                sx={{ 
+                  fontWeight: 'bold', 
+                  backgroundColor: hasValidationFilter ? '#2196f3' : '#ff9800', 
+                  '&:hover': { backgroundColor: hasValidationFilter ? '#1976d2' : '#f57c00' },
+                  '&:disabled': { backgroundColor: '#e0e0e0', color: '#9e9e9e' },
+                  whiteSpace: 'nowrap',
+                  minWidth: 'auto'
+                }}
+              >
+                {isValidating 
+                  ? validationProgress 
+                    ? `⏳ ${validationProgress.current}/${validationProgress.total}` 
+                    : '⏳ Validating...'
+                  : hasValidationFilter
+                    ? '🔄 Clear Filter'
+                    : '✅ Validate HCPCS'
                 }
-              }}
-            />
+              </Button>
+            </Box>
             
             {/* Save/Cancel buttons for merged editing */}
             {hasUnsavedMergedChanges && (
