@@ -385,9 +385,11 @@ export function searchRows(data: ExcelRow[], searchTerm: string): ExcelRow[] {
   
   const term = searchTerm.toLowerCase();
   return data.filter(row => {
-    return Object.values(row).some(value => 
-      String(value || '').toLowerCase().includes(term)
-    );
+    // Search through all fields except 'id' which is not user-relevant
+    return Object.entries(row).some(([key, value]) => {
+      if (key === 'id') return false; // Skip ID field from search
+      return String(value || '').toLowerCase().includes(term);
+    });
   });
 }
 

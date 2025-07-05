@@ -1,12 +1,14 @@
 "use client";
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Chip, Fab, Tooltip } from "@mui/material";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Chip, Fab, Tooltip, IconButton } from "@mui/material";
 import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import * as XLSX from "xlsx";
-import AIChat from "../../components/AIChat";
+import AIChat, { AIChatHandle } from "../../components/AIChat";
 import dynamic from 'next/dynamic';
+import { filterAndSearchRows } from "../../utils/excelOperations";
 
 // Create a NoSSR wrapper component to disable server-side rendering
 const NoSSR = dynamic(() => Promise.resolve(({ children }: { children: React.ReactNode }) => <>{children}</>), {
@@ -300,6 +302,18 @@ export default function ExcelImportPage() {
 
   // AI Chat state with localStorage persistence
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const aiChatRef = useRef<AIChatHandle>(null);
+  
+  // Function to ask AI about HCPCS code
+  const askAIAboutCode = (hcpcsCode: string) => {
+    setIsChatOpen(true);
+    // Small delay to ensure chat is open before sending message
+    setTimeout(() => {
+      if (aiChatRef.current?.sendMessage) {
+        aiChatRef.current.sendMessage(`What is HCPCS code ${hcpcsCode} for?`);
+      }
+    }, 100);
+  };
   const [aiSelectedGrid, setAiSelectedGrid] = useState<'master' | 'client' | 'merged' | 'unmatched' | 'duplicates'>('merged');
   const [chatWidth, setChatWidth] = useState(320);
 
@@ -363,17 +377,6 @@ export default function ExcelImportPage() {
   const [selectedRowsUnmatched, setSelectedRowsUnmatched] = useState<(number | string)[]>([]);
   const [selectedRowsDuplicates, setSelectedRowsDuplicates] = useState<(number | string)[]>([]);
 
-  // Filter function for search
-  const filterRows = (rows: ExcelRow[], searchTerm: string): ExcelRow[] => {
-    if (!searchTerm.trim()) return rows;
-    
-    const lowercaseSearch = searchTerm.toLowerCase();
-    return rows.filter(row => 
-      Object.values(row).some(value => 
-        String(value).toLowerCase().includes(lowercaseSearch)
-      )
-    );
-  };
 
   // Advanced filter function that applies AI filters
   const applyFilters = (rows: ExcelRow[], filters: {column: string, condition: string, value: string}[]): ExcelRow[] => {
@@ -417,9 +420,12 @@ export default function ExcelImportPage() {
   };
 
   // Combined filter function that applies both search and AI filters
-  const filterAndSearchRows = (rows: ExcelRow[], searchTerm: string, filters: {column: string, condition: string, value: string}[]): ExcelRow[] => {
+  const filterAndSearchRowsLocal = (rows: ExcelRow[], searchTerm: string, filters: {column: string, condition: string, value: string}[]): ExcelRow[] => {
     const filteredRows = applyFilters(rows, filters);
-    return filterRows(filteredRows, searchTerm);
+    // Convert filters format for utility function
+    const filterMap: {[field: string]: string} = {};
+    // Note: The utility filterAndSearchRows expects a different filter format, but since we're only using search here, pass empty filters
+    return filterAndSearchRows(filteredRows, {}, searchTerm);
   };
 
   // Function to scroll to the active grid
@@ -530,11 +536,55 @@ export default function ExcelImportPage() {
   };
 
   // Filtered data for each grid
-  const filteredRowsMaster = filterAndSearchRows(rowsMaster, searchMaster, masterFilters);
-  const filteredRowsClient = filterAndSearchRows(rowsClient, searchClient, clientFilters);
-  const filteredMergedRows = filterAndSearchRows(mergedRows, searchMerged, mergedFilters);
-  const filteredUnmatchedClient = filterAndSearchRows(unmatchedClient, "", unmatchedFilters);
-  const filteredDupsClient = filterAndSearchRows(dupsClient, "", duplicatesFilters);
+  const filteredRowsMaster = filterAndSearchRowsLocal(rowsMaster, searchMaster, masterFilters);
+  const filteredRowsClient = filterAndSearchRowsLocal(rowsClient, searchClient, clientFilters);
+  const filteredMergedRows = filterAndSearchRowsLocal(mergedRows, searchMerged, mergedFilters);
+  const filteredUnmatchedClient = filterAndSearchRowsLocal(unmatchedClient, "", unmatchedFilters);
+  const filteredDupsClient = filterAndSearchRowsLocal(dupsClient, "", duplicatesFilters);
+
+  // Enhanced merged columns with "Ask AI" button
+  const enhancedMergedColumns = useMemo(() => {
+    const hcpcsColumn = mergedColumns.find(col => 
+      col.field.toLowerCase().includes('hcpcs')
+    );
+    
+    if (!hcpcsColumn) return mergedColumns;
+    
+    // Add "Ask AI" column after HCPCS column
+    const hcpcsIndex = mergedColumns.findIndex(col => col.field === hcpcsColumn.field);
+    const askAIColumn: GridColDef = {
+      field: 'askAI',
+      headerName: 'Ask AI',
+      width: 80,
+      sortable: false,
+      filterable: false,
+      disableColumnMenu: true,
+      renderCell: (params) => {
+        const hcpcsValue = params.row[hcpcsColumn.field];
+        if (!hcpcsValue) return null;
+        
+        return (
+          <Tooltip title={`Ask AI: What is ${hcpcsValue} for?`}>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                askAIAboutCode(String(hcpcsValue));
+              }}
+              sx={{ color: '#1976d2' }}
+            >
+              <HelpOutlineIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        );
+      }
+    };
+    
+    // Insert Ask AI column after HCPCS column
+    const newColumns = [...mergedColumns];
+    newColumns.splice(hcpcsIndex + 1, 0, askAIColumn);
+    return newColumns;
+  }, [mergedColumns]);
 
   // AI Chat functions
   const getCurrentGridContext = useCallback(() => {
@@ -3512,7 +3562,7 @@ export default function ExcelImportPage() {
             <Box sx={{ height: 400, width: "100%" }}>
               <DataGrid 
                 rows={filteredMergedRows} 
-                columns={mergedColumns}
+                columns={enhancedMergedColumns}
                 density="compact"
                 disableVirtualization={aiSelectedGrid !== 'merged'}
                 sortModel={mergedSortModel}
@@ -3785,6 +3835,7 @@ export default function ExcelImportPage() {
       )}
 
       <AIChat
+        ref={aiChatRef}
         gridContext={gridContext}
         onAction={handleAIAction}
         isOpen={isChatOpen}

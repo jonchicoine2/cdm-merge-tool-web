@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import {
   Box,
   TextField,
@@ -78,7 +78,11 @@ interface AIChatProps {
   onWidthChange?: (width: number) => void;
 }
 
-export default function AIChat({ gridContext, onAction, isOpen, onClose, selectedGrid, onGridChange, onWidthChange }: AIChatProps) {
+export interface AIChatHandle {
+  sendMessage: (message: string) => void;
+}
+
+const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, isOpen, onClose, selectedGrid, onGridChange, onWidthChange }, ref) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -99,6 +103,13 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    sendMessage: (message: string) => {
+      handleSendMessage(message);
+    }
+  }));
 
   // Command history functions
   const addToHistory = (command: string) => {
@@ -803,4 +814,8 @@ export default function AIChat({ gridContext, onAction, isOpen, onClose, selecte
       </Box>
     </Drawer>
   );
-}
+});
+
+AIChat.displayName = 'AIChat';
+
+export default AIChat;
