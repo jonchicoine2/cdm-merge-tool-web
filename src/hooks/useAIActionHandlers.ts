@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { GridColDef, GridRowSelectionModel, GridSortModel } from '@mui/x-data-grid';
 import { ExcelRow, exportToExcel, generateExportFilename } from '../utils/excelOperations';
-import { addRecord, updateRecord, deleteRecords, sortRecords } from '../utils/dataManipulation';
+import { addRecord, deleteRecords, sortRecords } from '../utils/dataManipulation';
 
 export interface AIIntent {
   type: 'query' | 'action' | 'filter' | 'sort' | 'analysis' | 'documentation';
@@ -74,12 +74,13 @@ export function useAIActionHandlers(): UseAIActionHandlersReturn {
             response: `I don't understand the action type "${intent.type}". Please try rephrasing your request.`
           };
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('[AI ACTION ERROR]', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       return {
         success: false,
-        message: `Error executing AI action: ${error.message}`,
-        response: `Sorry, I encountered an error while processing your request: ${error.message}`
+        message: `Error executing AI action: ${errorMessage}`,
+        response: `Sorry, I encountered an error while processing your request: ${errorMessage}`
       };
     }
   }, []);
@@ -186,7 +187,7 @@ export function useAIActionHandlers(): UseAIActionHandlersReturn {
 - Grid: ${context.currentGrid}
 - Total Records: ${data.length}
 - Columns: ${columns.length}
-- Selected Records: ${context.selection.length}
+- Selected Records: ${Array.isArray(context.selection) ? context.selection.length : 0}
 - Current Search: ${context.searchTerm || 'None'}`;
 
         return {
@@ -212,7 +213,7 @@ export function useAIActionHandlers(): UseAIActionHandlersReturn {
       case 'export':
         try {
           const filename = intent.parameters?.filename || generateExportFilename('merged');
-          const dataToExport = selection.length > 0 
+          const dataToExport = Array.isArray(selection) && selection.length > 0 
             ? data.filter(row => selection.includes(row.id))
             : data;
           
@@ -223,11 +224,12 @@ export function useAIActionHandlers(): UseAIActionHandlersReturn {
             message: `Exported ${dataToExport.length} records`,
             response: `Successfully exported ${dataToExport.length} records to ${filename}`
           };
-        } catch (error: any) {
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
           return {
             success: false,
             message: 'Export failed',
-            response: `Failed to export data: ${error.message}`
+            response: `Failed to export data: ${errorMessage}`
           };
         }
 
@@ -254,7 +256,7 @@ export function useAIActionHandlers(): UseAIActionHandlersReturn {
         };
 
       case 'delete':
-        if (selection.length === 0) {
+        if (!Array.isArray(selection) || selection.length === 0) {
           return {
             success: false,
             message: 'No records selected',
@@ -274,7 +276,7 @@ export function useAIActionHandlers(): UseAIActionHandlersReturn {
         };
 
       case 'duplicate':
-        if (selection.length !== 1) {
+        if (!Array.isArray(selection) || selection.length !== 1) {
           return {
             success: false,
             message: 'Select exactly one record',
@@ -388,7 +390,7 @@ export function useAIActionHandlers(): UseAIActionHandlersReturn {
         const stats = {
           totalRecords: data.length,
           totalColumns: columns.length,
-          selectedRecords: context.selection.length,
+          selectedRecords: Array.isArray(context.selection) ? context.selection.length : 0,
           emptyFields: 0,
         };
 

@@ -1,18 +1,8 @@
-import * as XLSX from "xlsx";
 import { GridColDef } from "@mui/x-data-grid";
 
 interface ExcelRow {
   id: number;
   [key: string]: string | number | undefined;
-}
-
-interface FileMetadata {
-  name: string;
-  size: number;
-  uploadTime: Date;
-  sheetCount: number;
-  recordCount: number;
-  columnCount: number;
 }
 
 interface ComparisonStats {
@@ -117,7 +107,7 @@ export const createDataComparisonHandler = (
       return key;
     }
 
-    function filterTrauma(rows: ExcelRow[], descCol: string | null, hcpcsCol: string): ExcelRow[] {
+    function filterTrauma(rows: ExcelRow[], descCol: string | null): ExcelRow[] {
       if (!modifierCriteria.ignoreTrauma || !descCol) return rows;
       return rows.filter(row => {
         const desc = String(row[descCol] || "").toLowerCase();
@@ -125,8 +115,8 @@ export const createDataComparisonHandler = (
       });
     }
 
-    let filteredMaster = filterTrauma(rowsMaster, descColMaster, hcpcsColMaster);
-    let filteredClient = filterTrauma(rowsClient, descColClient, hcpcsColClient);
+    const filteredMaster = filterTrauma(rowsMaster, descColMaster);
+    const filteredClient = filterTrauma(rowsClient, descColClient);
 
     console.log(`[DIAG] Before filtering: Master=${rowsMaster.length}, Client=${rowsClient.length}`);
     console.log(`[DIAG] After filtering: Master=${filteredMaster.length}, Client=${filteredClient.length}`);

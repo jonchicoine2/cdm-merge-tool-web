@@ -60,7 +60,6 @@ export const MergedResultsArea: React.FC<MergedResultsAreaProps> = ({
   searchMerged,
   mergedSortModel,
   selectedRowsMerged,
-  selectedRowMerged,
   isClient,
   hasUnsavedMergedChanges,
   onSearchChange,
@@ -124,9 +123,9 @@ export const MergedResultsArea: React.FC<MergedResultsAreaProps> = ({
           sortModel={mergedSortModel}
           onSortModelChange={onSortModelChange}
           checkboxSelection
-          rowSelectionModel={selectedRowsMerged}
+          rowSelectionModel={selectedRowsMerged as unknown as GridRowSelectionModel}
           onRowSelectionModelChange={onRowSelectionModelChange}
-          onRowClick={(params: any) => onRowClick(params.id)}
+          onRowClick={(params: { id: number | string }) => onRowClick(params.id)}
           disableRowSelectionOnClick={false}
           sx={{
             border: 'none',

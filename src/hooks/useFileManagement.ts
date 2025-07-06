@@ -5,8 +5,7 @@ import {
   FileMetadata,
   FileProcessingCallbacks,
   handleFileUpload,
-  restoreFileData,
-  processAllSheets
+  restoreFileData
 } from '../utils/fileProcessing';
 
 export interface UseFileManagementReturn {
@@ -78,9 +77,13 @@ export function useFileManagement(): UseFileManagementReturn {
   const [dragOverClient, setDragOverClient] = useState(false);
 
   // Additional state for backward compatibility
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [originalMasterData, setOriginalMasterData] = useState<ExcelRow[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [originalClientData, setOriginalClientData] = useState<ExcelRow[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [hasUnsavedMasterChanges, setHasUnsavedMasterChanges] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isClient, setIsClient] = useState(false);
 

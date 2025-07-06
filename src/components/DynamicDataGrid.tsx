@@ -1,6 +1,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { GridColDef, GridSortModel, GridRowSelectionModel } from "@mui/x-data-grid";
+import { GridColDef, GridSortModel, GridRowSelectionModel, GridRowParams, GridInitialState } from "@mui/x-data-grid";
+import { SxProps, Theme } from "@mui/material";
 
 // Dynamically import DataGrid with no SSR
 const DataGrid = dynamic(
@@ -9,18 +10,18 @@ const DataGrid = dynamic(
 );
 
 interface DynamicDataGridProps {
-  rows: any[];
+  rows: Record<string, unknown>[];
   columns: GridColDef[];
   sortModel?: GridSortModel;
   onSortModelChange?: (model: GridSortModel) => void;
   checkboxSelection?: boolean;
-  rowSelectionModel?: any[];
+  rowSelectionModel?: GridRowSelectionModel;
   onRowSelectionModelChange?: (selection: GridRowSelectionModel) => void;
-  onRowClick?: (params: any) => void;
+  onRowClick?: (params: GridRowParams) => void;
   disableRowSelectionOnClick?: boolean;
-  sx?: any;
+  sx?: SxProps<Theme>;
   pageSizeOptions?: number[];
-  initialState?: any;
+  initialState?: GridInitialState;
   gridKey?: string;
 }
 

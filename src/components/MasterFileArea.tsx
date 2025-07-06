@@ -69,7 +69,6 @@ export const MasterFileArea: React.FC<MasterFileAreaProps> = ({
   filteredMasterRows,
   masterSortModel,
   selectedRowsMaster,
-  selectedRowMaster,
   isClient,
   dragOverMaster,
   hasUnsavedMasterChanges,
@@ -198,9 +197,9 @@ export const MasterFileArea: React.FC<MasterFileAreaProps> = ({
               sortModel={masterSortModel}
               onSortModelChange={onSortModelChange}
               checkboxSelection
-              rowSelectionModel={selectedRowsMaster}
+              rowSelectionModel={selectedRowsMaster as unknown as GridRowSelectionModel}
               onRowSelectionModelChange={onRowSelectionModelChange}
-              onRowClick={(params: any) => onRowClick(params.id)}
+              onRowClick={(params: { id: number | string }) => onRowClick(params.id)}
               disableRowSelectionOnClick={false}
               sx={{
                 border: 'none',

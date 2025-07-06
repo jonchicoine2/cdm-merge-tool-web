@@ -20,8 +20,8 @@ interface FileProcessingCallbacks {
   setColumnsMaster: (columns: GridColDef[]) => void;
   setRowsClient: (rows: ExcelRow[]) => void;
   setColumnsClient: (columns: GridColDef[]) => void;
-  setMasterSheetData: (data: any) => void;
-  setClientSheetData: (data: any) => void;
+  setMasterSheetData: (data: Record<string, {rows: ExcelRow[], columns: GridColDef[]}>) => void;
+  setClientSheetData: (data: Record<string, {rows: ExcelRow[], columns: GridColDef[]}>) => void;
   setMasterSheetNames: (names: string[]) => void;
   setClientSheetNames: (names: string[]) => void;
   setActiveMasterTab: (tab: number) => void;

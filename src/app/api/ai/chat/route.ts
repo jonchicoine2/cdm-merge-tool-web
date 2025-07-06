@@ -33,9 +33,9 @@ async function callGemini(messages: Array<{role: string, content: string}>, opti
     console.error('[GEMINI DEBUG] Error with model', modelName, ':', error);
     console.error('[GEMINI DEBUG] Error details:', {
       message: error instanceof Error ? error.message : 'Unknown error',
-      status: (error as any)?.status,
-      code: (error as any)?.code,
-      details: (error as any)?.details
+      status: (error as { status?: number })?.status,
+      code: (error as { code?: string })?.code,
+      details: (error as { details?: unknown })?.details
     });
     throw error;
   }
@@ -1181,7 +1181,7 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          let geminiStream: AsyncIterable<any>;
+          let geminiStream: AsyncIterable<{ text: () => string }>;
           
           // Select model based on request type - Use same as working HCPCS validation
           const selectedModel = "gemini-1.5-flash";
@@ -1222,7 +1222,7 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
               new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Request timeout (12s limit)')), 12000)
               )
-            ]) as AsyncIterable<any>;
+            ]) as AsyncIterable<{ text: () => string }>;
             console.log('[GEMINI STREAM DEBUG] Successfully initiated stream from:', selectedModel);
           } catch (firstAttemptError) {
             // If first attempt fails, implement intelligent fallback
@@ -1293,7 +1293,7 @@ Examples:
               new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Request timeout (6s limit on retry)')), 6000)
               )
-            ]) as AsyncIterable<any>;
+            ]) as AsyncIterable<{ text: () => string }>;
           }
           
           // Process the Gemini stream to build the full response buffer

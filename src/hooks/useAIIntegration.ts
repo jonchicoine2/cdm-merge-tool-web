@@ -18,7 +18,7 @@ export interface ChatMessage {
   metadata?: {
     intent?: string;
     action?: string;
-    parameters?: any;
+    parameters?: Record<string, unknown>;
     gridContext?: string;
     affectedRows?: number[];
   };
@@ -27,7 +27,7 @@ export interface ChatMessage {
 export interface AIActionResult {
   success: boolean;
   message: string;
-  data?: any;
+  data?: Record<string, unknown>;
   error?: string;
   modifiedRows?: number[];
 }
@@ -46,7 +46,7 @@ export interface UseAIIntegrationReturn extends AIIntegrationState {
   addSystemMessage: (message: string) => void;
   
   // AI Actions
-  executeAIAction: (action: any) => Promise<AIActionResult>;
+  executeAIAction: (action: Record<string, unknown>) => Promise<AIActionResult>;
   
   // State management
   setIsProcessing: (processing: boolean) => void;
@@ -68,7 +68,7 @@ export interface UseAIIntegrationReturn extends AIIntegrationState {
   // Utility functions
   formatAIResponse: (response: string) => string;
   generateSuggestedQueries: () => string[];
-  isValidAIAction: (action: any) => boolean;
+  isValidAIAction: (action: unknown) => boolean;
 }
 
 export function useAIIntegration(): UseAIIntegrationReturn {
@@ -100,7 +100,7 @@ export function useAIIntegration(): UseAIIntegrationReturn {
       }
     }
     if (savedSelectedGrid && ['master', 'client', 'merged', 'unmatched', 'duplicates'].includes(savedSelectedGrid)) {
-      setSelectedGrid(savedSelectedGrid as any);
+      setSelectedGrid(savedSelectedGrid as 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates');
     }
   }, []);
 
@@ -238,13 +238,13 @@ export function useAIIntegration(): UseAIIntegrationReturn {
           }
         }
       }
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
         console.log('Request was aborted');
         return;
       }
       
-      const errorMessage = error.message || 'Failed to get AI response';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get AI response';
       setError(errorMessage);
       addMessage({
         timestamp: new Date(),
@@ -264,7 +264,7 @@ export function useAIIntegration(): UseAIIntegrationReturn {
   }, []);
 
   // AI Actions
-  const executeAIAction = useCallback(async (action: any): Promise<AIActionResult> => {
+  const executeAIAction = useCallback(async (action: Record<string, unknown>): Promise<AIActionResult> => {
     try {
       setIsProcessing(true);
       
@@ -279,8 +279,8 @@ export function useAIIntegration(): UseAIIntegrationReturn {
         message: `Successfully executed ${action.type || 'action'}`,
         data: action,
       };
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to execute AI action';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to execute AI action';
       setError(errorMessage);
       
       return {
@@ -325,7 +325,7 @@ export function useAIIntegration(): UseAIIntegrationReturn {
       const savedHistory = localStorage.getItem('aiChatHistory');
       if (savedHistory) {
         const parsedHistory = JSON.parse(savedHistory);
-        setChatHistory(parsedHistory.map((msg: any) => ({
+        setChatHistory(parsedHistory.map((msg: ChatMessage) => ({
           ...msg,
           timestamp: new Date(msg.timestamp),
         })));
@@ -399,11 +399,11 @@ export function useAIIntegration(): UseAIIntegrationReturn {
     ];
   }, [selectedGrid]);
 
-  const isValidAIAction = useCallback((action: any) => {
+  const isValidAIAction = useCallback((action: unknown) => {
     if (!action || typeof action !== 'object') return false;
     
     const validTypes = ['query', 'action', 'filter', 'sort', 'analysis', 'documentation'];
-    return validTypes.includes(action.type);
+    return validTypes.includes((action as { type?: string }).type || '');
   }, []);
 
   // Cleanup effect

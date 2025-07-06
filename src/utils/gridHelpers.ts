@@ -1,10 +1,10 @@
 import { ExcelRow } from './excelOperations';
-import { GridColDef, GridSortModel, GridFilterModel } from '@mui/x-data-grid';
+import { GridColDef, GridSortModel } from '@mui/x-data-grid';
 
 export interface GridFilterOptions {
   searchTerm?: string;
   columnFilters?: {[field: string]: string};
-  customFilters?: {[field: string]: (value: any) => boolean};
+  customFilters?: {[field: string]: (value: unknown) => boolean};
 }
 
 export interface GridStyleOptions {
@@ -104,7 +104,7 @@ export function applyGridFilters(
   data: ExcelRow[],
   searchTerm: string,
   columnFilters: {[field: string]: string} = {},
-  customFilters: {[field: string]: (value: any) => boolean} = {}
+  customFilters: {[field: string]: (value: unknown) => boolean} = {}
 ): ExcelRow[] {
   return filterRows(data, {
     searchTerm,
@@ -118,9 +118,7 @@ export function getDataGridStyles(options: GridStyleOptions = {}) {
     height = 400,
     width = '100%',
     chatWidth = 0,
-    isCompact = false,
-    headerHeight = 56,
-    rowHeight = 52
+    isCompact = false
   } = options;
 
   const actualWidth = chatWidth > 0 ? `calc(100% - ${chatWidth}px)` : width;
@@ -317,13 +315,13 @@ export function exportGridData(
     customHeaders = {}
   } = options;
 
-  let exportData = selectedOnly && selectionModel.length > 0 
+  const exportData = selectedOnly && selectionModel.length > 0 
     ? getSelectedRows(data, selectionModel)
     : data;
 
   const visibleColumns = includeHiddenColumns 
     ? columns 
-    : columns.filter(col => col.hide !== true);
+    : columns.filter(col => !(col as { hide?: boolean }).hide);
 
   const headers = visibleColumns.map(col => 
     customHeaders[col.field] || col.headerName || col.field
@@ -516,7 +514,7 @@ export const gridLocaleText = {
   // Pagination
   MuiTablePagination: {
     labelRowsPerPage: 'Rows per page:',
-    labelDisplayedRows: ({ from, to, count }) => `${from}–${to} of ${count !== -1 ? count : `more than ${to}`}`,
+    labelDisplayedRows: ({ from, to, count }: { from: number; to: number; count: number }) => `${from}–${to} of ${count !== -1 ? count : `more than ${to}`}`,
   },
   
   // Selection
@@ -536,9 +534,6 @@ export const gridLocaleText = {
   columnMenuShowColumns: 'Show columns',
   columnMenuFilter: 'Filter',
   columnMenuHideColumn: 'Hide',
-  columnMenuUnsort: 'Unsort',
-  columnMenuSortAsc: 'Sort by ASC',
-  columnMenuSortDesc: 'Sort by DESC',
   
   // No rows
   noRowsLabel: 'No rows',

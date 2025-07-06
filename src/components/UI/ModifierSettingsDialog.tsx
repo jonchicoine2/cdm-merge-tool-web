@@ -104,7 +104,7 @@ export const ModifierSettingsDialog: React.FC<ModifierSettingsDialogProps> = ({
                   Modifier 00 (No Modifier)
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#666' }}>
-                  Treat records with modifier "00" or no modifier as equivalent
+                  Treat records with modifier &quot;00&quot; or no modifier as equivalent
                 </Typography>
               </Box>
             }

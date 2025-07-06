@@ -6,13 +6,13 @@ interface ExcelRow {
 interface EditManagementCallbacks {
   // Client grid
   setRowsClient: (rows: ExcelRow[]) => void;
-  setClientSheetData: (data: any) => void;
+  setClientSheetData: (data: Record<string, {rows: ExcelRow[], columns: Array<{field: string, headerName?: string, width?: number, editable?: boolean}>}>) => void;
   setHasUnsavedChanges: (hasChanges: boolean) => void;
   setOriginalClientData: (data: ExcelRow[]) => void;
   
   // Master grid
   setRowsMaster: (rows: ExcelRow[]) => void;
-  setMasterSheetData: (data: any) => void;
+  setMasterSheetData: (data: Record<string, {rows: ExcelRow[], columns: Array<{field: string, headerName?: string, width?: number, editable?: boolean}>}>) => void;
   setHasUnsavedMasterChanges: (hasChanges: boolean) => void;
   setOriginalMasterData: (data: ExcelRow[]) => void;
   
@@ -22,8 +22,8 @@ interface EditManagementCallbacks {
   setOriginalMergedData: (data: ExcelRow[]) => void;
   
   // Validation
-  setDuplicateValidationErrors: (callback: (prev: any) => any) => void;
-  validateForDuplicates: (rows: ExcelRow[], gridType: 'master' | 'client' | 'merged') => { hasDuplicates: boolean; duplicateKeys: any; duplicateRows: any };
+  setDuplicateValidationErrors: (callback: (prev: Record<string, {duplicateKeys: unknown[], duplicateRows: unknown[]}>) => Record<string, {duplicateKeys: unknown[], duplicateRows: unknown[]}>) => void;
+  validateForDuplicates: (rows: ExcelRow[], gridType: 'master' | 'client' | 'merged') => { hasDuplicates: boolean; duplicateKeys: unknown[]; duplicateRows: unknown[]; };
 }
 
 export const createEditManagementHandlers = (
@@ -37,8 +37,8 @@ export const createEditManagementHandlers = (
   masterSheetNames: string[],
   activeClientTab: number,
   activeMasterTab: number,
-  clientSheetData: any,
-  masterSheetData: any,
+  clientSheetData: Record<string, {rows: ExcelRow[], columns: Array<{field: string, headerName?: string, width?: number, editable?: boolean}>}>,
+  masterSheetData: Record<string, {rows: ExcelRow[], columns: Array<{field: string, headerName?: string, width?: number, editable?: boolean}>}>,
   callbacks: EditManagementCallbacks
 ) => {
   const handleSaveEdits = (gridType?: 'master' | 'client' | 'merged') => {

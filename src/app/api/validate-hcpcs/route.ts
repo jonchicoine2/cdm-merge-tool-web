@@ -91,14 +91,14 @@ CODES: ${uniqueCodes.join(', ')}`;
       
       // Handle both old and new response formats
       let invalidCodes: string[] = [];
-      let validationResults: { [code: string]: { isValid: boolean; reason?: string } } = {};
-      let detailedResults: any[] = [];
+      const validationResults: { [code: string]: { isValid: boolean; reason?: string } } = {};
+      let detailedResults: ValidationResult[] = [];
 
       if (parsedResponse.results && Array.isArray(parsedResponse.results)) {
         // New structured format
         detailedResults = parsedResponse.results;
         
-        detailedResults.forEach((result: any) => {
+        detailedResults.forEach((result: ValidationResult) => {
           const inputCode = result.inputCode;
           const isValid = result.baseCptValid && (result.modifierValid !== false);
           

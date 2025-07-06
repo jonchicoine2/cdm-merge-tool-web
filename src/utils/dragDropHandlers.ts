@@ -31,8 +31,8 @@ export const createDragDropHandlers = (callbacks: DragDropCallbacks) => {
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>, which: "Master" | "Client") => {
     e.preventDefault();
-    if (which === "Master" && !callbacks.setDragOverMaster) callbacks.setDragOverMaster(true);
-    if (which === "Client" && !callbacks.setDragOverClient) callbacks.setDragOverClient(true);
+    if (which === "Master" && callbacks.setDragOverMaster) callbacks.setDragOverMaster(true);
+    if (which === "Client" && callbacks.setDragOverClient) callbacks.setDragOverClient(true);
   };
 
   return {

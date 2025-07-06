@@ -11,7 +11,7 @@ export interface ValidationRules {
   minLength?: {[field: string]: number};
   maxLength?: {[field: string]: number};
   pattern?: {[field: string]: RegExp};
-  custom?: {[field: string]: (value: any) => boolean};
+  custom?: {[field: string]: (value: unknown) => boolean};
 }
 
 export function validateRow(row: ExcelRow, rules: ValidationRules): ValidationResult {

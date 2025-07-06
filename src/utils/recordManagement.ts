@@ -8,12 +8,12 @@ interface ExcelRow {
 interface RecordManagementCallbacks {
   // Master grid
   setRowsMaster: (rows: ExcelRow[]) => void;
-  setMasterSheetData: (data: any) => void;
+  setMasterSheetData: (data: Record<string, {rows: ExcelRow[], columns: GridColDef[]}>) => void;
   setHasUnsavedMasterChanges: (hasChanges: boolean) => void;
   
   // Client grid
   setRowsClient: (rows: ExcelRow[]) => void;
-  setClientSheetData: (data: any) => void;
+  setClientSheetData: (data: Record<string, {rows: ExcelRow[], columns: GridColDef[]}>) => void;
   setHasUnsavedChanges: (hasChanges: boolean) => void;
   
   // Merged grid
@@ -22,8 +22,8 @@ interface RecordManagementCallbacks {
   setHasUnsavedMergedChanges: (hasChanges: boolean) => void;
   
   // Validation
-  setDuplicateValidationErrors: (callback: (prev: any) => any) => void;
-  validateForDuplicates: (rows: ExcelRow[], gridType: 'master' | 'client' | 'merged') => { duplicateKeys: any; duplicateRows: any };
+  setDuplicateValidationErrors: (callback: (prev: Record<string, {duplicateKeys: unknown[], duplicateRows: unknown[]}>) => Record<string, {duplicateKeys: unknown[], duplicateRows: unknown[]}>) => void;
+  validateForDuplicates: (rows: ExcelRow[], gridType: 'master' | 'client' | 'merged') => { duplicateKeys: unknown[]; duplicateRows: unknown[]; };
 }
 
 export const createRecordManagementHandlers = (
@@ -37,8 +37,8 @@ export const createRecordManagementHandlers = (
   clientSheetNames: string[],
   activeMasterTab: number,
   activeClientTab: number,
-  masterSheetData: any,
-  clientSheetData: any,
+  masterSheetData: Record<string, {rows: ExcelRow[], columns: GridColDef[]}>,
+  clientSheetData: Record<string, {rows: ExcelRow[], columns: GridColDef[]}>,
   callbacks: RecordManagementCallbacks
 ) => {
   const handleDuplicateRecord = (rowId: number | string, gridType: 'master' | 'client' | 'merged'): { success: boolean; newRowId?: number | string; originalRowId: number | string } => {

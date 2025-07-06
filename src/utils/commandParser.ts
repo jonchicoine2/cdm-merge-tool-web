@@ -138,7 +138,7 @@ export function parseCommand(message: string, gridContext: GridContext): ParsedC
     return {
       type: 'action',
       action: 'sort',
-      parameters: { column, direction },
+      parameters: { column, direction: direction as 'asc' | 'desc' },
       response: `Sorting by ${displayName} in ${direction}ending order`
     };
   }
@@ -152,7 +152,7 @@ export function parseCommand(message: string, gridContext: GridContext): ParsedC
         return {
           type: 'action',
           action: 'delete',
-          parameters: { rowId: gridContext.selectedRowId },
+          parameters: { rowId: gridContext.selectedRowId || undefined },
           response: `Deleting ${gridContext.selectedHcpcs ? `HCPCS code ${gridContext.selectedHcpcs}` : `row ID ${gridContext.selectedRowId}`} from the ${gridContext.selectedGrid} grid.`
         };
       } else {

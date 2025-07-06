@@ -33,19 +33,26 @@ interface AIActionHandlerProps {
   setSearchClient: (search: string) => void;
   setSearchMerged: (search: string) => void;
   
+  // Filter properties
+  masterFilters: Array<{column: string, condition: string, value: string}>;
+  clientFilters: Array<{column: string, condition: string, value: string}>;
+  mergedFilters: Array<{column: string, condition: string, value: string}>;
+  unmatchedFilters: Array<{column: string, condition: string, value: string}>;
+  duplicatesFilters: Array<{column: string, condition: string, value: string}>;
+  
   // Filter setters
-  setMasterFilters: (filters: any) => void;
-  setClientFilters: (filters: any) => void;
-  setMergedFilters: (filters: any) => void;
-  setUnmatchedFilters: (filters: any) => void;
-  setDuplicatesFilters: (filters: any) => void;
+  setMasterFilters: (filters: Array<{column: string, condition: string, value: string}>) => void;
+  setClientFilters: (filters: Array<{column: string, condition: string, value: string}>) => void;
+  setMergedFilters: (filters: Array<{column: string, condition: string, value: string}>) => void;
+  setUnmatchedFilters: (filters: Array<{column: string, condition: string, value: string}>) => void;
+  setDuplicatesFilters: (filters: Array<{column: string, condition: string, value: string}>) => void;
   
   // Sort setters
-  setMasterSortModel: (model: any) => void;
-  setClientSortModel: (model: any) => void;
-  setMergedSortModel: (model: any) => void;
-  setUnmatchedSortModel: (model: any) => void;
-  setDuplicatesSortModel: (model: any) => void;
+  setMasterSortModel: (model: Array<{field: string, sort: 'asc' | 'desc'}>) => void;
+  setClientSortModel: (model: Array<{field: string, sort: 'asc' | 'desc'}>) => void;
+  setMergedSortModel: (model: Array<{field: string, sort: 'asc' | 'desc'}>) => void;
+  setUnmatchedSortModel: (model: Array<{field: string, sort: 'asc' | 'desc'}>) => void;
+  setDuplicatesSortModel: (model: Array<{field: string, sort: 'asc' | 'desc'}>) => void;
   
   // Data and columns
   columnsMaster: GridColDef[];
@@ -72,10 +79,10 @@ interface AIActionHandlerProps {
   getCurrentSelectedRowId: () => number | null;
   handleExportWithFilename: (filename: string) => void;
   handleExport: () => void;
-  handleDuplicateRecord: (rowId: number | string, targetView: 'master' | 'client' | 'merged') => any;
+  handleDuplicateRecord: (rowId: number | string, targetView: 'master' | 'client' | 'merged') => {success: boolean, newRowId?: number | string, originalRowId: number | string};
   handleDeleteRecord: (rowId: number | string, targetView: 'master' | 'client' | 'merged') => void;
-  handleDeleteMultipleRecords: (rowIds: (number | string)[], targetView: 'master' | 'client' | 'merged') => any;
-  handleAddRecord: (targetView: 'master' | 'client' | 'merged', rowData?: any) => void;
+  handleDeleteMultipleRecords: (rowIds: (number | string)[], targetView: 'master' | 'client' | 'merged') => {success: boolean, deletedCount: number};
+  handleAddRecord: (targetView: 'master' | 'client' | 'merged', rowData?: Record<string, string | number | undefined>) => void;
 }
 
 export const createAIActionHandler = (props: AIActionHandlerProps) => {
@@ -205,19 +212,19 @@ export const createAIActionHandler = (props: AIActionHandlerProps) => {
       // Add filter to the correct grid
       switch (targetView) {
         case 'master':
-          props.setMasterFilters(prev => [...prev.filter((f: any) => f.column !== column), newFilter]);
+          props.setMasterFilters([...props.masterFilters.filter(f => f.column !== column), newFilter]);
           break;
         case 'client':
-          props.setClientFilters(prev => [...prev.filter((f: any) => f.column !== column), newFilter]);
+          props.setClientFilters([...props.clientFilters.filter(f => f.column !== column), newFilter]);
           break;
         case 'merged':
-          props.setMergedFilters(prev => [...prev.filter((f: any) => f.column !== column), newFilter]);
+          props.setMergedFilters([...props.mergedFilters.filter(f => f.column !== column), newFilter]);
           break;
         case 'unmatched':
-          props.setUnmatchedFilters(prev => [...prev.filter((f: any) => f.column !== column), newFilter]);
+          props.setUnmatchedFilters([...props.unmatchedFilters.filter(f => f.column !== column), newFilter]);
           break;
         case 'duplicates':
-          props.setDuplicatesFilters(prev => [...prev.filter((f: any) => f.column !== column), newFilter]);
+          props.setDuplicatesFilters([...props.duplicatesFilters.filter(f => f.column !== column), newFilter]);
           break;
       }
       

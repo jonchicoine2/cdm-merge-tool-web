@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Chip, Fab, Tooltip, IconButton } from "@mui/material";
-import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridSortModel, GridRenderCellParams } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
@@ -445,8 +445,6 @@ export default function ExcelImportPage() {
   // Combined filter function that applies both search and AI filters
   const filterAndSearchRowsLocal = (rows: ExcelRow[], searchTerm: string, filters: {column: string, condition: string, value: string}[]): ExcelRow[] => {
     const filteredRows = applyFilters(rows, filters);
-    // Convert filters format for utility function
-    const filterMap: {[field: string]: string} = {};
     // Note: The utility filterAndSearchRows expects a different filter format, but since we're only using search here, pass empty filters
     return filterAndSearchRows(filteredRows, {}, searchTerm);
   };
@@ -578,7 +576,7 @@ export default function ExcelImportPage() {
       if (col.field === hcpcsColumn.field) {
         return {
           ...col,
-          renderCell: (params: any) => {
+          renderCell: (params: GridRenderCellParams) => {
             const hcpcsValue = params.value;
             const hcpcsString = String(hcpcsValue).toUpperCase();
             // Strip quantity suffix for validation check (x1, x01, x02, etc.)
@@ -608,7 +606,7 @@ export default function ExcelImportPage() {
                   validationDetails?.[codeForValidation]?.reason || 'Invalid HCPCS code detected' 
                   : undefined}
               >
-                {isInvalid && '⚠️ '}{hcpcsValue}
+                {isInvalid && '⚠️ '}{String(hcpcsValue)}
               </Box>
             );
           }
@@ -2749,7 +2747,7 @@ export default function ExcelImportPage() {
           
           // Log detailed results if available
           if (validationData.detailedResults) {
-            const invalidDetails = validationData.detailedResults.filter((r: any) => !r.baseCptValid || r.modifierValid === false);
+            const invalidDetails = validationData.detailedResults.filter((r: { baseCptValid: boolean; modifierValid: boolean | null }) => !r.baseCptValid || r.modifierValid === false);
             console.log(`[HCPCS VALIDATION] Batch ${i + 1} detailed invalid results:`, invalidDetails);
           }
           
@@ -2765,7 +2763,7 @@ export default function ExcelImportPage() {
       }
       
       // Update invalid codes state with all results
-      const invalidCodesSet = new Set<string>(allInvalidCodes.map((code: any) => String(code)));
+      const invalidCodesSet = new Set<string>(allInvalidCodes.map((code: string) => String(code)));
       setInvalidHcpcsCodes(invalidCodesSet);
       setValidationDetails(allValidationDetails);
       

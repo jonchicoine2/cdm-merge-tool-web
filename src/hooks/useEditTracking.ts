@@ -19,15 +19,15 @@ export interface EditChange {
   type: 'add' | 'update' | 'delete' | 'bulk';
   rowId?: number;
   rowIds?: number[];
-  oldValue?: any;
-  newValue?: any;
+  oldValue?: unknown;
+  newValue?: unknown;
   field?: string;
   description: string;
 }
 
 export interface UseEditTrackingReturn extends EditTrackingState {
   // Change tracking
-  trackCellEdit: (rowId: number, field: string, oldValue: any, newValue: any, isClient?: boolean) => void;
+  trackCellEdit: (rowId: number, field: string, oldValue: unknown, newValue: unknown, isClient?: boolean) => void;
   trackRowAdd: (row: ExcelRow, isClient?: boolean) => void;
   trackRowDelete: (rowId: number, isClient?: boolean) => void;
   trackBulkOperation: (description: string, rowIds: number[], isClient?: boolean) => void;
@@ -50,7 +50,7 @@ export interface UseEditTrackingReturn extends EditTrackingState {
   
   // Validation and warnings
   getUnsavedRowCount: (isClient?: boolean) => number;
-  getEditSummary: (isClient?: boolean) => {
+  getEditSummary: () => {
     totalChanges: number;
     addedRows: number;
     editedRows: number;
@@ -63,7 +63,7 @@ export interface UseEditTrackingReturn extends EditTrackingState {
   
   // Conflict detection
   detectConflicts: (serverData: ExcelRow[], clientData: ExcelRow[]) => {
-    conflicts: Array<{rowId: number, field: string, clientValue: any, serverValue: any}>;
+    conflicts: Array<{rowId: number, field: string, clientValue: unknown, serverValue: unknown}>;
     hasConflicts: boolean;
   };
 }
@@ -110,8 +110,8 @@ export function useEditTracking(): UseEditTrackingReturn {
   const trackCellEdit = useCallback((
     rowId: number, 
     field: string, 
-    oldValue: any, 
-    newValue: any, 
+    oldValue: unknown, 
+    newValue: unknown, 
     isClient = true
   ) => {
     const change: EditChange = {
@@ -317,11 +317,8 @@ export function useEditTracking(): UseEditTrackingReturn {
     return isClient ? editedRows.size : editedMasterRows.size;
   }, [editedRows, editedMasterRows]);
 
-  const getEditSummary = useCallback((isClient = true) => {
-    const relevantHistory = changeHistory.filter(change => {
-      // This is simplified - in practice you'd track which changes belong to which dataset
-      return true;
-    });
+  const getEditSummary = useCallback(() => {
+    const relevantHistory = changeHistory;
 
     const summary = {
       totalChanges: relevantHistory.length,
@@ -368,7 +365,7 @@ export function useEditTracking(): UseEditTrackingReturn {
     serverData: ExcelRow[], 
     clientData: ExcelRow[]
   ) => {
-    const conflicts: Array<{rowId: number, field: string, clientValue: any, serverValue: any}> = [];
+    const conflicts: Array<{rowId: number, field: string, clientValue: unknown, serverValue: unknown}> = [];
     
     clientData.forEach(clientRow => {
       const serverRow = serverData.find(row => row.id === clientRow.id);

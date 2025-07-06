@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
-import { GridRowSelectionModel, GridSortModel } from '@mui/x-data-grid';
+import { useState, useCallback } from 'react';
+import { GridSortModel } from '@mui/x-data-grid';
 import { ExcelRow, ComparisonStats } from '../utils/excelOperations';
 import { filterAndSearchRows } from '../utils/excelOperations';
 
@@ -19,11 +19,11 @@ export interface UseGridStateReturn {
   searchDuplicates: string;
   
   // Selection state
-  selectionMaster: GridRowSelectionModel;
-  selectionClient: GridRowSelectionModel;
-  selectionMerged: GridRowSelectionModel;
-  selectionUnmatched: GridRowSelectionModel;
-  selectionDuplicates: GridRowSelectionModel;
+  selectionMaster: (string | number)[];
+  selectionClient: (string | number)[];
+  selectionMerged: (string | number)[];
+  selectionUnmatched: (string | number)[];
+  selectionDuplicates: (string | number)[];
   
   // Sort state
   sortModelMaster: GridSortModel;
@@ -52,11 +52,11 @@ export interface UseGridStateReturn {
   clearAllSearches: () => void;
   
   // Selection handlers
-  setSelectionMaster: (selection: GridRowSelectionModel) => void;
-  setSelectionClient: (selection: GridRowSelectionModel) => void;
-  setSelectionMerged: (selection: GridRowSelectionModel) => void;
-  setSelectionUnmatched: (selection: GridRowSelectionModel) => void;
-  setSelectionDuplicates: (selection: GridRowSelectionModel) => void;
+  setSelectionMaster: (selection: (string | number)[]) => void;
+  setSelectionClient: (selection: (string | number)[]) => void;
+  setSelectionMerged: (selection: (string | number)[]) => void;
+  setSelectionUnmatched: (selection: (string | number)[]) => void;
+  setSelectionDuplicates: (selection: (string | number)[]) => void;
   clearAllSelections: () => void;
   
   // Sort handlers
@@ -93,20 +93,18 @@ export interface UseGridStateReturn {
   // Grid state utilities
   resetAllGridStates: () => void;
   exportGridSelections: () => {
-    master: GridRowSelectionModel;
-    client: GridRowSelectionModel;
-    merged: GridRowSelectionModel;
-    unmatched: GridRowSelectionModel;
-    duplicates: GridRowSelectionModel;
+    master: (string | number)[];
+    client: (string | number)[];
+    merged: (string | number)[];
+    unmatched: (string | number)[];
+    duplicates: (string | number)[];
   };
 }
 
 export function useGridState(options: GridStateOptions = {}): UseGridStateReturn {
   const {
     enableSearch = true,
-    enableSelection = true,
-    enableSorting = true,
-    defaultPageSize = 25
+    enableSelection = true
   } = options;
 
   // Search state
@@ -117,11 +115,11 @@ export function useGridState(options: GridStateOptions = {}): UseGridStateReturn
   const [searchDuplicates, setSearchDuplicates] = useState('');
 
   // Selection state
-  const [selectionMaster, setSelectionMaster] = useState<GridRowSelectionModel>([]);
-  const [selectionClient, setSelectionClient] = useState<GridRowSelectionModel>([]);
-  const [selectionMerged, setSelectionMerged] = useState<GridRowSelectionModel>([]);
-  const [selectionUnmatched, setSelectionUnmatched] = useState<GridRowSelectionModel>([]);
-  const [selectionDuplicates, setSelectionDuplicates] = useState<GridRowSelectionModel>([]);
+  const [selectionMaster, setSelectionMaster] = useState<(string | number)[]>([]);
+  const [selectionClient, setSelectionClient] = useState<(string | number)[]>([]);
+  const [selectionMerged, setSelectionMerged] = useState<(string | number)[]>([]);
+  const [selectionUnmatched, setSelectionUnmatched] = useState<(string | number)[]>([]);
+  const [selectionDuplicates, setSelectionDuplicates] = useState<(string | number)[]>([]);
 
   // Sort state
   const [sortModelMaster, setSortModelMaster] = useState<GridSortModel>([]);

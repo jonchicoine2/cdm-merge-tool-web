@@ -1,5 +1,5 @@
 import { ExcelRow } from './excelOperations';
-import { GridColDef, GridRowSelectionModel } from '@mui/x-data-grid';
+import { GridRowSelectionModel } from '@mui/x-data-grid';
 
 export interface DataManipulationResult {
   success: boolean;
@@ -372,7 +372,7 @@ export function copyRecords(
     const { generateNewIds = true } = options;
     
     const selectedRecords = sourceData.filter(record => 
-      selection.includes(record.id)
+      Array.isArray(selection) && selection.includes(record.id)
     );
 
     if (selectedRecords.length === 0) {
