@@ -8,20 +8,37 @@ export const maxDuration = 120; // 2 minutes timeout for local development
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
 
-// Helper function to call Gemini 
+// Helper function to call Gemini - simplified to match working HCPCS validation
 async function callGemini(messages: Array<{role: string, content: string}>, options: {model?: string, temperature?: number, maxTokens?: number} = {}) {
-  const model = genAI.getGenerativeModel({ model: options.model || "gemini-1.5-flash" });
+  const modelName = options.model || "gemini-1.5-flash";
+  console.log('[GEMINI DEBUG] Attempting to call model:', modelName);
   
-  // Convert OpenAI messages format to Gemini prompt
-  const prompt = messages.map(msg => {
-    if (msg.role === 'system') return `System: ${msg.content}`;
-    if (msg.role === 'user') return `User: ${msg.content}`;
-    if (msg.role === 'assistant') return `Assistant: ${msg.content}`;
-    return msg.content;
-  }).join('\n\n');
-  
-  const response = await model.generateContent(prompt);
-  return response.response.text();
+  try {
+    // Use exact same pattern as working HCPCS validation
+    const model = genAI.getGenerativeModel({ model: modelName });
+    
+    // Convert OpenAI messages format to simple prompt like HCPCS validation
+    const prompt = messages.map(msg => {
+      if (msg.role === 'system') return msg.content;
+      if (msg.role === 'user') return `User: ${msg.content}`;
+      if (msg.role === 'assistant') return `Assistant: ${msg.content}`;
+      return msg.content;
+    }).join('\n\n');
+    
+    console.log('[GEMINI DEBUG] Sending prompt to', modelName, '- length:', prompt.length);
+    const response = await model.generateContent(prompt);
+    console.log('[GEMINI DEBUG] Successfully got response from', modelName);
+    return response.response.text();
+  } catch (error) {
+    console.error('[GEMINI DEBUG] Error with model', modelName, ':', error);
+    console.error('[GEMINI DEBUG] Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      status: (error as any)?.status,
+      code: (error as any)?.code,
+      details: (error as any)?.details
+    });
+    throw error;
+  }
 }
 
 interface GridContext {
@@ -1166,7 +1183,7 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
         try {
           let geminiStream: AsyncIterable<any>;
           
-          // Select model based on request type - Use Gemini for cost efficiency with complex prompt
+          // Select model based on request type - Use same as working HCPCS validation
           const selectedModel = "gemini-1.5-flash";
           
           console.log('[AI API DEBUG] Using model:', selectedModel, 'for request type:', requestType);
@@ -1189,6 +1206,7 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
             console.log('[AI API DEBUG] User message being sent to AI:', message);
             console.log('[AI API DEBUG] Full messages array being sent to Gemini:', JSON.stringify(regularMessages, null, 2));
 
+            console.log('[GEMINI STREAM DEBUG] Creating model instance for:', selectedModel);
             const model = genAI.getGenerativeModel({ model: selectedModel });
             const prompt = regularMessages.map(msg => {
               if (msg.role === 'system') return `System: ${msg.content}`;
@@ -1197,18 +1215,20 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
               return msg.content;
             }).join('\n\n');
 
+            console.log('[GEMINI STREAM DEBUG] Attempting streaming call to:', selectedModel, 'prompt length:', prompt.length);
             geminiStream = await Promise.race([
               model.generateContentStream(prompt),
               // Additional timeout safety net for Netlify
               new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Request timeout (12s limit)')), 12000)
               )
-            ]);
+            ]) as AsyncIterable<any>;
+            console.log('[GEMINI STREAM DEBUG] Successfully initiated stream from:', selectedModel);
           } catch (firstAttemptError) {
             // If first attempt fails, implement intelligent fallback
             console.log('[AI API DEBUG] First attempt failed:', firstAttemptError);
             
-            // For any requests that failed, fallback to same Gemini model with reduced context
+            // For any requests that failed, fallback to stable Gemini 1.5 model
             const fallbackModel = "gemini-1.5-flash";
             
             // Create fallback context with appropriate data for request type
@@ -1273,7 +1293,7 @@ Examples:
               new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Request timeout (6s limit on retry)')), 6000)
               )
-            ]);
+            ]) as AsyncIterable<any>;
           }
           
           // Process the Gemini stream to build the full response buffer
