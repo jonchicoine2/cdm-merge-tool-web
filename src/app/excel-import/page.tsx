@@ -1460,9 +1460,9 @@ export default function ExcelImportPage() {
       }
       
       // Process all sheets and store them
-      processAllSheets(data as string, which, sheets);
+      processAllSheets(data as ArrayBuffer, which, sheets);
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   // Compare logic
@@ -1920,8 +1920,8 @@ export default function ExcelImportPage() {
     if (which === "Client" && !dragOverClient) setDragOverClient(true);
   };
 
-  const processAllSheets = (data: string, which: "Master" | "Client", sheetNames: string[]) => {
-    const workbook = XLSX.read(data, { type: "binary" });
+  const processAllSheets = (data: string | ArrayBuffer, which: "Master" | "Client", sheetNames: string[]) => {
+    const workbook = XLSX.read(data, { type: typeof data === 'string' ? "binary" : "array" });
     const sheetData: {[sheetName: string]: {rows: ExcelRow[], columns: GridColDef[]}} = {};
     
     // Make both client and master data editable
@@ -1995,7 +1995,7 @@ export default function ExcelImportPage() {
     return { rows: Array.from(rows), columns };
   };
   
-  const restoreFileData = (data: string, which: "Master" | "Client", filename: string, restoreMetadata = false) => {
+  const restoreFileData = (data: string, which: "Master" | "Client", restoreMetadata = false) => {
     console.log(`[DEBUG] Starting restoreFileData for ${which}`);
     // For restore operations, process the data directly without creating a File object
     const workbook = XLSX.read(data, { type: "binary" });
@@ -2034,7 +2034,7 @@ export default function ExcelImportPage() {
     }
   };
 
-  const handleMasterTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleMasterTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveMasterTab(newValue);
     const sheetName = masterSheetNames[newValue];
     const sheetData = masterSheetData[sheetName];
@@ -2050,7 +2050,7 @@ export default function ExcelImportPage() {
     }
   };
   
-  const handleClientTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleClientTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveClientTab(newValue);
     const sheetName = clientSheetNames[newValue];
     const sheetData = clientSheetData[sheetName];
@@ -2069,10 +2069,10 @@ export default function ExcelImportPage() {
   const handleLoadLastFile = (which: "Master" | "Client") => {
     if (which === "Master" && lastMasterData && lastMasterFile) {
       console.log('[DEBUG] Loading last master file with metadata restore');
-      restoreFileData(lastMasterData, "Master", lastMasterFile, true);
+      restoreFileData(lastMasterData, "Master", true);
     } else if (which === "Client" && lastClientData && lastClientFile) {
       console.log('[DEBUG] Loading last client file with metadata restore');
-      restoreFileData(lastClientData, "Client", lastClientFile, true);
+      restoreFileData(lastClientData, "Client", true);
     }
   };
   
@@ -2093,8 +2093,8 @@ export default function ExcelImportPage() {
       setSelectedRowsDuplicates([]);
       
       // Process file data first, then restore metadata AFTER processing
-      restoreFileData(lastMasterData, "Master", lastMasterFile, true);
-      restoreFileData(lastClientData, "Client", lastClientFile, true);
+      restoreFileData(lastMasterData, "Master", true);
+      restoreFileData(lastClientData, "Client", true);
       
       console.log('[DEBUG] Restore session initiated');
     }
@@ -2887,13 +2887,13 @@ export default function ExcelImportPage() {
                 placeholder="Search master data..."
                 value={searchMaster}
                 onChange={(e) => setSearchMaster(e.target.value)}
-                InputProps={{
+                slotProps={{ input: {
                   startAdornment: (
                     <InputAdornment position="start">
                       <SearchIcon />
                     </InputAdornment>
                   ),
-                }}
+                }}}
                 sx={{ 
                   mb: 2,
                   '& .MuiOutlinedInput-root': {
@@ -3207,13 +3207,13 @@ export default function ExcelImportPage() {
                 placeholder="Search client data..."
                 value={searchClient}
                 onChange={(e) => setSearchClient(e.target.value)}
-                InputProps={{
+                slotProps={{ input: {
                   startAdornment: (
                     <InputAdornment position="start">
                       <SearchIcon />
                     </InputAdornment>
                   ),
-                }}
+                }}}
                 sx={{ 
                   mb: 2,
                   '& .MuiOutlinedInput-root': {
@@ -3658,13 +3658,13 @@ export default function ExcelImportPage() {
                 placeholder="Search merged data..."
                 value={searchMerged}
                 onChange={(e) => setSearchMerged(e.target.value)}
-                InputProps={{
+                slotProps={{ input: {
                   startAdornment: (
                     <InputAdornment position="start">
                       <SearchIcon />
                     </InputAdornment>
                   ),
-                }}
+                }}}
                 sx={{ 
                   '& .MuiOutlinedInput-root': {
                     backgroundColor: 'white',

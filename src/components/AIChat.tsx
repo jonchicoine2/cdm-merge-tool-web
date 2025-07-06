@@ -337,7 +337,7 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
 
       // Add client-side timeout for streaming compatibility
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minute timeout for testing
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       const aiMessage: Message = {
         id: aiMessageId,
         type: 'ai',

@@ -4,7 +4,7 @@ import { parseCommand } from '../../../../utils/commandParser';
 
 // API route configuration
 export const runtime = 'nodejs';
-export const maxDuration = 3600; // 1 hour timeout for testing
+export const maxDuration = 30; // 30 seconds timeout
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
 
@@ -662,7 +662,7 @@ Provide a helpful, informative answer about HCPCS codes, modifiers, or healthcar
               const geminiStream = await Promise.race([
                 model.generateContentStream(prompt),
                 new Promise((_, reject) =>
-                  setTimeout(() => reject(new Error('Request timeout (10min limit)')), 600000)
+                  setTimeout(() => reject(new Error('Request timeout (30s limit)')), 30000)
                 )
               ]) as AsyncIterable<{ text: () => string }>;
               
@@ -1201,7 +1201,7 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
               model.generateContentStream(prompt),
               // Additional timeout safety net
               new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Request timeout (10min limit)')), 600000)
+                setTimeout(() => reject(new Error('Request timeout (30s limit)')), 30000)
               )
             ]) as AsyncIterable<{ text: () => string }>;
             console.log('[GEMINI STREAM DEBUG] Successfully initiated stream from:', selectedModel);
@@ -1272,7 +1272,7 @@ Examples:
               fallbackModelInstance.generateContentStream(fallbackPrompt),
               // Longer timeout for retry
               new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Request timeout (5min limit on retry)')), 300000)
+                setTimeout(() => reject(new Error('Request timeout (15s limit on retry)')), 15000)
               )
             ]) as AsyncIterable<{ text: () => string }>;
           }
