@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { GridColDef } from '@mui/x-data-grid';
 import { 
   ExcelRow, 
@@ -145,7 +145,7 @@ export function useFileManagement(): UseFileManagementReturn {
   }, []);
 
   // Create callbacks object for file processing functions
-  const callbacks: FileProcessingCallbacks = {
+  const callbacks: FileProcessingCallbacks = useMemo(() => ({
     setLastMasterFile,
     setLastClientFile,
     setLastMasterData,
@@ -167,7 +167,29 @@ export function useFileManagement(): UseFileManagementReturn {
     setHasUnsavedMasterChanges,
     setHasUnsavedChanges,
     setHcpcsDefaultSorting
-  };
+  }), [
+    setLastMasterFile,
+    setLastClientFile,
+    setLastMasterData,
+    setLastClientData,
+    setMasterFileMetadata,
+    setClientFileMetadata,
+    setMasterSheetData,
+    setClientSheetData,
+    setMasterSheetNames,
+    setClientSheetNames,
+    setActiveMasterTab,
+    setActiveClientTab,
+    setMasterData,
+    setClientData,
+    setMasterColumns,
+    setClientColumns,
+    setOriginalMasterData,
+    setOriginalClientData,
+    setHasUnsavedMasterChanges,
+    setHasUnsavedChanges,
+    setHcpcsDefaultSorting
+  ]);
 
   // File upload handler
   const uploadFile = useCallback((

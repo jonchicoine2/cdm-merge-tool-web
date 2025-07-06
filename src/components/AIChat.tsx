@@ -86,7 +86,6 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [requestStartTime, setRequestStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [width, setWidth] = useState(320); // Reduced from 400 to 320
   const [isResizing, setIsResizing] = useState(false);
@@ -311,7 +310,6 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
     
     // Start timer
     const startTime = Date.now();
-    setRequestStartTime(startTime);
     setElapsedTime(0);
     
     // Update timer every 100ms
@@ -498,16 +496,9 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
       }
-      setRequestStartTime(null);
     }
   };
 
-  const handleKeyPress = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      handleSendMessage();
-    }
-  };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'ArrowUp') {
@@ -815,8 +806,14 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
                   setTempInput('');
                 }
               }}
-              onKeyPress={handleKeyPress}
-              onKeyDown={handleKeyDown}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault();
+                  handleSendMessage();
+                } else {
+                  handleKeyDown(event);
+                }
+              }}
               disabled={isLoading}
               size="small"
               sx={{

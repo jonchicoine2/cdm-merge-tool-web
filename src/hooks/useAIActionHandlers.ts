@@ -83,7 +83,7 @@ export function useAIActionHandlers(): UseAIActionHandlersReturn {
         response: `Sorry, I encountered an error while processing your request: ${errorMessage}`
       };
     }
-  }, []);
+  }, [executeQuery, executeAction, executeFilter, executeSort, executeAnalysis]);
 
   // Parse natural language message into AI intent
   const parseAIMessage = useCallback((message: string): AIIntent | null => {
