@@ -52,40 +52,25 @@ export async function POST(request: NextRequest) {
       uniqueCodes.splice(maxCodesPerBatch);
     }
 
-    const prompt = `Validate these HCPCS/CPT codes. IMPORTANT: Be extremely conservative - only flag codes that are definitively invalid. Return ONLY the JSON, no other text.
+    const prompt = `You are a HCPCS/CPT validation expert. Review the following list of codes. Your task is to identify codes that are invalid.
 
-CODES: ${uniqueCodes.join(', ')}
+A code is only invalid if the base code does not exist in the CPT/HCPCS system.
 
-VALIDATION RULES:
-1. BASE CODE: Only invalid if it clearly doesn't exist in any HCPCS/CPT system
-2. MODIFIERS: Accept almost ALL modifiers as potentially valid, including:
-   - LT/RT/50 for most procedures
-   - FA/F1-F9/TA/T1-T9 (finger/toe modifiers) for extremity procedures
-   - 25/59/76/77/78/79/XE/XS/XP/XU for various circumstances
-   - E1-E4 (eyelid modifiers) for eye procedures
-   - Many other specialized modifiers
+CRITICAL RULE: If you are in any way unsure about a code's validity, you MUST assume it is VALID. Err on the side of caution and do not flag it.
 
-ONLY flag as invalid in these VERY SPECIFIC cases:
-- Base code is clearly fake (FAKE1, ZZZZZ, TEST123)
-- Office visit codes (99201-99215) with anatomical modifiers (LT/RT/50)
-- Truly nonsensical combinations
+Return a JSON object with the key "invalidCodes" containing a list of the codes you have identified as invalid.
 
-CRITICAL: Medical coding has MANY exceptions and special cases. When unsure, assume VALID.
-
-Return this format:
-{
-  "invalidCodes": ["CODE1", "CODE2"],
-  "reasons": {
-    "CODE1": "Invalid base code - does not exist",
-    "CODE2": "Invalid modifier - E&M codes cannot be lateralized"
-  }
-}
-
-BE EXTREMELY CONSERVATIVE - err on the side of marking codes as VALID.
-
-RESPOND WITH ONLY THE JSON, NO OTHER TEXT.`;
+CODES: ${uniqueCodes.join(', ')}`;
 
     const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.1,
+      max_tokens: 2000,
+    });
+
+    //Log the request and response for debugging  
+    console.log('[BULK HCPCS REQUEST] GPT-4o request:', {
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.1,
@@ -160,14 +145,56 @@ RESPOND WITH ONLY THE JSON, NO OTHER TEXT.`;
         });
       }
 
+      // Double-check any codes that were flagged as invalid
+      let finalInvalidCodes = invalidCodes;
+      if (invalidCodes.length > 0) {
+        console.log(`[DOUBLE CHECK] Verifying ${invalidCodes.length} flagged codes:`, invalidCodes);
+        
+        const verificationPromises = invalidCodes.map(async (code) => {
+          try {
+            const verifyPrompt = `Is "${code}" a valid HCPCS/CPT code? Answer only "yes" or "no".`;
+            const verifyResponse = await openai.chat.completions.create({
+              model: "gpt-4o",
+              messages: [{ role: "user", content: verifyPrompt }],
+              temperature: 0,
+              max_tokens: 10,
+            });
+            
+            const verifyResult = verifyResponse.choices[0]?.message?.content?.toLowerCase().trim() || '';
+            console.log(`[DOUBLE CHECK] ${code}: ${verifyResult}`);
+            
+            // If the double-check says it's valid, remove it from invalid list
+            return verifyResult.includes('yes') ? null : code;
+          } catch (error) {
+            console.error(`[DOUBLE CHECK] Error verifying ${code}:`, error);
+            // If verification fails, assume the code is valid (conservative approach)
+            return null;
+          }
+        });
+        
+        const verificationResults = await Promise.all(verificationPromises);
+        finalInvalidCodes = verificationResults.filter(code => code !== null) as string[];
+        
+        console.log(`[DOUBLE CHECK] After verification: ${finalInvalidCodes.length} codes remain invalid:`, finalInvalidCodes);
+        
+        // Update validation results for codes that were cleared by double-check
+        invalidCodes.forEach(code => {
+          if (!finalInvalidCodes.includes(code)) {
+            validationResults[code] = {
+              isValid: true,
+              reason: 'Cleared by double-check verification'
+            };
+          }
+        });
+      }
+
       const validationData: ValidationResponse = {
-        invalidCodes,
+        invalidCodes: finalInvalidCodes,
         validationResults,
         detailedResults: detailedResults.length > 0 ? detailedResults : undefined
       };
 
-      console.log(`[BULK HCPCS VALIDATION] Found ${invalidCodes.length} invalid codes:`, invalidCodes);
-      console.log(`[BULK HCPCS VALIDATION] Detailed validation results:`, detailedResults.slice(0, 5));
+      console.log(`[BULK HCPCS VALIDATION] Final result: ${finalInvalidCodes.length} invalid codes:`, finalInvalidCodes);
 
       return NextResponse.json(validationData);
 
