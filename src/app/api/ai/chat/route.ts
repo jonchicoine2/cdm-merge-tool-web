@@ -4,7 +4,7 @@ import { parseCommand } from '../../../../utils/commandParser';
 
 // API route configuration
 export const runtime = 'nodejs';
-export const maxDuration = 120; // 2 minutes timeout for local development
+export const maxDuration = 3600; // 1 hour timeout for testing
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
 
@@ -343,63 +343,26 @@ If you are absolutely certain this CPT code does not exist, respond with exactly
 User question: ${message}`;
 
         try {
-          const miniResult = await callGemini([
-            { role: "user", content: miniPrompt }
-          ], {
-            temperature: 0.1,
-            maxTokens: 800,
-          }) || '';
-          console.log('[HCPCS LOOKUP] GPT-4o-mini response:', miniResult.substring(0, 200) + '...');
-
-          // Check if GPT-4o-mini couldn't find the code - use more specific patterns
-          if (miniResult.includes('CODE_NOT_FOUND') || 
-              miniResult.toLowerCase().includes('code not found') ||
-              miniResult.toLowerCase().includes('unable to find') ||
-              /^(this\s+)?code\s+(is\s+)?not\s+(valid|recognized|found)/i.test(miniResult) ||
-              /^(the\s+)?hcpcs\s+code.*not\s+(valid|recognized|found)/i.test(miniResult)) {
-            
-            console.log('[HCPCS LOOKUP] GPT-4o-mini could not find code, falling back to GPT-4o');
-            
-            // Log fallback internally but don't inform user
-            // controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '⚠️ Initial lookup unsuccessful. Trying with more comprehensive medical database...\n\n' })}\n\n`));
-            
-            const fallbackPrompt = `You are a comprehensive medical coding expert with access to the most current HCPCS/CPT code database. 
-
-User is asking about HCPCS code ${hcpcsCode}.
-
-CRITICAL: This code may be:
-- A newer code added recently
-- A specialized code not in common databases  
-- A deleted/retired code with historical information
-- A valid code that requires deeper medical knowledge
-
-Please provide the most accurate information possible about this code. If it's a valid code, explain what it covers. If it's retired, mention when and why. If you truly cannot identify it, provide guidance on where to verify it.
-
-User question: ${message}`;
-
-            const fullContent = await callGemini([
-              { role: "user", content: fallbackPrompt }
-            ], {
-              temperature: 0.1,
-              maxTokens: 1000,
-            }) || '';
-            
-            // Simulate streaming by sending character by character
-            for (const char of fullContent) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: char })}\n\n`));
+          // Use REAL streaming for HCPCS lookup - same pattern as main chat
+          const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+          
+          const result = await model.generateContentStream(miniPrompt);
+          const geminiStream = result.stream;
+          
+          let fullResponse = '';
+          
+          // REAL STREAMING: Send each chunk from Gemini directly to client as it arrives
+          for await (const chunk of geminiStream) {
+            const content = chunk.text();
+            if (content) {
+              fullResponse += content;
+              
+              // Send chunk immediately to client (real streaming)
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: content })}\n\n`));
             }
-
-            // Removed enhanced database footer message
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, fullResponse: JSON.stringify({ type: 'query', response: fullContent }) })}\n\n`));
-            
-          } else {
-            // GPT-4o-mini found the code successfully
-            for (const char of miniResult) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: char })}\n\n`));
-            }
-            
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, fullResponse: JSON.stringify({ type: 'query', response: miniResult }) })}\n\n`));
           }
+          
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, fullResponse: JSON.stringify({ type: 'query', response: fullResponse }) })}\n\n`));
           
         } catch (error) {
           console.error('[HCPCS LOOKUP] Error:', error);
@@ -683,19 +646,37 @@ Provide a helpful, informative answer about HCPCS codes, modifiers, or healthcar
 
         console.log('[AI API DEBUG] Follow-up with context:', chatContext?.length || 0, 'previous messages');
 
-        const fullContent = await callGemini(messages, {
-          temperature: 0.3,
-          maxTokens: 800,
-        }) || '';
-
+        // Use REAL streaming for follow-up questions too
         const encoder = new TextEncoder();
         const stream = new ReadableStream({
           async start(controller) {
             try {
+              const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+              const prompt = messages.map(msg => {
+                if (msg.role === 'system') return `System: ${msg.content}`;
+                if (msg.role === 'user') return `User: ${msg.content}`;
+                if (msg.role === 'assistant') return `Assistant: ${msg.content}`;
+                return msg.content;
+              }).join('\n\n');
+
+              const geminiStream = await Promise.race([
+                model.generateContentStream(prompt),
+                new Promise((_, reject) =>
+                  setTimeout(() => reject(new Error('Request timeout (10min limit)')), 600000)
+                )
+              ]) as AsyncIterable<{ text: () => string }>;
               
-              // Simulate streaming by sending character by character
-              for (const char of fullContent) {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: char })}\n\n`));
+              let fullContent = '';
+              
+              // REAL STREAMING: Send each chunk from Gemini directly to client as it arrives
+              for await (const chunk of geminiStream) {
+                const content = chunk.text();
+                if (content) {
+                  fullContent += content;
+                  
+                  // Send chunk immediately to client (real streaming)
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: content })}\n\n`));
+                }
               }
               
               // Send completion signal
@@ -1218,9 +1199,9 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
             console.log('[GEMINI STREAM DEBUG] Attempting streaming call to:', selectedModel, 'prompt length:', prompt.length);
             geminiStream = await Promise.race([
               model.generateContentStream(prompt),
-              // Additional timeout safety net for Netlify
+              // Additional timeout safety net
               new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Request timeout (12s limit)')), 12000)
+                setTimeout(() => reject(new Error('Request timeout (10min limit)')), 600000)
               )
             ]) as AsyncIterable<{ text: () => string }>;
             console.log('[GEMINI STREAM DEBUG] Successfully initiated stream from:', selectedModel);
@@ -1289,46 +1270,26 @@ Examples:
 
             geminiStream = await Promise.race([
               fallbackModelInstance.generateContentStream(fallbackPrompt),
-              // Shorter timeout for retry
+              // Longer timeout for retry
               new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Request timeout (6s limit on retry)')), 6000)
+                setTimeout(() => reject(new Error('Request timeout (5min limit on retry)')), 300000)
               )
             ]) as AsyncIterable<{ text: () => string }>;
           }
           
-          // Process the Gemini stream to build the full response buffer
+          // REAL STREAMING: Send each chunk from Gemini directly to client as it arrives
           for await (const chunk of geminiStream) {
             const content = chunk.text();
             if (content) {
               responseBuffer += content;
-            }
-          }
-
-          // Now that we have the full response buffer, parse it.
-          let intent;
-          try {
-            const jsonMatch = responseBuffer.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              intent = JSON.parse(jsonMatch[0]);
-              console.log('[AI API DEBUG] Full AI JSON Response:', JSON.stringify(intent, null, 2));
-            } else {
-              intent = { response: responseBuffer }; // Fallback for non-JSON
-            }
-          } catch (e) {
-            console.error("AI response parsing error:", e);
-            intent = { response: responseBuffer }; // Fallback for malformed JSON
-          }
-
-          // Stream the response text out to the client
-          if (intent && intent.response) {
-            for (const char of intent.response) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: char, complete: false })}\n\n`));
-              await new Promise(resolve => setTimeout(resolve, 5)); // 5ms delay for fast typing effect
+              
+              // Send chunk immediately to client (real streaming)
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: content })}\n\n`));
             }
           }
           
           // Send complete signal with full response for action parsing
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '', complete: true, fullResponse: responseBuffer })}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, fullResponse: responseBuffer })}\n\n`));
           controller.close();
           
         } catch (error) {
