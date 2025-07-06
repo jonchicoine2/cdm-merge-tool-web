@@ -86,6 +86,8 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [requestStartTime, setRequestStartTime] = useState<number | null>(null);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [width, setWidth] = useState(320); // Reduced from 400 to 320
   const [isResizing, setIsResizing] = useState(false);
   const [includeContext, setIncludeContext] = useState(false);
@@ -99,6 +101,7 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
   const resizeRef = useRef<HTMLDivElement>(null);
   const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastNotifiedWidthRef = useRef<number>(320);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -271,11 +274,14 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
     };
   }, [isResizing, notifyWidthChange, onWidthChange, isOpen, width]);
 
-  // Cleanup throttle timeout on unmount
+  // Cleanup throttle timeout and timer on unmount
   useEffect(() => {
     return () => {
       if (throttleTimeoutRef.current) {
         clearTimeout(throttleTimeoutRef.current);
+      }
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
       }
     };
   }, []);
@@ -302,6 +308,16 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
+    
+    // Start timer
+    const startTime = Date.now();
+    setRequestStartTime(startTime);
+    setElapsedTime(0);
+    
+    // Update timer every 100ms
+    timerIntervalRef.current = setInterval(() => {
+      setElapsedTime(Date.now() - startTime);
+    }, 100);
 
     // Create AI message for streaming updates (declare outside try block)
     const aiMessageId = (Date.now() + 1).toString();
@@ -476,6 +492,13 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
       ));
     } finally {
       setIsLoading(false);
+      
+      // Stop timer
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+      setRequestStartTime(null);
     }
   };
 
@@ -747,8 +770,11 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
           </List>
 
           {isLoading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 2 }}>
               <CircularProgress size={24} />
+              <Typography variant="caption" sx={{ mt: 1, color: 'text.secondary' }}>
+                {(elapsedTime / 1000).toFixed(1)}s
+              </Typography>
             </Box>
           )}
 

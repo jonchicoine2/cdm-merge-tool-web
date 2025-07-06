@@ -332,11 +332,12 @@ This is a CPT (Current Procedural Terminology) code, also known as HCPCS Level I
 
 CRITICAL RULE: If you are in any way unsure about a code's validity, you MUST assume it is VALID and provide the best information you can. Only respond with "CODE_NOT_FOUND" if you are absolutely certain the code does not exist in the CPT code set.
 
-Provide detailed information about this CPT code including:
+RESPONSE LENGTH LIMIT: Keep your response to 200 words or less. Be concise and direct.
+
+Provide brief information about this CPT code:
 1. What procedure/service it represents
-2. Category/specialty it belongs to  
-3. Any important usage notes or requirements
-4. Typical reimbursement considerations if relevant
+2. Category/specialty it belongs to
+3. Key usage notes (if any)
 
 If you are absolutely certain this CPT code does not exist, respond with exactly: "CODE_NOT_FOUND"
 
