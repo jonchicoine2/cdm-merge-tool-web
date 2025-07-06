@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  timeout: 90000,
-  maxRetries: 2,
-});
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
 
 interface ValidationRequest {
   codes: string[];
@@ -62,23 +58,18 @@ Return a JSON object with the key "invalidCodes" containing a list of the codes 
 
 CODES: ${uniqueCodes.join(', ')}`;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.1,
-      max_tokens: 2000,
-    });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    const response = await model.generateContent(prompt);
 
     //Log the request and response for debugging  
-    console.log('[BULK HCPCS REQUEST] GPT-4o request:', {
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.1,
-      max_tokens: 2000,
+    console.log('[BULK HCPCS REQUEST] Gemini request:', {
+      model: "gemini-1.5-flash",
+      prompt: prompt.substring(0, 200) + '...'
     });
 
-    const result = response.choices[0]?.message?.content || '';
-    console.log('[BULK HCPCS VALIDATION] GPT-4o full response:', result);
+    const result = response.response.text() || '';
+    console.log('[BULK HCPCS VALIDATION] Gemini full response:', result);
 
     try {
       // Clean up the response to extract JSON - look for different possible formats
@@ -153,14 +144,10 @@ CODES: ${uniqueCodes.join(', ')}`;
         const verificationPromises = invalidCodes.map(async (code) => {
           try {
             const verifyPrompt = `Is "${code}" a valid HCPCS/CPT code? Answer only "yes" or "no".`;
-            const verifyResponse = await openai.chat.completions.create({
-              model: "gpt-4o",
-              messages: [{ role: "user", content: verifyPrompt }],
-              temperature: 0,
-              max_tokens: 10,
-            });
+            const verifyModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const verifyResponse = await verifyModel.generateContent(verifyPrompt);
             
-            const verifyResult = verifyResponse.choices[0]?.message?.content?.toLowerCase().trim() || '';
+            const verifyResult = verifyResponse.response.text()?.toLowerCase().trim() || '';
             console.log(`[DOUBLE CHECK] ${code}: ${verifyResult}`);
             
             // If the double-check says it's valid, remove it from invalid list

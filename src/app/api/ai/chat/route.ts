@@ -1,16 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { parseCommand } from '../../../../utils/commandParser';
 
 // API route configuration
 export const runtime = 'nodejs';
 export const maxDuration = 120; // 2 minutes timeout for local development
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  timeout: 90000, // 90 seconds timeout
-  maxRetries: 2, // Retry failed requests twice
-});
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
+
+// Helper function to call Gemini 
+async function callGemini(messages: Array<{role: string, content: string}>, options: {model?: string, temperature?: number, maxTokens?: number} = {}) {
+  const model = genAI.getGenerativeModel({ model: options.model || "gemini-1.5-flash" });
+  
+  // Convert OpenAI messages format to Gemini prompt
+  const prompt = messages.map(msg => {
+    if (msg.role === 'system') return `System: ${msg.content}`;
+    if (msg.role === 'user') return `User: ${msg.content}`;
+    if (msg.role === 'assistant') return `Assistant: ${msg.content}`;
+    return msg.content;
+  }).join('\n\n');
+  
+  const response = await model.generateContent(prompt);
+  return response.response.text();
+}
 
 interface GridContext {
   columns: string[];
@@ -256,17 +268,15 @@ SAMPLE PROCESSING is appropriate for:
 
 Respond with exactly: "BATCH" or "SAMPLE"`;
 
-        const response = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
-          messages: [
-            { role: "system", content: batchDecisionPrompt },
-            { role: "user", content: `Should this request use batch processing: "${message}"` }
-          ],
+        const response = await callGemini([
+          { role: "system", content: batchDecisionPrompt },
+          { role: "user", content: `Should this request use batch processing: "${message}"` }
+        ], {
           temperature: 0.1,
-          max_tokens: 10,
+          maxTokens: 10,
         });
 
-        const decision = response.choices[0]?.message?.content?.trim().toUpperCase();
+        const decision = response?.trim().toUpperCase();
         const shouldBatch = decision === 'BATCH';
         
         console.log('[BATCH DEBUG] AI decision for borderline case:', decision, '-> shouldBatch:', shouldBatch);
@@ -299,31 +309,29 @@ async function handleHcpcsCodeQuestion(message: string) {
         // Try GPT-4o-mini first
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '🔍 Looking up HCPCS code information...\n\n' })}\n\n`));
         
-        const miniPrompt = `You are a medical coding expert. The user is asking about HCPCS code ${hcpcsCode}.
+        const miniPrompt = `You are a medical coding expert. The user is asking about CPT code ${hcpcsCode}.
 
-IMPORTANT: HCPCS codes include both CPT codes (Level I) and HCPCS Level II codes:
-- CPT codes: 5 digits (10000-99999) like 99213, 27447, 36415
-- HCPCS Level II: Letter + 4 digits like A4206, J1745, L3702
+This is a CPT (Current Procedural Terminology) code, also known as HCPCS Level I code. 
 
-Provide detailed information about this code including:
-1. What procedure/service/item it represents
+CRITICAL RULE: If you are in any way unsure about a code's validity, you MUST assume it is VALID and provide the best information you can. Only respond with "CODE_NOT_FOUND" if you are absolutely certain the code does not exist in the CPT code set.
+
+Provide detailed information about this CPT code including:
+1. What procedure/service it represents
 2. Category/specialty it belongs to  
 3. Any important usage notes or requirements
 4. Typical reimbursement considerations if relevant
 
-If you cannot find this code or are unsure about its validity, respond with exactly: "CODE_NOT_FOUND"
+If you are absolutely certain this CPT code does not exist, respond with exactly: "CODE_NOT_FOUND"
 
 User question: ${message}`;
 
         try {
-          const miniResponse = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [{ role: "user", content: miniPrompt }],
+          const miniResult = await callGemini([
+            { role: "user", content: miniPrompt }
+          ], {
             temperature: 0.1,
-            max_tokens: 800,
-          });
-
-          const miniResult = miniResponse.choices[0]?.message?.content || '';
+            maxTokens: 800,
+          }) || '';
           console.log('[HCPCS LOOKUP] GPT-4o-mini response:', miniResult.substring(0, 200) + '...');
 
           // Check if GPT-4o-mini couldn't find the code - use more specific patterns
@@ -338,7 +346,7 @@ User question: ${message}`;
             // Log fallback internally but don't inform user
             // controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '⚠️ Initial lookup unsuccessful. Trying with more comprehensive medical database...\n\n' })}\n\n`));
             
-            const gpt4Prompt = `You are a comprehensive medical coding expert with access to the most current HCPCS/CPT code database. 
+            const fallbackPrompt = `You are a comprehensive medical coding expert with access to the most current HCPCS/CPT code database. 
 
 User is asking about HCPCS code ${hcpcsCode}.
 
@@ -352,23 +360,16 @@ Please provide the most accurate information possible about this code. If it's a
 
 User question: ${message}`;
 
-            const gpt4Response = await openai.chat.completions.create({
-              model: "gpt-4o",
-              messages: [{ role: "user", content: gpt4Prompt }],
+            const fullContent = await callGemini([
+              { role: "user", content: fallbackPrompt }
+            ], {
               temperature: 0.1,
-              max_tokens: 1000,
-              stream: true,
-            });
-
-            // Removed enhanced lookup header message
-
-            let fullContent = '';
-            for await (const chunk of gpt4Response) {
-              const content = chunk.choices[0]?.delta?.content || '';
-              if (content) {
-                fullContent += content;
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
-              }
+              maxTokens: 1000,
+            }) || '';
+            
+            // Simulate streaming by sending character by character
+            for (const char of fullContent) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: char })}\n\n`));
             }
 
             // Removed enhanced database footer message
@@ -548,17 +549,13 @@ Example response:
 {"invalidCodes": ["INVALID1 (not a valid CPT code)", "99999 (code does not exist)"], "missingFields": 15, "inconsistencies": ["CDM values inconsistent", "QTY always 1"], "summary": "Found 2 invalid codes, 15 missing fields, 2 inconsistencies"}`;
 
               try {
-                const batchResponse = await openai.chat.completions.create({
-                  model: "gpt-4o",
-                  messages: [
-                    { role: "system", content: batchSystemPrompt },
-                    { role: "user", content: `Analyze batch ${i + 1}: records ${start + 1}-${end}` }
-                  ],
+                const batchResult = await callGemini([
+                  { role: "system", content: batchSystemPrompt },
+                  { role: "user", content: `Analyze batch ${i + 1}: records ${start + 1}-${end}` }
+                ], {
                   temperature: 0.1,
-                  max_tokens: 2000,
+                  maxTokens: 2000,
                 });
-
-                const batchResult = batchResponse.choices[0]?.message?.content;
                 if (batchResult) {
                   console.log(`[AI API DEBUG] Batch ${i + 1} raw response:`, batchResult);
                   try {
@@ -669,26 +666,19 @@ Provide a helpful, informative answer about HCPCS codes, modifiers, or healthcar
 
         console.log('[AI API DEBUG] Follow-up with context:', chatContext?.length || 0, 'previous messages');
 
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages,
+        const fullContent = await callGemini(messages, {
           temperature: 0.3,
-          max_tokens: 800,
-          stream: true,
-        });
+          maxTokens: 800,
+        }) || '';
 
         const encoder = new TextEncoder();
         const stream = new ReadableStream({
           async start(controller) {
             try {
-              let fullContent = '';
               
-              for await (const chunk of response) {
-                const content = chunk.choices[0]?.delta?.content || '';
-                if (content) {
-                  fullContent += content;
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
-                }
+              // Simulate streaming by sending character by character
+              for (const char of fullContent) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: char })}\n\n`));
               }
               
               // Send completion signal
@@ -821,11 +811,11 @@ Provide a helpful, informative answer about HCPCS codes, modifiers, or healthcar
     }
     
 
-    console.log('API Key present:', !!process.env.OPENAI_API_KEY);
-    console.log('API Key length:', process.env.OPENAI_API_KEY?.length);
+    console.log('Google AI API Key present:', !!process.env.GOOGLE_AI_API_KEY);
+    console.log('Google AI API Key length:', process.env.GOOGLE_AI_API_KEY?.length);
 
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
+    if (!process.env.GOOGLE_AI_API_KEY) {
+      return NextResponse.json({ error: 'Google AI API key not configured' }, { status: 500 });
     }
 
     // Check if multiple grids are visible (ambiguous context)
@@ -1174,11 +1164,10 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          let openaiStream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
+          let geminiStream: AsyncIterable<any>;
           
-          // Select model based on request type - Use GPT-4o-mini for cost efficiency with complex prompt
-          const selectedModel = "gpt-4o-mini";
-          const maxTokens = requestType === 'analysis' || requestType === 'validation' ? 4000 : requestType === 'documentation' ? 1000 : 500; // Appropriate tokens for GPT-4 analysis
+          // Select model based on request type - Use Gemini for cost efficiency with complex prompt
+          const selectedModel = "gemini-1.5-flash";
           
           console.log('[AI API DEBUG] Using model:', selectedModel, 'for request type:', requestType);
           console.log('[AI API DEBUG] Dataset size for analysis:', optimizedGridContext.sampleData.length, 'records');
@@ -1198,28 +1187,29 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
             console.log('[AI API DEBUG] Regular processing with context:', chatContext?.length || 0, 'previous messages');
             console.log('[AI API DEBUG] System prompt being sent to AI:', systemPrompt.substring(0, 500) + '...');
             console.log('[AI API DEBUG] User message being sent to AI:', message);
-            console.log('[AI API DEBUG] Full messages array being sent to OpenAI:', JSON.stringify(regularMessages, null, 2));
+            console.log('[AI API DEBUG] Full messages array being sent to Gemini:', JSON.stringify(regularMessages, null, 2));
 
-            openaiStream = await Promise.race([
-              openai.chat.completions.create({
-                model: selectedModel,
-                messages: regularMessages,
-                temperature: 0.1,
-                max_tokens: maxTokens,
-                stream: true,
-              }),
+            const model = genAI.getGenerativeModel({ model: selectedModel });
+            const prompt = regularMessages.map(msg => {
+              if (msg.role === 'system') return `System: ${msg.content}`;
+              if (msg.role === 'user') return `User: ${msg.content}`;
+              if (msg.role === 'assistant') return `Assistant: ${msg.content}`;
+              return msg.content;
+            }).join('\n\n');
+
+            geminiStream = await Promise.race([
+              model.generateContentStream(prompt),
               // Additional timeout safety net for Netlify
               new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Request timeout (12s limit)')), 12000)
               )
-            ]) as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
+            ]);
           } catch (firstAttemptError) {
             // If first attempt fails, implement intelligent fallback
             console.log('[AI API DEBUG] First attempt failed:', firstAttemptError);
             
-            // For any requests that failed, fallback to GPT-4 (non-turbo)
-            const fallbackModel = "gpt-4";
-            const fallbackMaxTokens = requestType === 'analysis' || requestType === 'validation' ? 4000 : requestType === 'documentation' ? 800 : 300;
+            // For any requests that failed, fallback to same Gemini model with reduced context
+            const fallbackModel = "gemini-1.5-flash";
             
             // Create fallback context with appropriate data for request type
             const fallbackGridContext = {
@@ -1264,29 +1254,31 @@ Examples:
 - "sort master by description" → {"type": "action", "action": "sort", "parameters": {"column": "description", "direction": "asc", "view": "master"}, "response": "Sorting master grid by description"}
 - "show master" → {"type": "action", "action": "switch", "parameters": {"view": "master"}, "response": "Switching to master grid"}`;
             
-            const retryMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+            const retryMessages = [
               { role: "system", content: simplifiedPrompt },
               { role: "user", content: message }
             ];
             
-            openaiStream = await Promise.race([
-              openai.chat.completions.create({
-                model: fallbackModel,
-                messages: retryMessages,
-                temperature: 0.1,
-                max_tokens: fallbackMaxTokens,
-                stream: true,
-              }),
+            const fallbackModelInstance = genAI.getGenerativeModel({ model: fallbackModel });
+            const fallbackPrompt = retryMessages.map(msg => {
+              if (msg.role === 'system') return `System: ${msg.content}`;
+              if (msg.role === 'user') return `User: ${msg.content}`;
+              if (msg.role === 'assistant') return `Assistant: ${msg.content}`;
+              return msg.content;
+            }).join('\n\n');
+
+            geminiStream = await Promise.race([
+              fallbackModelInstance.generateContentStream(fallbackPrompt),
               // Shorter timeout for retry
               new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Request timeout (6s limit on retry)')), 6000)
               )
-            ]) as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
+            ]);
           }
           
-          // Process the stream to build the full response buffer
-          for await (const chunk of openaiStream) {
-            const content = chunk.choices[0]?.delta?.content;
+          // Process the Gemini stream to build the full response buffer
+          for await (const chunk of geminiStream) {
+            const content = chunk.text();
             if (content) {
               responseBuffer += content;
             }
