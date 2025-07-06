@@ -10,7 +10,7 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
 
 // Helper function to call Gemini - simplified to match working HCPCS validation
 async function callGemini(messages: Array<{role: string, content: string}>, options: {model?: string, temperature?: number, maxTokens?: number} = {}) {
-  const modelName = options.model || "gemini-1.5-flash";
+  const modelName = options.model || "gemini-2.0-flash-exp";
   console.log('[GEMINI DEBUG] Attempting to call model:', modelName);
   
   try {
@@ -332,12 +332,11 @@ This is a CPT (Current Procedural Terminology) code, also known as HCPCS Level I
 
 CRITICAL RULE: If you are in any way unsure about a code's validity, you MUST assume it is VALID and provide the best information you can. Only respond with "CODE_NOT_FOUND" if you are absolutely certain the code does not exist in the CPT code set.
 
-RESPONSE LENGTH LIMIT: Keep your response to 200 words or less. Be concise and direct.
-
-Provide brief information about this CPT code:
+Provide detailed information about this CPT code including:
 1. What procedure/service it represents
-2. Category/specialty it belongs to
-3. Key usage notes (if any)
+2. Category/specialty it belongs to  
+3. Any important usage notes or requirements
+4. Typical reimbursement considerations if relevant
 
 If you are absolutely certain this CPT code does not exist, respond with exactly: "CODE_NOT_FOUND"
 
@@ -345,7 +344,7 @@ User question: ${message}`;
 
         try {
           // Use REAL streaming for HCPCS lookup - same pattern as main chat
-          const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+          const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
           
           const result = await model.generateContentStream(miniPrompt);
           const geminiStream = result.stream;
@@ -652,7 +651,7 @@ Provide a helpful, informative answer about HCPCS codes, modifiers, or healthcar
         const stream = new ReadableStream({
           async start(controller) {
             try {
-              const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+              const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
               const prompt = messages.map(msg => {
                 if (msg.role === 'system') return `System: ${msg.content}`;
                 if (msg.role === 'user') return `User: ${msg.content}`;
@@ -1166,7 +1165,7 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
           let geminiStream: AsyncIterable<{ text: () => string }>;
           
           // Select model based on request type - Use same as working HCPCS validation
-          const selectedModel = "gemini-1.5-flash";
+          const selectedModel = "gemini-2.0-flash-exp";
           
           console.log('[AI API DEBUG] Using model:', selectedModel, 'for request type:', requestType);
           console.log('[AI API DEBUG] Dataset size for analysis:', optimizedGridContext.sampleData.length, 'records');
@@ -1211,7 +1210,7 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
             console.log('[AI API DEBUG] First attempt failed:', firstAttemptError);
             
             // For any requests that failed, fallback to stable Gemini 1.5 model
-            const fallbackModel = "gemini-1.5-flash";
+            const fallbackModel = "gemini-2.0-flash-exp";
             
             // Create fallback context with appropriate data for request type
             const fallbackGridContext = {
