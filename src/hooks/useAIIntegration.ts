@@ -155,7 +155,7 @@ export function useAIIntegration(onAction?: (intent: any) => void): UseAIIntegra
     });
   }, [addMessage]);
 
-  const sendMessage = useCallback(async (message: string, overrideMessage?: string) => {
+  const sendMessage = useCallback(async (message: string, overrideMessage?: string, gridContext?: any) => {
     console.log('[AI INTEGRATION DEBUG] sendMessage called with:', { message, overrideMessage, isProcessing });
     
     if (isProcessing) {
@@ -188,6 +188,7 @@ export function useAIIntegration(onAction?: (intent: any) => void): UseAIIntegra
       abortController.current = new AbortController();
 
       console.log('[AI INTEGRATION DEBUG] Making fetch request to /api/ai/chat');
+      console.log('[AI INTEGRATION DEBUG] GridContext being sent:', gridContext);
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: {
@@ -199,6 +200,7 @@ export function useAIIntegration(onAction?: (intent: any) => void): UseAIIntegra
             selectedGrid,
             chatHistory: chatHistory.slice(-10), // Send last 10 messages for context
           },
+          ...(gridContext && { gridContext }), // Only include gridContext if provided
         }),
         signal: abortController.current.signal,
       });
@@ -415,10 +417,6 @@ export function useAIIntegration(onAction?: (intent: any) => void): UseAIIntegra
       "What is this app for?",
       "Duplicate Row",
       "Export the data",
-      "Show me records with missing HCPCS codes",
-      "Find duplicate entries in the current data", 
-      "Count rows by procedure type",
-      "Filter records from the last month",
     ];
 
     const gridSpecificQueries = {
@@ -431,8 +429,6 @@ export function useAIIntegration(onAction?: (intent: any) => void): UseAIIntegra
         "Validate client data format",
       ],
       merged: [
-        "Show merge statistics",
-        "Find records that didn't match",
       ],
       unmatched: [
         "Why didn't these records match?",

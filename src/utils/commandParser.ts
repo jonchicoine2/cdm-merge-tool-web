@@ -172,9 +172,21 @@ export function parseCommand(message: string, gridContext: GridContext): ParsedC
     }
   }
   
-  // Duplicate commands  
-  if (/duplicate.*(selected|current|row)/i.test(msg)) {
-    console.log('[COMMAND PARSER] Detected duplicate command');
+  // Find duplicates (switch to duplicates view) - check this BEFORE duplicate row command
+  if (/find.*duplicate|show.*duplicate|duplicate.*entries|duplicate.*data|duplicate.*records/i.test(msg) && 
+      !/duplicate.*(selected|current|row)/i.test(msg)) {
+    console.log('[COMMAND PARSER] Detected find duplicates command - switching to duplicates view');
+    return {
+      type: 'action',
+      action: 'switch',
+      parameters: { view: 'duplicates' },
+      response: 'Switching to duplicates view to show duplicate entries'
+    };
+  }
+  
+  // Duplicate row commands (duplicate a selected row)
+  if (/duplicate.*(selected|current|row)/i.test(msg) || /^duplicate\s*row$/i.test(msg)) {
+    console.log('[COMMAND PARSER] Detected duplicate row command');
     if (gridContext.selectedRowId) {
       return {
         type: 'action',

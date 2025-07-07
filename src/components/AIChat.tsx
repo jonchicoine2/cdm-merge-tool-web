@@ -29,8 +29,6 @@ import {
 } from '@mui/icons-material';
 import { useAIIntegration, ChatMessage } from '../hooks/useAIIntegration';
 
-interface Message extends ChatMessage {}
-
 interface GridContext {
   columns: string[];
   rowCount: number;
@@ -82,7 +80,6 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
   const {
     chatHistory: messages,
     isProcessing: isLoading,
-    error,
     sendMessage,
     clearChatHistory,
     generateSuggestedQueries,
@@ -112,7 +109,7 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
     sendMessage: (message: string, overrideMessage?: string) => {
-      sendMessage(message, overrideMessage);
+      sendMessage(message, overrideMessage, gridContext);
     },
   }));
 
@@ -322,7 +319,7 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
         setElapsedTime(Date.now() - startTime);
       }, 100);
       
-      sendMessage(messageToSend);
+      sendMessage(messageToSend, undefined, gridContext);
       addToHistory(messageToSend);
       setInputValue('');
     }

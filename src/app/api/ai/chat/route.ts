@@ -409,17 +409,19 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
   
   try {
-    const { message, context }: { 
+    const requestBody = await request.json();
+    const { message, context, gridContext: providedGridContext }: { 
       message: string; 
-      context?: { selectedGrid?: string; chatHistory?: Array<any> }
-    } = await request.json();
+      context?: { selectedGrid?: string; chatHistory?: Array<{id: string; content: string; type: string}> };
+      gridContext?: GridContext;
+    } = requestBody;
     
-    // Mock gridContext since the frontend isn't sending it anymore
-    const gridContext: GridContext = {
+    // Use provided gridContext if available, otherwise create a mock one for backward compatibility
+    const gridContext: GridContext = providedGridContext || {
       columns: ['HCPCs', 'CDM', 'Description', 'QTY', 'PhysicianCDM'],
       rowCount: 0,
       sampleData: [],
-      currentView: (context?.selectedGrid as any) || 'merged',
+      currentView: (context?.selectedGrid as 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') || 'merged',
       availableGrids: {
         master: { hasData: false, rowCount: 0 },
         client: { hasData: false, rowCount: 0 },
@@ -428,12 +430,21 @@ export async function POST(request: NextRequest) {
         duplicates: { hasData: false, rowCount: 0 }
       },
       isInCompareMode: false,
-      selectedGrid: (context?.selectedGrid as any) || 'merged',
+      selectedGrid: (context?.selectedGrid as 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') || 'merged',
       selectedRowId: null,
       selectedRowData: null,
       selectedHcpcs: null,
       selectedRowCount: 0
     };
+    
+    console.log('[API DEBUG] Request body:', { message, hasContext: !!context, hasProvidedGridContext: !!providedGridContext });
+    console.log('[API DEBUG] ProvidedGridContext received:', providedGridContext);
+    console.log('[API DEBUG] Final gridContext used:', { 
+      hasProvidedContext: !!providedGridContext,
+      selectedRowId: gridContext.selectedRowId,
+      selectedHcpcs: gridContext.selectedHcpcs,
+      selectedRowCount: gridContext.selectedRowCount 
+    });
     
     const chatContext = context?.chatHistory || [];
     
