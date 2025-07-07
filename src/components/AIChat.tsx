@@ -27,13 +27,9 @@ import {
   Clear as ClearIcon,
   DragIndicator as DragIcon,
 } from '@mui/icons-material';
+import { useAIIntegration, ChatMessage } from '../hooks/useAIIntegration';
 
-interface Message {
-  id: string;
-  type: 'user' | 'ai';
-  content: string;
-  timestamp: Date;
-}
+interface Message extends ChatMessage {}
 
 interface GridContext {
   columns: string[];
@@ -79,15 +75,22 @@ interface AIChatProps {
 }
 
 export interface AIChatHandle {
-  sendMessage: (message: string) => void;
+  sendMessage: (message: string, overrideMessage?: string) => void;
 }
 
 const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, isOpen, onClose, selectedGrid, onGridChange, onWidthChange }, ref) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const {
+    chatHistory: messages,
+    isProcessing: isLoading,
+    error,
+    sendMessage,
+    clearChatHistory,
+    generateSuggestedQueries,
+  } = useAIIntegration(onAction);
+
   const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
-  const [width, setWidth] = useState(320); // Reduced from 400 to 320
+  const [width, setWidth] = useState(320);
   const [isResizing, setIsResizing] = useState(false);
   const [includeContext, setIncludeContext] = useState(false);
   
@@ -108,9 +111,9 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
 
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
-    sendMessage: (message: string) => {
-      handleSendMessage(message);
-    }
+    sendMessage: (message: string, overrideMessage?: string) => {
+      sendMessage(message, overrideMessage);
+    },
   }));
 
   // Command history functions
@@ -164,6 +167,14 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Clear timer when loading stops
+  useEffect(() => {
+    if (!isLoading && timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+  }, [isLoading]);
 
   // Load command history and context setting from localStorage on component mount
   useEffect(() => {
@@ -290,212 +301,30 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
     setIsResizing(true);
   };
 
-  const handleSendMessage = async (messageOverride?: string) => {
-    const messageToSend = messageOverride?.trim() || inputValue.trim();
-    if (!messageToSend || isLoading) return;
+  const handleSendMessage = (messageOverride?: string) => {
+    const messageToSend = messageOverride || inputValue;
+    console.log('[AI CHAT DEBUG] handleSendMessage called with:', { messageOverride, messageToSend });
     
-    // Add to command history
-    addToHistory(messageToSend);
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: messageToSend,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
-    setIsLoading(true);
-    
-    // Start timer
-    const startTime = Date.now();
-    setElapsedTime(0);
-    
-    // Update timer every 100ms
-    timerIntervalRef.current = setInterval(() => {
-      setElapsedTime(Date.now() - startTime);
-    }, 100);
-
-    // Create AI message for streaming updates (declare outside try block)
-    const aiMessageId = (Date.now() + 1).toString();
-
-    try {
-      console.log('[AI CHAT DEBUG] Full gridContext received:', gridContext);
-      console.log('[AI CHAT DEBUG] Sending to API:', {
-        message: messageToSend,
-        selectedGrid: gridContext.selectedGrid,
-        selectedRowId: gridContext.selectedRowId,
-        selectedRowData: gridContext.selectedRowData,
-        availableGrids: gridContext.availableGrids,
-        rowCount: gridContext.rowCount,
-        sampleDataLength: gridContext.sampleData?.length || 0,
-        sampleDataPreview: gridContext.sampleData?.slice(0, 2) || []
-      });
-
-      // Add client-side timeout for streaming compatibility
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-      const aiMessage: Message = {
-        id: aiMessageId,
-        type: 'ai',
-        content: '',
-        timestamp: new Date(),
-      };
-
-      // Add empty AI message to show streaming is starting
-      setMessages(prev => [...prev, aiMessage]);
-
-      let streamingContent = '';
-      let fullResponse = '';
+    if (messageToSend.trim()) {
+      console.log('[AI CHAT DEBUG] Sending message to AI:', messageToSend);
       
-      try {
-        // Prepare chat context if enabled (last 3 Q&A pairs)
-        const chatContext = includeContext ? messages.slice(-6).map(msg => ({
-          role: msg.type === 'user' ? 'user' : 'assistant',
-          content: msg.content
-        })) : [];
-
-        console.log('[AI CHAT DEBUG] Including chat context:', includeContext, 'Messages:', chatContext.length);
-
-        const response = await fetch('/api/ai/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: messageToSend,
-            gridContext,
-            chatContext: chatContext.length > 0 ? chatContext : undefined,
-          }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('API Error Response:', errorText);
-          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-        }
-
-        if (!response.body) {
-          throw new Error('No response body');
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-
-        try {
-          console.log('[AI CHAT DEBUG] Starting to read stream...');
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              console.log('[AI CHAT DEBUG] Stream reading completed');
-              break;
-            }
-
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n');
-
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                try {
-                  const data = JSON.parse(line.slice(6));
-                  console.log('[AI CHAT DEBUG] Received data chunk:', data);
-                  
-                  if (data.error) {
-                    throw new Error(data.error);
-                  }
-                  
-                  if (data.complete) {
-                    // Stream is complete, parse full response for actions
-                    fullResponse = data.fullResponse;
-                    console.log('[AI CHAT DEBUG] Full AI response received from server:', fullResponse);
-
-                    // The message content is already finalized from the streaming process.
-                    // We just need to parse the full response to find and execute the action.
-                    if (fullResponse && onAction) {
-                      try {
-                        // Clean up response if it has extra text around JSON
-                        let cleanedResponse = fullResponse.trim();
-
-                        // Look for JSON block in the response
-                        const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
-                        if (!jsonMatch) return; // Not a JSON response, no action to take.
-
-                        cleanedResponse = jsonMatch[0];
-                        console.log('[AI CHAT DEBUG] Parsing action from:', cleanedResponse);
-                        const intent = JSON.parse(cleanedResponse);
-
-                        // Validate that intent has required fields and execute action
-                        if (intent.type && intent.response) {
-                          onAction(intent);
-                        }
-                      } catch (parseError) {
-                        console.log('[AI CHAT DEBUG] Action parsing failed:', parseError);
-                      }
-                    }
-                  } else if (data.content) {
-                    // Stream chunk received, update the message content
-                    streamingContent += data.content;
-                    
-                    // Update the AI message with new content
-                    setMessages(prev => prev.map(msg =>
-                      msg.id === aiMessageId
-                        ? { ...msg, content: streamingContent }
-                        : msg
-                    ));
-                  }
-                } catch (parseError) {
-                  console.warn('Failed to parse streaming data:', parseError);
-                }
-              }
-            }
-          }
-        } finally {
-          reader.releaseLock();
-        }
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        throw fetchError;
-      }
-
-    } catch (error) {
-      console.error('AI Chat Error:', error);
+      // Start timer
+      const startTime = Date.now();
+      setElapsedTime(0);
       
-      let errorContent = 'Sorry, I encountered an error. ';
-      
-      if (error instanceof Error) {
-        if (error.name === 'AbortError' || error.message.includes('aborted')) {
-          errorContent = 'The request timed out. This might happen with complex prompts on the deployed version. Try a simpler command or break your request into smaller parts.';
-        } else if (error.message.includes('timeout')) {
-          errorContent = 'The request timed out. Try using shorter, simpler commands.';
-        } else if (error.message.includes('rate limit') || error.message.includes('quota')) {
-          errorContent = 'Rate limit exceeded. Please wait a moment before trying again.';
-        } else if (error.message.includes('network') || error.message.includes('fetch failed')) {
-          errorContent = 'Network connection error. Please check your internet connection and try again.';
-        } else {
-          errorContent += error.message;
-        }
-      } else {
-        errorContent += 'Unknown error occurred.';
-      }
-      
-      // Update the existing AI message with error content, or remove it if empty
-      setMessages(prev => prev.map(msg => 
-        msg.id === aiMessageId 
-          ? { ...msg, content: errorContent }
-          : msg
-      ));
-    } finally {
-      setIsLoading(false);
-      
-      // Stop timer
+      // Clear any existing timer
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
       }
+      
+      // Start new timer
+      timerIntervalRef.current = setInterval(() => {
+        setElapsedTime(Date.now() - startTime);
+      }, 100);
+      
+      sendMessage(messageToSend);
+      addToHistory(messageToSend);
+      setInputValue('');
     }
   };
 
@@ -511,7 +340,7 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
   };
 
   const handleClearChat = () => {
-    setMessages([]);
+    clearChatHistory();
   };
 
   const handleContextToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -525,16 +354,7 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
     }
   };
 
-  const suggestedQueries = [
-    "What is this app for?",
-    "What are modifier settings?",
-    "Duplicate Row",
-    "Show me duplicates",
-    "Export the data",
-    "Analyze my data patterns",
-    "Find data quality issues",
-    "What insights can you find?",
-  ];
+  const suggestedQueries = generateSuggestedQueries();
 
   return (
     <Drawer

@@ -41,7 +41,7 @@ export interface UseAIIntegrationReturn extends AIIntegrationState {
   setSelectedGrid: (grid: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') => void;
   
   // Message handling
-  sendMessage: (message: string, overrideMessage?: string) => Promise<void>;
+  sendMessage: (message: string, overrideMessage?: string, gridContext?: any) => Promise<void>;
   clearChatHistory: () => void;
   addSystemMessage: (message: string) => void;
   
@@ -71,7 +71,7 @@ export interface UseAIIntegrationReturn extends AIIntegrationState {
   isValidAIAction: (action: unknown) => boolean;
 }
 
-export function useAIIntegration(): UseAIIntegrationReturn {
+export function useAIIntegration(onAction?: (intent: any) => void): UseAIIntegrationReturn {
   // Core state
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatWidth, setChatWidthState] = useState(320);
@@ -156,9 +156,15 @@ export function useAIIntegration(): UseAIIntegrationReturn {
   }, [addMessage]);
 
   const sendMessage = useCallback(async (message: string, overrideMessage?: string) => {
-    if (isProcessing) return;
+    console.log('[AI INTEGRATION DEBUG] sendMessage called with:', { message, overrideMessage, isProcessing });
+    
+    if (isProcessing) {
+      console.log('[AI INTEGRATION DEBUG] Already processing, skipping');
+      return;
+    }
 
     const actualMessage = overrideMessage || message;
+    console.log('[AI INTEGRATION DEBUG] About to send message:', actualMessage);
     
     // Add user message to history
     addMessage({
@@ -172,6 +178,7 @@ export function useAIIntegration(): UseAIIntegrationReturn {
 
     setIsProcessing(true);
     setError(null);
+    console.log('[AI INTEGRATION DEBUG] Starting request process');
 
     try {
       // Cancel any existing request
@@ -180,6 +187,7 @@ export function useAIIntegration(): UseAIIntegrationReturn {
       }
       abortController.current = new AbortController();
 
+      console.log('[AI INTEGRATION DEBUG] Making fetch request to /api/ai/chat');
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: {
@@ -195,33 +203,74 @@ export function useAIIntegration(): UseAIIntegrationReturn {
         signal: abortController.current.signal,
       });
 
+      console.log('[AI INTEGRATION DEBUG] Fetch response received:', response.status, response.statusText);
+      
       if (!response.ok) {
+        console.error('[AI INTEGRATION DEBUG] HTTP error:', response.status, response.statusText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const reader = response.body?.getReader();
       if (!reader) {
+        console.error('[AI INTEGRATION DEBUG] No response body from stream');
         throw new Error('No response body');
       }
 
+      console.log('[AI INTEGRATION DEBUG] Starting to read stream');
       let assistantMessage = '';
       const decoder = new TextDecoder();
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        console.log('[AI INTEGRATION DEBUG] Stream chunk received:', { done, hasValue: !!value });
+        
+        if (done) {
+          console.log('[AI INTEGRATION DEBUG] Stream finished');
+          break;
+        }
 
         const chunk = decoder.decode(value);
+        console.log('[AI INTEGRATION DEBUG] Decoded chunk:', chunk);
         const lines = chunk.split('\n');
 
         for (const line of lines) {
+          console.log('[AI INTEGRATION DEBUG] Processing line:', line);
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
+              console.log('[AI INTEGRATION DEBUG] Parsed SSE data:', data);
               if (data.content) {
                 assistantMessage += data.content;
+                console.log('[AI INTEGRATION DEBUG] Added content, total message length:', assistantMessage.length);
               }
-              if (data.done) {
+              if (data.done || data.complete) {
+                // Check if this response contains a parsed command that needs special handling
+                if (data.fullResponse) {
+                  try {
+                    const parsedResponse = JSON.parse(data.fullResponse);
+                    console.log('[AI INTEGRATION] Parsed command response:', parsedResponse);
+                    
+                    // If it's a parsed command, use the response field as the actual message
+                    if (parsedResponse.response && (parsedResponse.type === 'query' || parsedResponse.type === 'action')) {
+                      assistantMessage = parsedResponse.response;
+                      
+                      // If it's an action and we have onAction callback, execute it
+                      if (parsedResponse.type === 'action' && onAction) {
+                        console.log('[AI INTEGRATION] Executing action:', parsedResponse.action, parsedResponse.parameters);
+                        const actionIntent = {
+                          type: parsedResponse.type,
+                          action: parsedResponse.action,
+                          parameters: parsedResponse.parameters,
+                          response: parsedResponse.response
+                        };
+                        onAction(actionIntent);
+                      }
+                    }
+                  } catch (e) {
+                    console.warn('[AI INTEGRATION] Could not parse fullResponse:', e);
+                  }
+                }
+                
                 // Add complete assistant message
                 addMessage({
                   timestamp: new Date(),
@@ -363,10 +412,12 @@ export function useAIIntegration(): UseAIIntegrationReturn {
 
   const generateSuggestedQueries = useCallback(() => {
     const baseQueries = [
+      "What is this app for?",
+      "Duplicate Row",
+      "Export the data",
       "Show me records with missing HCPCS codes",
-      "Find duplicate entries in the current data",
+      "Find duplicate entries in the current data", 
       "Count rows by procedure type",
-      "Export selected records to Excel",
       "Filter records from the last month",
     ];
 

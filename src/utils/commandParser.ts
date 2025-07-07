@@ -332,6 +332,24 @@ export function parseCommand(message: string, gridContext: GridContext): ParsedC
     };
   }
   
+  // Documentation questions - handle locally without AI
+  const docPatterns = [
+    { pattern: /what is this app for/i, response: "This is VIC's internal CDM Merge Tool - designed specifically for our team to streamline charge master data updates. The app merges Master and Client Excel files by matching HCPCS codes, then updates the Master with CDM data from the Client to create a clean merged dataset for export. Key features include HCPCS matching, configurable modifier settings for VIC's specific data requirements, quality control to identify unmatched records and duplicates, and export-ready output. This tool handles the tedious manual work of CDM merging while ensuring data accuracy and giving you visibility into any potential issues that need attention." },
+    { pattern: /what does this app do/i, response: "This CDM Merge Tool compares and merges healthcare data from two Excel files: a master reference file and a client data file. It identifies matching records based on HCPCS codes and modifiers, flags duplicates, and highlights discrepancies. Think of it as a tool to streamline charge master data updates and ensure data quality for medical billing and compliance." },
+    { pattern: /what is this tool/i, response: "This is a CDM (Charge Description Master) merge tool that helps healthcare organizations merge and reconcile billing data between master reference files and client data files, ensuring accuracy and identifying discrepancies." },
+    { pattern: /what are modifier settings/i, response: "Modifier settings let you specify which modifier codes should be treated as root codes during matching. For example, if Root 25 is enabled, codes like '99213-25' will match as just '99213'. Available options include Root 00, Root 25, Root 50, Root 59, Root XU, Root 76, and Ignore Trauma (excludes trauma team codes). This allows modified procedure codes to match their base codes when needed." }
+  ];
+  
+  for (const { pattern, response } of docPatterns) {
+    if (pattern.test(msg)) {
+      console.log('[COMMAND PARSER] Detected documentation question, using local response');
+      return {
+        type: 'query',
+        response
+      };
+    }
+  }
+  
   console.log('[COMMAND PARSER] No pattern matched, will use AI fallback');
   return null; // No pattern matched, use AI fallback
 }

@@ -73,15 +73,21 @@ function classifyRequest(message: string): 'analysis' | 'command' | 'documentati
     'what are modifier settings', 'what is modifier', 'what are modifiers',
     'how does this work', 'how does the app work', 'how does the tool work',
     'what is cdm merge', 'what does cdm merge', 'what is the purpose',
-    'what is this for', 'what is this used for', 'what does this do'
+    'what is this for', 'what is this app for', 'what is this used for', 'what does this do'
   ];
   
   // Check for documentation keywords first (most specific)
-  const hasDocumentationKeyword = documentationKeywords.some(keyword =>
-    lowerMessage.includes(keyword)
-  );
+  console.log('[CLASSIFY DEBUG] Message:', message, 'Lower:', lowerMessage);
+  const hasDocumentationKeyword = documentationKeywords.some(keyword => {
+    const matches = lowerMessage.includes(keyword);
+    if (matches) {
+      console.log('[CLASSIFY DEBUG] Found documentation keyword:', keyword);
+    }
+    return matches;
+  });
   
   if (hasDocumentationKeyword) {
+    console.log('[CLASSIFY DEBUG] Classified as documentation');
     return 'documentation';
   }
   
@@ -91,11 +97,16 @@ function classifyRequest(message: string): 'analysis' | 'command' | 'documentati
     'switch', 'clear', 'search', 'count rows', 'how many'
   ];
   
-  const hasCommandKeyword = commandKeywords.some(keyword =>
-    lowerMessage.includes(keyword)
-  );
+  const hasCommandKeyword = commandKeywords.some(keyword => {
+    const matches = lowerMessage.includes(keyword);
+    if (matches) {
+      console.log('[CLASSIFY DEBUG] Found command keyword:', keyword);
+    }
+    return matches;
+  });
   
   if (hasCommandKeyword) {
+    console.log('[CLASSIFY DEBUG] Classified as command');
     return 'command';
   }
   
@@ -398,11 +409,33 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
   
   try {
-    const { message, gridContext, chatContext }: { 
+    const { message, context }: { 
       message: string; 
-      gridContext: GridContext; 
-      chatContext?: Array<{role: 'user' | 'assistant', content: string}> 
+      context?: { selectedGrid?: string; chatHistory?: Array<any> }
     } = await request.json();
+    
+    // Mock gridContext since the frontend isn't sending it anymore
+    const gridContext: GridContext = {
+      columns: ['HCPCs', 'CDM', 'Description', 'QTY', 'PhysicianCDM'],
+      rowCount: 0,
+      sampleData: [],
+      currentView: (context?.selectedGrid as any) || 'merged',
+      availableGrids: {
+        master: { hasData: false, rowCount: 0 },
+        client: { hasData: false, rowCount: 0 },
+        merged: { hasData: false, rowCount: 0 },
+        unmatched: { hasData: false, rowCount: 0 },
+        duplicates: { hasData: false, rowCount: 0 }
+      },
+      isInCompareMode: false,
+      selectedGrid: (context?.selectedGrid as any) || 'merged',
+      selectedRowId: null,
+      selectedRowData: null,
+      selectedHcpcs: null,
+      selectedRowCount: 0
+    };
+    
+    const chatContext = context?.chatHistory || [];
     
     // Classify the request type and check for batch processing requests
     const requestType = classifyRequest(message);
@@ -659,12 +692,13 @@ Provide a helpful, informative answer about HCPCS codes, modifiers, or healthcar
                 return msg.content;
               }).join('\n\n');
 
-              const geminiStream = await Promise.race([
+              const result = await Promise.race([
                 model.generateContentStream(prompt),
                 new Promise((_, reject) =>
                   setTimeout(() => reject(new Error('Request timeout (30s limit)')), 30000)
                 )
-              ]) as AsyncIterable<{ text: () => string }>;
+              ]);
+              const geminiStream = (result as any).stream;
               
               let fullContent = '';
               
@@ -1177,7 +1211,9 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
               { role: "system", content: systemPrompt },
               ...(chatContext || []).map(ctx => ({ role: ctx.role, content: ctx.content })),
               { role: "user", content: message },
-              { role: "system", content: requestType === 'validation' || requestType === 'analysis'
+              { role: "system", content: requestType === 'documentation'
+                ? "Respond with helpful, natural conversational text. Be informative and friendly. Do NOT use JSON format for documentation questions."
+                : requestType === 'validation' || requestType === 'analysis'
                 ? "CRITICAL: Your response MUST be of type \"query\". DO NOT generate any actions (e.g., filter, hide, delete). Provide findings immediately. Example: {\"type\": \"query\", \"response\": \"Invalid HCPCS codes found: 99213 (starts with number), XYZ123 (invalid letter).\"}"
                 : "CRITICAL: You MUST respond with valid JSON format. Never respond with plain text. Examples:\n- Sort: {\"type\": \"action\", \"action\": \"sort\", \"parameters\": {\"column\": \"description\", \"direction\": \"asc\"}, \"response\": \"Sorting by description\"}\n- Switch: {\"type\": \"action\", \"action\": \"switch\", \"parameters\": {\"view\": \"master\"}, \"response\": \"Switching to master grid\"}" }
             ];
@@ -1197,13 +1233,14 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
             }).join('\n\n');
 
             console.log('[GEMINI STREAM DEBUG] Attempting streaming call to:', selectedModel, 'prompt length:', prompt.length);
-            geminiStream = await Promise.race([
+            const result = await Promise.race([
               model.generateContentStream(prompt),
               // Additional timeout safety net
               new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Request timeout (30s limit)')), 30000)
               )
-            ]) as AsyncIterable<{ text: () => string }>;
+            ]);
+            geminiStream = (result as any).stream;
             console.log('[GEMINI STREAM DEBUG] Successfully initiated stream from:', selectedModel);
           } catch (firstAttemptError) {
             // If first attempt fails, implement intelligent fallback
@@ -1268,13 +1305,14 @@ Examples:
               return msg.content;
             }).join('\n\n');
 
-            geminiStream = await Promise.race([
+            const result = await Promise.race([
               fallbackModelInstance.generateContentStream(fallbackPrompt),
               // Longer timeout for retry
               new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Request timeout (15s limit on retry)')), 15000)
               )
-            ]) as AsyncIterable<{ text: () => string }>;
+            ]);
+            geminiStream = (result as any).stream;
           }
           
           // REAL STREAMING: Send each chunk from Gemini directly to client as it arrives
