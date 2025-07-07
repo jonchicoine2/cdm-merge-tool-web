@@ -83,6 +83,7 @@ export function useAIActionHandlers(): UseAIActionHandlersReturn {
         response: `Sorry, I encountered an error while processing your request: ${errorMessage}`
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Parse natural language message into AI intent

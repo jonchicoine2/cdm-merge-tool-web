@@ -337,16 +337,13 @@ Please provide a friendly, conversational response. Do NOT use JSON format - jus
         const result = await model.generateContentStream(conversationalPrompt);
         const geminiStream = result.stream;
         
-        let fullResponse = '';
-        
-        // Real streaming response
-        for await (const chunk of geminiStream) {
-          const content = chunk.text();
-          if (content) {
-            fullResponse += content;
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: content })}\n\n`));
-          }
-        }
+              // REAL STREAMING: Send each chunk from Gemini directly to client as it arrives
+              for await (const chunk of geminiStream) {
+                const content = chunk.text();
+                if (content) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: content })}\n\n`));
+                }
+              }
         
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, plainText: true })}\n\n`));
         
@@ -407,14 +404,10 @@ User question: ${message}`;
           const result = await model.generateContentStream(miniPrompt);
           const geminiStream = result.stream;
           
-          let fullResponse = '';
-          
           // REAL STREAMING: Send each chunk from Gemini directly to client as it arrives
           for await (const chunk of geminiStream) {
             const content = chunk.text();
             if (content) {
-              fullResponse += content;
-              
               // Send chunk immediately to client (real streaming)
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: content })}\n\n`));
             }
