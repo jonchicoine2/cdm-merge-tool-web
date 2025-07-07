@@ -345,6 +345,12 @@ export function useAIIntegration(onAction?: (intent: AIIntent) => void): UseAIIn
     setChatHistory([]);
     setLastResponse(null);
     setError(null);
+    
+    // Also clear the saved chat history from localStorage
+    // but keep the command history (which is stored separately in AIChat component)
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('aiChatHistory');
+    }
   }, []);
 
   // AI Actions
