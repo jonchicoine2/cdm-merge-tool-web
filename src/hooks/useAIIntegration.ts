@@ -1,5 +1,18 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 
+interface AIIntent {
+  type: 'query' | 'action' | 'filter' | 'sort' | 'analysis';
+  action?: 'sort' | 'filter' | 'search' | 'summarize' | 'count' | 'show' | 'switch';
+  parameters?: {
+    column?: string;
+    value?: string;
+    direction?: 'asc' | 'desc';
+    condition?: string;
+    view?: string;
+  };
+  response: string;
+}
+
 export interface AIIntegrationState {
   isChatOpen: boolean;
   chatWidth: number;
@@ -41,7 +54,7 @@ export interface UseAIIntegrationReturn extends AIIntegrationState {
   setSelectedGrid: (grid: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') => void;
   
   // Message handling
-  sendMessage: (message: string, overrideMessage?: string, gridContext?: any) => Promise<void>;
+  sendMessage: (message: string, overrideMessage?: string, gridContext?: unknown) => Promise<void>;
   clearChatHistory: () => void;
   addSystemMessage: (message: string) => void;
   
@@ -71,7 +84,7 @@ export interface UseAIIntegrationReturn extends AIIntegrationState {
   isValidAIAction: (action: unknown) => boolean;
 }
 
-export function useAIIntegration(onAction?: (intent: any) => void): UseAIIntegrationReturn {
+export function useAIIntegration(onAction?: (intent: AIIntent) => void): UseAIIntegrationReturn {
   // Core state
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatWidth, setChatWidthState] = useState(320);
@@ -155,7 +168,7 @@ export function useAIIntegration(onAction?: (intent: any) => void): UseAIIntegra
     });
   }, [addMessage]);
 
-  const sendMessage = useCallback(async (message: string, overrideMessage?: string, gridContext?: any) => {
+  const sendMessage = useCallback(async (message: string, overrideMessage?: string, gridContext?: unknown) => {
     console.log('[AI INTEGRATION DEBUG] sendMessage called with:', { message, overrideMessage, isProcessing });
     
     if (isProcessing) {
@@ -200,7 +213,7 @@ export function useAIIntegration(onAction?: (intent: any) => void): UseAIIntegra
             selectedGrid,
             chatHistory: chatHistory.slice(-10), // Send last 10 messages for context
           },
-          ...(gridContext && { gridContext }), // Only include gridContext if provided
+          ...(gridContext ? { gridContext } : {}), // Only include gridContext if provided
         }),
         signal: abortController.current.signal,
       });
@@ -221,6 +234,7 @@ export function useAIIntegration(onAction?: (intent: any) => void): UseAIIntegra
       console.log('[AI INTEGRATION DEBUG] Starting to read stream');
       let assistantMessage = '';
       const decoder = new TextDecoder();
+      let streamingMessageId: string | null = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -244,6 +258,27 @@ export function useAIIntegration(onAction?: (intent: any) => void): UseAIIntegra
               if (data.content) {
                 assistantMessage += data.content;
                 console.log('[AI INTEGRATION DEBUG] Added content, total message length:', assistantMessage.length);
+                
+                // Real-time streaming: Update the UI immediately with partial content
+                if (!streamingMessageId) {
+                  // Create initial streaming message
+                  const messageId = generateMessageId();
+                  const newMessage = {
+                    id: messageId,
+                    timestamp: new Date(),
+                    type: 'assistant' as const,
+                    content: assistantMessage,
+                  };
+                  setChatHistory(prev => [...prev, newMessage]);
+                  streamingMessageId = messageId;
+                } else {
+                  // Update existing streaming message in real-time
+                  setChatHistory(prev => prev.map(msg => 
+                    msg.id === streamingMessageId 
+                      ? { ...msg, content: assistantMessage }
+                      : msg
+                  ));
+                }
               }
               if (data.done || data.complete) {
                 // Check if this response contains a parsed command that needs special handling
@@ -273,13 +308,7 @@ export function useAIIntegration(onAction?: (intent: any) => void): UseAIIntegra
                   }
                 }
                 
-                // Add complete assistant message
-                addMessage({
-                  timestamp: new Date(),
-                  type: 'assistant',
-                  content: assistantMessage,
-                  metadata: data.metadata,
-                });
+                // Stream complete - just set the final response
                 setLastResponse(assistantMessage);
                 return;
               }
@@ -306,7 +335,7 @@ export function useAIIntegration(onAction?: (intent: any) => void): UseAIIntegra
       setIsProcessing(false);
       abortController.current = null;
     }
-  }, [isProcessing, selectedGrid, chatHistory, addMessage]);
+  }, [isProcessing, selectedGrid, chatHistory, addMessage, onAction]);
 
   const clearChatHistory = useCallback(() => {
     setChatHistory([]);

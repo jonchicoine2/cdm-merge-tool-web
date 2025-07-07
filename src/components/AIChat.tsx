@@ -27,7 +27,7 @@ import {
   Clear as ClearIcon,
   DragIndicator as DragIcon,
 } from '@mui/icons-material';
-import { useAIIntegration, ChatMessage } from '../hooks/useAIIntegration';
+import { useAIIntegration } from '../hooks/useAIIntegration';
 
 interface GridContext {
   columns: string[];
@@ -317,7 +317,7 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
       // Start new timer
       timerIntervalRef.current = setInterval(() => {
         setElapsedTime(Date.now() - startTime);
-      }, 100);
+      }, 10); // Update every 10ms instead of 100ms to catch fast responses
       
       sendMessage(messageToSend, undefined, gridContext);
       addToHistory(messageToSend);

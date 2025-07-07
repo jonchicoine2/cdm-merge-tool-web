@@ -684,7 +684,7 @@ Provide a helpful, informative answer about HCPCS codes, modifiers, or healthcar
         // Build messages array with optional chat context
         const messages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = [
           { role: "system", content: followUpSystemPrompt },
-          ...(chatContext || []).map(ctx => ({ role: ctx.role, content: ctx.content })),
+          ...(chatContext || []).map(ctx => ({ role: ctx.type as 'system' | 'user' | 'assistant', content: ctx.content })),
           { role: "user", content: message }
         ];
 
@@ -709,7 +709,7 @@ Provide a helpful, informative answer about HCPCS codes, modifiers, or healthcar
                   setTimeout(() => reject(new Error('Request timeout (30s limit)')), 30000)
                 )
               ]);
-              const geminiStream = (result as any).stream;
+              const geminiStream = (result as { stream: AsyncIterable<{ text: () => string }> }).stream;
               
               let fullContent = '';
               
@@ -1220,7 +1220,7 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
             // Build messages array with optional chat context
             const regularMessages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = [
               { role: "system", content: systemPrompt },
-              ...(chatContext || []).map(ctx => ({ role: ctx.role, content: ctx.content })),
+              ...(chatContext || []).map(ctx => ({ role: ctx.type as 'system' | 'user' | 'assistant', content: ctx.content })),
               { role: "user", content: message },
               { role: "system", content: requestType === 'documentation'
                 ? "Respond with helpful, natural conversational text. Be informative and friendly. Do NOT use JSON format for documentation questions."
@@ -1251,7 +1251,7 @@ IMPORTANT: Always respond with natural, conversational language. Never show JSON
                 setTimeout(() => reject(new Error('Request timeout (30s limit)')), 30000)
               )
             ]);
-            geminiStream = (result as any).stream;
+            geminiStream = (result as { stream: AsyncIterable<{ text: () => string }> }).stream;
             console.log('[GEMINI STREAM DEBUG] Successfully initiated stream from:', selectedModel);
           } catch (firstAttemptError) {
             // If first attempt fails, implement intelligent fallback
@@ -1323,7 +1323,7 @@ Examples:
                 setTimeout(() => reject(new Error('Request timeout (15s limit on retry)')), 15000)
               )
             ]);
-            geminiStream = (result as any).stream;
+            geminiStream = (result as { stream: AsyncIterable<{ text: () => string }> }).stream;
           }
           
           // REAL STREAMING: Send each chunk from Gemini directly to client as it arrives
