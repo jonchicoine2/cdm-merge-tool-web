@@ -322,6 +322,53 @@ Respond with exactly: "BATCH" or "SAMPLE"`;
 }
 
 // Enhanced HCPCS code lookup with GPT-4o fallback
+async function handleGeneralQuestion(message: string) {
+  const encoder = new TextEncoder();
+  
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const conversationalPrompt = `You are a helpful AI assistant. The user asked: "${message}"
+
+Please provide a friendly, conversational response. Do NOT use JSON format - just respond naturally as if you're having a normal conversation.`;
+
+        // Use the same fast streaming model
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+        const result = await model.generateContentStream(conversationalPrompt);
+        const geminiStream = result.stream;
+        
+        let fullResponse = '';
+        
+        // Real streaming response
+        for await (const chunk of geminiStream) {
+          const content = chunk.text();
+          if (content) {
+            fullResponse += content;
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: content })}\n\n`));
+          }
+        }
+        
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, plainText: true })}\n\n`));
+        
+      } catch (error) {
+        console.error('[GENERAL QUESTION] Error:', error);
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: "I'm sorry, I encountered an error processing your question." })}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true })}\n\n`));
+      } finally {
+        controller.close();
+      }
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/plain',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
+}
+
 async function handleHcpcsCodeQuestion(message: string) {
   const encoder = new TextEncoder();
   
@@ -373,7 +420,7 @@ User question: ${message}`;
             }
           }
           
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, fullResponse: JSON.stringify({ type: 'query', response: fullResponse }) })}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ complete: true, plainText: true })}\n\n`));
           
         } catch (error) {
           console.error('[HCPCS LOOKUP] Error:', error);
@@ -476,10 +523,25 @@ export async function POST(request: NextRequest) {
       pattern.test(message)
     );
     
+    // Check if it's specifically about THIS CDM Merge Tool vs general knowledge
+    const isThisAppRelated = /this\s+(app|tool)|cdm\s+merge|what\s+(is\s+this|does\s+this)|modifier\s+settings|upload|excel|grid|master|client|merge/i.test(message);
+    const isHcpcsRelated = /hcpcs|cpt.*code|code.*\d+/i.test(message);
+    const isCdmRelated = isThisAppRelated || isHcpcsRelated;
+    
+    console.log('[DEBUG] isThisAppRelated:', isThisAppRelated);
+    console.log('[DEBUG] isHcpcsRelated:', isHcpcsRelated);
+    
+    // Handle general questions FIRST, before follow-up logic
+    console.log('[DEBUG] isCdmRelated:', isCdmRelated, 'for message:', message);
+    if (!isCdmRelated && (message.includes('?') || /^(why|what|how|when|where|who|is|are|can|could|would|should|tell\s+me)\s/i.test(message))) {
+      console.log('[GENERAL QUESTION] Non-CDM question detected early, providing conversational response');
+      return await handleGeneralQuestion(message);
+    }
+    
     const isFollowUpQuestion = requestType !== 'documentation' &&
                               requestType !== 'validation' && (
                               isMedicalQuestion ||
-                              (requestType !== 'analysis' && (
+                              (requestType !== 'analysis' && isCdmRelated && (
                                 message.toLowerCase().includes('why is') ||
                                 message.toLowerCase().includes('why does') ||
                                 message.toLowerCase().includes('explain why') ||
@@ -833,6 +895,7 @@ Provide a helpful, informative answer about HCPCS codes, modifiers, or healthcar
       console.log('[HCPCS LOOKUP] Detected HCPCS code question, using enhanced lookup with fallback');
       return await handleHcpcsCodeQuestion(message);
     }
+
 
     // Check if we have actual data to analyze
     if (requestType === 'analysis' && (!gridContext.sampleData || gridContext.sampleData.length === 0)) {

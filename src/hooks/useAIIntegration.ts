@@ -281,8 +281,12 @@ export function useAIIntegration(onAction?: (intent: AIIntent) => void): UseAIIn
                 }
               }
               if (data.done || data.complete) {
-                // Check if this response contains a parsed command that needs special handling
-                if (data.fullResponse) {
+                // Check if this is a plain text response or JSON command
+                if (data.plainText) {
+                  // Plain text response - use the accumulated message as-is
+                  console.log('[AI INTEGRATION] Plain text response completed');
+                } else if (data.fullResponse) {
+                  // JSON command response - parse and handle
                   try {
                     const parsedResponse = JSON.parse(data.fullResponse);
                     console.log('[AI INTEGRATION] Parsed command response:', parsedResponse);
