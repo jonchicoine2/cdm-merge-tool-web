@@ -1,0 +1,6785 @@
+{
+  "10030": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425718,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "10060": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425066,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "10061": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425480,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "10080": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425256,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "10081": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425242,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "10120": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425036,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "10121": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319424861,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "10140": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425002,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "10160": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319424506,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "10180": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425633,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11000": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319424891,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11010": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425383,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11012": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425372,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11042": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319424954,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11043": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425715,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11044": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319424862,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11402": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425656,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11403": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425017,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11404": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425437,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11422": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425089,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11423": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425352,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11424": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319424149,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11600": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425479,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11601": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319424898,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11602": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425260,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11603": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425155,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11604": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425003,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11606": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319424922,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11719": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425582,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11720": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425435,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11721": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425619,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11730": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425178,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11732": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425172,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11740": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425364,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11750": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319424540,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11760": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425150,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11762": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425159,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "11765": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319424152,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12001": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425764,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12002": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425066,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12004": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425769,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12005": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319426319,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12006": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425712,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12007": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425161,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12011": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425899,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12013": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425466,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12014": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319425281,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12015": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428719,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12016": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428340,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12017": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428065,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12018": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428132,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12020": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428414,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12021": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319427516,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12031": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428408,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12032": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428446,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12034": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428430,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12035": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428044,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12036": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428127,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12037": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428111,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12041": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319429013,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12042": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428749,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12044": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428472,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12045": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428424,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12046": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428347,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12047": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428844,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12051": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319427985,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12052": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428447,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12053": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428161,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12054": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428452,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12055": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428421,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12056": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428167,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "12057": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428447,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "13100": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428829,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "13101": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428335,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "13102": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428670,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "13120": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428446,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "13121": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428148,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "13122": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428529,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "13131": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428342,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "13132": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428583,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "13133": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428024,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "13151": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428725,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "13152": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428798,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "13153": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428333,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "13160": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319427993,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "14021": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428203,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "14040": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428993,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "14041": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319429623,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "14060": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428162,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "14061": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428509,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "14301": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428698,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "14302": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428636,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "15002": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428828,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "15220": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428263,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "15240": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428443,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "15760": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428178,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "16000": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319428250,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "16020": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319432234,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "16025": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431548,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "16030": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431910,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "16035": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431606,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "16036": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431905,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "17106": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431921,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "17250": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431050,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "17999": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319432437,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20100": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431593,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20101": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319430435,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20102": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431202,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20103": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431763,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20520": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319430992,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20525": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431489,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20550": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431762,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20552": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431201,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20600": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431614,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20604": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319432213,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20605": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319430273,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20606": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431303,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20610": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431760,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20611": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431704,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20612": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431724,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20816": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431324,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "20824": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431922,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "21315": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431413,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "21320": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319430842,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "21337": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431262,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "21450": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431164,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "21451": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431482,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "21480": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319432914,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23330": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431243,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23333": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319431996,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24200": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319434680,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24201": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319434862,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24999": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319440426,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25248": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319440600,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25260": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319440398,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25999": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319444056,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26010": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319450994,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26011": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319450974,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26350": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319450770,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26410": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319450798,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26418": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319451922,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26432": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319451045,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26433": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319450914,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26540": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319450978,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26910": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319461199,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26951": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319461426,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26952": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319461043,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27200": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319461738,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27372": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319468213,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27380": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319469242,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27650": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319470941,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27899": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319478930,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28190": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319477412,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28192": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319478064,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28193": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319478690,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28200": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319478000,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28208": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319478643,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28800": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319493500,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28805": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319493068,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28810": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319492553,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28820": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319493075,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28825": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319493187,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29799": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319515842,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "30000": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514670,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "30905": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514509,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "30906": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514419,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "31500": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514642,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "31505": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514408,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "31511": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514160,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "31530": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514564,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "31575": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514638,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "31577": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514311,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "31603": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514640,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "31605": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514196,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "31899": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319515510,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "32554": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514655,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "32555": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319513103,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "32556": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514461,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "32557": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514264,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "33016": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514312,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "33210": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514745,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "35206": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514127,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "35226": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319513691,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "36400": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514220,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "36406": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514096,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "36410": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514074,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "36415": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514101,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "36555": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514295,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "36556": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514173,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "36568": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514051,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "36569": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514480,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "36593": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319514728,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "36620": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525046,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "36680": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524498,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "37195": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524868,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "37609": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524508,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "37618": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525147,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "37799": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524967,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "40650": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319523576,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "40800": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525050,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "40801": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524800,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "40804": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524714,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "40805": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524495,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "41250": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524759,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "41251": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524731,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "41252": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524888,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "41800": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524962,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "41899": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525351,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "42000": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524497,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "42700": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524554,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "42809": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525051,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "42999": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524756,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "43753": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524610,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "43761": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525193,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "43762": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524795,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "44799": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319526222,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "45005": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524901,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "45307": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524745,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "45332": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525044,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "45999": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525151,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "46040": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524499,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "46050": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524672,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "46083": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525015,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "46600": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524656,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "49020": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525220,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "49082": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524515,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "49083": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525426,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "49084": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524722,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "49999": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525829,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "51700": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524658,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "51701": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525466,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "51702": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524824,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "51703": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525040,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "51705": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524820,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "51798": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524966,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "54220": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524573,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "54235": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525201,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "55100": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524988,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "55899": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525518,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "56405": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319524806,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "56420": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525199,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "58999": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319525421,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "59025": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528069,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "59409": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528120,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "59514": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528798,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "62270": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528264,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "62273": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528554,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "64831": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528050,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "64832": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319529239,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "64834": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528687,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "64836": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528734,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "64837": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319527935,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "67700": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528334,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "67938": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528407,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "69000": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319527963,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "69005": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528672,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "69020": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319527677,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "81002": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528349,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "81025": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319527674,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "82271": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528452,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "82272": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528148,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "82803": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528433,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "82948": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528391,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "86403": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319528459,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "87040": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531087,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "88740": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531431,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "90460": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531420,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "90461": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531123,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "90471": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531282,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "90472": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531313,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "90473": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531817,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "90474": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531305,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "90791": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531056,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "92950": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531042,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "92953": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319530814,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "92960": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531349,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "92977": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531028,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "93005": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531148,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "93041": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531191,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "94010": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319530710,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "94640": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531828,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "94660": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319530989,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "94760": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531545,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "94761": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531081,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96360": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531464,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96361": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319532182,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96365": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531177,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96366": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319532505,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96367": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531708,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96368": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531462,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96372": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531188,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96374": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531609,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96375": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531193,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96376": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531808,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96401": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531154,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96402": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319530860,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96409": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319530926,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96411": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319531083,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96413": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319530804,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96415": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319535507,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96417": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319536050,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "96549": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319535895,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "97597": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319535126,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "99151": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319535827,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "99152": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319535585,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "99153": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319535697,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "99155": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319535964,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "99156": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319536003,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "99157": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319536033,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "99292": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319535544,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "99406": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319535731,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "99465": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319535792,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "10120-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319425521,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23505-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319431479,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23500-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319431480,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23500-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319431604,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23330-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319431764,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23505-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319431794,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23500-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319431952,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "21401-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319432006,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "21401-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319432046,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23520-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319432118,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "21400-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319432156,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23505-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319432163,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23333-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319432169,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "21401-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319432214,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "21400-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319432276,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23520-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319432306,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "21400-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319432403,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23520-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319432467,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23675-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319434928,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23650-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319434948,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23545-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435006,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24505-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435008,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23675-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435016,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24200-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435034,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23665-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435079,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23655-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435130,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23650-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435143,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23545-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435181,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24201-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435188,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24505-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435216,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24500-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435228,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23620-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435229,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23525-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435238,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23605-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435247,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23655-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435250,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23625-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435264,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23620-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435291,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23525-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435292,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23575-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435305,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23570-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435318,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23665-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435372,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23600-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435374,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23625-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435379,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23575-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435409,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23540-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435412,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24500-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435419,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23570-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435434,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23625-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435440,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23545-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435554,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23540-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435586,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23650-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435587,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23675-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435614,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23605-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435643,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23600-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435665,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23525-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435671,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24505-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435677,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23570-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435764,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23600-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435772,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23620-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435837,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23540-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435891,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23605-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319435948,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24500-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319436020,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23655-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319436201,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24530-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319436320,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23665-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319436404,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "23575-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319438179,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24600-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440021,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24535-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440024,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24640-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440025,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24655-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440031,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24560-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440033,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24650-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440048,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24576-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440061,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24560-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440150,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24565-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440255,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24560-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440265,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24535-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440366,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25500-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440383,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24640-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440394,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24650-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440395,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24600-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440396,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24670-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440400,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25500-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440410,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24565-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440539,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24535-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440540,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24650-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440556,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24565-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440558,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24655-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440575,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25500-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440576,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24620-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440593,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24620-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440593,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25505-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440632,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25248-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440635,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24640-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440635,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24530-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440647,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25505-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440674,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24670-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440702,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24530-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440709,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24577-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440722,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24605-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440737,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24577-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440770,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24600-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440777,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24670-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440788,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24675-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440810,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24675-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440842,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24605-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440876,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24576-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440888,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24675-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319440941,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24605-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319441071,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24620-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319441197,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24576-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319441246,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24577-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319441304,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "24655-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319441460,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25505-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443175,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25650-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443435,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25680-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443471,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25530-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443591,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25660-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443636,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25630-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443671,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25651-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443730,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25690-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443775,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25565-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443779,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25560-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443813,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25605-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443825,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25635-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443828,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25624-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443891,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25565-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443902,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25535-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443907,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25675-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443946,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25651-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443950,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25560-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443984,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25675-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319443989,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25600-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444001,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25535-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444009,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25650-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444011,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25690-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444018,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25530-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444082,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25690-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444113,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25630-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444124,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25680-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444151,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25630-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444202,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25605-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444224,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25635-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444295,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25624-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444297,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25675-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444298,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25622-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444313,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25660-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444320,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25535-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444340,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25560-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444349,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25650-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444361,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25651-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444383,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25600-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444421,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25622-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444439,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25605-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444472,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25600-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444486,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25565-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444540,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25530-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444609,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25635-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444702,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25680-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444745,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25622-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319444791,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25624-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319445041,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "25660-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319449006,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26600-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319450772,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26670-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319450915,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26675-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319450945,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26605-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451111,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26720-F4": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451126,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26705-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451143,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26705-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451170,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26706-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451177,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26720-F3": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451208,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26641-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451243,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26720-F5": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451335,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26676-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451399,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26720-F6": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451403,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26706-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451421,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26645-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451447,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26720-F2": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451470,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26641-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451488,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26605-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451499,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26650-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451503,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26641-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451538,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26700-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451552,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26608-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451619,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26675-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451711,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26645-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451748,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26700-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451751,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26600-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451753,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26720-F1": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451806,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26676-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451814,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26706-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451866,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26600-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319451868,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26608-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319452085,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26605-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319452091,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26645-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319452100,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26650-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319452218,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26670-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319452238,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26676-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319452310,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26700-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319452462,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26670-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319452621,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26675-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319452665,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26650-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319452667,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26705-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319452849,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26608-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319454777,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26725-F1": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456417,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26725-F3": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456528,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26727-F4": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456558,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26755-F1": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456599,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26727-F2": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456654,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26725-F5": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456662,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26725-F4": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456667,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26750-F8": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456668,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26755-F8": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456670,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26725-F8": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456672,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26755-F6": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456731,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26725-F6": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456755,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26750-F1": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456760,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26727-F7": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456767,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26755-F4": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456786,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26740-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456826,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26750-F7": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456837,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26755-F3": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456943,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26750-F2": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319456980,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26750-F5": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457011,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26727-F6": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457039,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26755-F5": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457115,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26750-F4": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457120,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26750-F6": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457162,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26720-F7": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457191,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26755-F9": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457219,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26727-F3": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457226,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26727-F9": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457228,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26740-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457232,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26755-F7": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457248,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26755-F2": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457259,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26742-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457299,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26725-F9": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457369,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26742-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457426,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26720-F9": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457434,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26727-F5": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457438,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26750-F3": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457553,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26725-F7": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457557,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26742-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457594,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26750-F9": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457733,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26727-F8": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457737,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26725-F2": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457772,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26720-F8": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457787,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26740-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319457795,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26727-F1": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319458693,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26750-FA": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319459192,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26775-F3": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319460968,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26775-F7": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319460987,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26776-F3": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461002,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26770-F7": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461038,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26776-F8": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461092,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26756-F1": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461111,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26756-F5": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461116,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26770-F1": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461166,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26775-F6": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461242,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26775-F8": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461250,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26770-F9": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461256,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26756-F3": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461301,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26770-F3": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461341,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26756-F2": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461349,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26756-F9": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461540,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26756-F6": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461542,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26775-F1": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461543,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26776-F2": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461583,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26776-F7": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461616,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26756-F8": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461620,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26775-F2": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461627,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26776-F9": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461641,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26770-F4": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461691,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26770-F6": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461693,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26775-F4": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461704,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26776-F6": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461705,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26770-F2": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461800,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26770-F8": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461801,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27220-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461849,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26775-F5": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461893,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27222-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461934,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26770-F5": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461948,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26756-F7": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461953,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27220-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319461976,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26776-F1": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319462090,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26776-F4": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319462102,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26775-F9": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319462129,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26756-F4": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319462269,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27222-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319462395,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "26776-F5": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319462425,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27230-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468254,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27257-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468451,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27500-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468473,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27500-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468503,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27268-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468529,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27266-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468533,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27232-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468553,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27222-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468555,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27240-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468604,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27500-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468610,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27267-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468727,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27252-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468757,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27256-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468770,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27238-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468791,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27246-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468798,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27230-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468815,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27265-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468827,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27265-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468836,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27268-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468856,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27238-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468865,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27250-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468887,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27267-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468888,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27256-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468914,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27501-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468937,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27252-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468971,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27238-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319468998,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27266-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469007,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27257-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469025,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27257-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469028,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27265-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469059,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27246-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469063,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27240-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469133,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27266-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469134,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27256-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469143,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27232-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469157,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27372-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469181,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27246-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469191,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27267-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469300,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27252-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469405,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27240-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469457,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27250-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469464,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27268-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469468,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27502-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469545,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27501-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469553,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27501-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469616,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27232-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469669,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27230-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319469672,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27510-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319471661,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27520-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319471687,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27517-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319471716,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27503-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319471789,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27562-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319471806,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27538-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319471818,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27552-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319471832,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27520-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319471836,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27532-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319471872,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27509-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319471874,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27530-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319471894,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27510-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319471939,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27508-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319471954,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27560-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319471993,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27516-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472008,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27560-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472018,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27502-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472077,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27503-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472092,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27562-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472101,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27550-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472105,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27550-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472127,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27503-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472148,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27532-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472150,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27502-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472181,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27750-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472191,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27532-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472214,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27530-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472233,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27517-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472273,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27552-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472314,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27517-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472322,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27552-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472368,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27750-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472385,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27509-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472410,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27538-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472450,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27508-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472452,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27530-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472465,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27538-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472511,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27550-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472521,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27510-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472527,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27560-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472548,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27516-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472560,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27752-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472614,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27516-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472624,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27750-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472654,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27752-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472685,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27562-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472705,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27520-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472790,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27509-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472828,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27508-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319472870,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27767-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475040,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27780-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475043,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27780-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475044,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27824-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475046,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27786-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475048,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27760-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475050,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27825-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475073,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27830-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475107,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27824-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475150,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27830-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475166,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27808-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475168,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27781-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475187,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27781-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475211,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27788-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475230,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27810-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475265,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27816-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475274,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27756-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475275,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27768-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475277,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27788-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475283,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27816-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475289,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27760-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475295,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27756-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475339,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27786-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475348,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27756-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475361,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27786-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475379,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27830-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475404,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27816-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475436,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27818-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475460,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27818-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475462,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27810-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475467,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27810-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475468,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27752-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475510,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27825-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475538,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27818-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475559,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27824-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475568,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27768-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475617,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27767-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475621,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27762-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475626,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27762-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475628,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27808-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475654,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27831-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475674,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27825-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475707,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27760-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475746,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27780-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475773,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27768-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475956,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27762-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319475959,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27767-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319476012,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27808-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319476093,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27781-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319476128,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27788-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319476184,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28450-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319477995,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28193-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478061,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28475-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478103,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27842-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478112,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27840-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478151,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28455-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478255,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28436-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478278,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28406-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478336,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28475-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478375,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28400-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478417,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28405-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478419,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27842-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478438,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28430-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478446,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28430-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478458,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28436-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478513,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27840-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478517,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28435-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478530,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28456-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478546,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28470-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478564,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27831-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478567,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28455-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478653,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28450-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478674,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28405-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478676,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28400-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478696,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28406-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478717,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27831-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478735,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27840-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478781,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28435-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478831,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28436-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478871,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28190-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478878,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28470-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478947,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28475-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319478962,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28435-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319479012,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28456-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319479053,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28400-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319479110,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28192-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319479117,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "27842-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319479154,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28456-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319479163,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28430-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319479203,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28470-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319479245,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28450-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319479405,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28406-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319479435,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28405-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319479462,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28455-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319480999,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28600-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319482790,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28540-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319482962,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28546-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483036,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28530-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483048,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28570-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483060,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28476-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483061,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28546-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483084,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28600-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483103,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28530-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483184,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28530-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483290,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28576-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483314,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28546-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483361,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28600-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483449,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28576-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483451,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28575-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483452,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28476-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483458,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28575-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483493,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28545-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483494,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28476-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483497,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28540-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483501,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28605-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483526,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28570-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483528,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28570-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483531,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28576-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483713,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28545-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483717,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28575-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483915,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28540-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319483978,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28545-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319484144,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28605-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319493063,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28630-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319493228,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28605-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319493240,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28636-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319493403,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28606-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319493542,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28630-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319493678,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28635-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319493730,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28636-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319493940,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29055-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319493964,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28635-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319493991,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28606-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319494070,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28636-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319494213,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28630-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319494337,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28635-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319494894,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28665-T2": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319494975,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "28665-T5": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319495584,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29280-F1": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319503543,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29055-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319503632,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29065-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319503669,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29280-F2": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319503753,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29075-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319503758,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29280-F4": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319503760,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29130-F1": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319503761,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29105-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319503804,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29086-F8": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319503882,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29125-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319503923,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29130-F3": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319503977,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29130-F8": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319503981,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29065-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504023,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29260-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504047,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29280-F6": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504051,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29240-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504066,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29280-F8": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504079,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29105-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504081,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29065-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504146,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29130-F5": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504147,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29280-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504157,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29260-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504187,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29130-F7": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504194,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29280-F9": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504202,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29130-F2": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504223,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29280-F3": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504231,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29280-F7": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504280,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29075-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504294,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29130-F6": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504387,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29130-F4": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504418,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29086-F4": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504424,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29240-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504441,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29105-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504474,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29130-F9": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504521,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29055-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504615,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29260-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504632,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29086-F5": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504634,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29125-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504676,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29125-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504688,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29280-F5": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504729,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29240-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504779,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29086-F9": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504935,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29075-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319504981,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29086-F1": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319505303,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29086-F2": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319505339,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29086-F7": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319505539,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29086-F3": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319505794,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29530-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507404,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29440-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507488,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29700-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507492,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29530-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507552,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29505-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507687,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29280-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507722,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29505-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507725,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29540-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507737,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29540-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507754,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29705-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507844,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29345-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507846,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29405-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507877,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29515-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507910,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29440-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507926,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29700-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507942,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29405-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507947,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29515-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507950,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29730-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507955,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29705-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507966,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29520-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319507981,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29405-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319508004,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29520-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319508041,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29515-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319508055,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29580-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319508087,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29740-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319508112,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29345-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319508160,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29580-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319508180,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29530-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319508190,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29345-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319508195,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29540-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319508303,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29580-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319508326,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29280-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319508446,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29440-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319508453,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29505-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319508459,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29520-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319508511,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29730-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319509928,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "32555-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319514548,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "30903-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319514559,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "32551-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319514700,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "30901-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319514828,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "30300-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319514872,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "32556-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319514918,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29740-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319514922,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "30300-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319515139,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "32551-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319515147,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "29740-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319515170,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "30901-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319515286,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "32557-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319515420,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "32551-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319515454,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "32554-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319515791,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "69210-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319527845,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "65210-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528032,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "69200-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528114,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "65205-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528124,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "65205-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528248,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "64450-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528251,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "64450-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528318,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "65205-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528331,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "64400-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528365,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "65222-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528404,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "65220-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528566,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "65210-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528582,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "65220-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528627,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "64450-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528629,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "69200-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528631,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "69209-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528700,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "65220-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528714,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "69209-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528722,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "69209-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528733,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "65222-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528773,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "67938-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528841,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "64400-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528845,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "69210-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528855,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "69200-RT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528889,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "64400-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319528936,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "65222-LT": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319529022,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "65210-50": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319529238,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "G0008": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319535075,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "G0009": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319535773,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "99282-25": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319535782,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "99281-25": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319536027,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "99284-25": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319536313,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "99285-25": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319536489,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "99283-25": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319536829,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "G0010": {
+    "isValid": true,
+    "reason": "Valid CPT code",
+    "timestamp": 1752319537599,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "99291-25": {
+    "isValid": true,
+    "reason": "Valid CPT code with appropriate modifier",
+    "timestamp": 1752319539274,
+    "validatedBy": "gemini",
+    "model": "gemini-2.5-flash"
+  }
+}

@@ -117,7 +117,7 @@ export const MergedResultsArea: React.FC<MergedResultsAreaProps> = ({
 
       <Box sx={{ height: 600, width: '100%' }}>
         <DynamicDataGrid
-          gridKey={`merged-grid-${mergedColumns.length}-${mergedRows.length}`}
+          gridKey={`merged-grid-${mergedColumns.length}`}
           rows={filteredMergedRows}
           columns={mergedColumns}
           sortModel={mergedSortModel}
