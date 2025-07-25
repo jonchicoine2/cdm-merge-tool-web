@@ -321,7 +321,23 @@ export function mergeData(
     totalClientColumns: clientColumns.length
   };
   
-  return { merged, unmatched, duplicates, stats };
+  // Format HCPCS codes in merged data to ensure proper format (XXXXX-XX)
+  const formattedMerged = merged.map(row => {
+    const formattedRow = { ...row };
+    Object.keys(formattedRow).forEach(key => {
+      // Check if this column contains HCPCS codes (by column name)
+      if (key.toLowerCase().includes('hcpcs') || key.toLowerCase().includes('cpt') || key.toLowerCase().includes('code')) {
+        const value = formattedRow[key];
+        if (typeof value === 'string' && value.length === 7) {
+          // Insert hyphen between 5th and 6th characters
+          formattedRow[key] = `${value.substring(0, 5)}-${value.substring(5)}`;
+        }
+      }
+    });
+    return formattedRow;
+  });
+  
+  return { merged: formattedMerged, unmatched, duplicates, stats };
 }
 
 export function exportToExcel(data: ExcelRow[], filename: string): void {

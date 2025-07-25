@@ -9,7 +9,7 @@ import * as XLSX from "xlsx";
 import AIChat, { AIChatHandle } from "../../components/AIChat";
 import dynamic from 'next/dynamic';
 import { filterAndSearchRows } from "../../utils/excelOperations";
-import { cptCacheService } from "../../utils/cptCacheService";
+// Removed cptCacheService import - no longer used
 
 // Create a NoSSR wrapper component to disable server-side rendering
 const NoSSR = dynamic(() => Promise.resolve(({ children }: { children: React.ReactNode }) => <>{children}</>), {
@@ -116,7 +116,7 @@ export default function ExcelImportPage() {
   const [isValidating, setIsValidating] = useState(false);
   const [validationProgress, setValidationProgress] = useState<{current: number, total: number} | null>(null);
   const [hasValidationFilter, setHasValidationFilter] = useState(false);
-  const [validationMethod, setValidationMethod] = useState<'ai' | 'local'>('ai');
+  // Removed validationMethod - only AI validation is supported
   
   // Debug effect to monitor invalidHcpcsCodes changes
   useEffect(() => {
@@ -1449,9 +1449,11 @@ export default function ExcelImportPage() {
     reader.onload = (evt) => {
       const data = evt.target?.result;
       if (!data) return;
+      const arrayBuffer = data as ArrayBuffer;
+      const base64Data = btoa(new Uint8Array(arrayBuffer).reduce((acc, byte) => acc + String.fromCharCode(byte), ''));
       
       // Process all sheets
-      const workbook = XLSX.read(data, { type: "binary" });
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
       const sheets = workbook.SheetNames;
       console.log(`[DEBUG] File ${which} has ${sheets.length} sheets:`, sheets);
       
@@ -1480,15 +1482,15 @@ export default function ExcelImportPage() {
         
         // Save file data and metadata
         if (which === "Master") {
-          localStorage.setItem("lastMasterData", data as string);
-          setLastMasterData(data as string);
+          localStorage.setItem("lastMasterData", base64Data);
+          setLastMasterData(base64Data);
           localStorage.setItem("lastMasterSheet", sheets[0]);
           localStorage.setItem("lastMasterMetadata", JSON.stringify(metadata));
           setMasterFileMetadata(metadata);
           console.log('[DEBUG] Master metadata set:', metadata);
         } else {
-          localStorage.setItem("lastClientData", data as string);
-          setLastClientData(data as string);
+          localStorage.setItem("lastClientData", base64Data);
+          setLastClientData(base64Data);
           localStorage.setItem("lastClientSheet", sheets[0]);
           localStorage.setItem("lastClientMetadata", JSON.stringify(metadata));
           setClientFileMetadata(metadata);
@@ -1497,14 +1499,14 @@ export default function ExcelImportPage() {
       } else {
         // For restore operations, only update the data and sheet info
         if (which === "Master") {
-          setLastMasterData(data as string);
+          setLastMasterData(base64Data);
         } else {
-          setLastClientData(data as string);
+          setLastClientData(base64Data);
         }
       }
       
       // Process all sheets and store them
-      processAllSheets(data as ArrayBuffer, which, sheets);
+      processAllSheets(arrayBuffer, which, sheets);
     };
     reader.readAsArrayBuffer(file);
   };
@@ -1965,7 +1967,7 @@ export default function ExcelImportPage() {
   };
 
   const processAllSheets = (data: string | ArrayBuffer, which: "Master" | "Client", sheetNames: string[]) => {
-    const workbook = XLSX.read(data, { type: typeof data === 'string' ? "binary" : "array" });
+    const workbook = XLSX.read(data, { type: typeof data === 'string' ? 'base64' : 'array' });
     const sheetData: {[sheetName: string]: {rows: ExcelRow[], columns: GridColDef[]}} = {};
     
     // Make both client and master data editable
@@ -2042,7 +2044,7 @@ export default function ExcelImportPage() {
   const restoreFileData = (data: string, which: "Master" | "Client", restoreMetadata = false) => {
     console.log(`[DEBUG] Starting restoreFileData for ${which}`);
     // For restore operations, process the data directly without creating a File object
-    const workbook = XLSX.read(data, { type: "binary" });
+    const workbook = XLSX.read(data, { type: 'base64' });
     const sheets = workbook.SheetNames;
     console.log(`[DEBUG] ${which} sheets found:`, sheets);
     processAllSheets(data, which, sheets);
@@ -2183,7 +2185,7 @@ export default function ExcelImportPage() {
     if (fileClientInputRef.current) fileClientInputRef.current.value = "";
   };
 
-  const handleClearAllData = () => {
+  const handleClearAllData = async () => {
     // First do a normal reset
     handleReset();
     
@@ -2202,6 +2204,26 @@ export default function ExcelImportPage() {
     setLastMasterData(null);
     setLastClientFile(null);
     setLastClientData(null);
+    
+    // Clear server-side validation cache
+    try {
+      console.log('[Clear All Data] Clearing server-side validation cache...');
+      const response = await fetch('/api/clear-cache', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clearStaleOnly: false })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('[Clear All Data] Server cache cleared:', result.message);
+      } else {
+        console.warn('[Clear All Data] Failed to clear server cache:', response.status);
+      }
+    } catch (error) {
+      console.error('[Clear All Data] Error clearing server cache:', error);
+      // Don't throw - clearing cache failure shouldn't prevent the UI reset
+    }
   };
 
   // Save and cancel functions for editing
@@ -2760,30 +2782,14 @@ export default function ExcelImportPage() {
         return;
       }
       
-      // Check local cache first
-      console.log('[DEBUG] About to check cache for codes:', hcpcsCodes.slice(0, 5));
-      
-      let cached: { [code: string]: any } = {};
-      let missing = hcpcsCodes;
-      let stale: string[] = [];
-      let codesToValidate = hcpcsCodes;
-      
-      try {
-        const cacheResult = cptCacheService.getBulkCPTValidations(hcpcsCodes);
-        cached = cacheResult.cached;
-        missing = cacheResult.missing;
-        stale = cacheResult.stale;
-        codesToValidate = [...new Set([...missing, ...stale])];
-        console.log(`[CPT CACHE] ${Object.keys(cached).length} cache hits, ${codesToValidate.length} to validate via AI`);
-      } catch (cacheError) {
-        console.error('[CPT CACHE] Error accessing cache, proceeding without cache:', cacheError);
-        // Continue without cache - validate all codes
-      }
+      // Use AI validation for all codes (no local cache)
+      console.log('[DEBUG] Validating codes via AI:', hcpcsCodes.slice(0, 5));
+      const codesToValidate = hcpcsCodes;
       
       console.log('[DEBUG] Cache check complete');
       
-      // If all are cached and fresh, process them directly
-      if (codesToValidate.length === 0) {
+      // Use AI validation for all codes (removed cache-only processing)
+      if (false) { // Disabled cached-only block
         console.log('[HCPCS VALIDATION] All codes validated from cache');
         const validationResults = Object.entries(cached).map(([code, entry]) => ({
           code,
@@ -2947,18 +2953,10 @@ export default function ExcelImportPage() {
         confidence: details.confidence || 0.9
       }));
 
-      // Combine with cached
-      const fullResults = [...Object.entries(cached).map(([code, entry]) => ({
-        code,
-        isValid: entry.isValid,
-        reason: entry.reason,
-        description: entry.description,
-        category: entry.category,
-        confidence: entry.confidence
-      })), ...apiResults];
+      // Use only AI results (no cache combination)
+      const fullResults = apiResults;
 
-      // Store new API results in cache
-      cptCacheService.storeCPTResults(apiResults);
+      // Cache storage removed - using server-side cache only
 
       // Process full results (inline, matching cached-only)
       const newInvalidCodes = new Set<string>();
@@ -3025,141 +3023,7 @@ export default function ExcelImportPage() {
     console.log('[HCPCS VALIDATION] Cleared validation filter');
   };
 
-  // Local HCPCS validation function (alternate to AI validation)
-  const handleValidateHcpcsLocal = async () => {
-    // Reset validation state
-    setInvalidHcpcsCodes(new Set());
-    setValidationDetails(null);
-    setValidationProgress(null);
-    setHasValidationFilter(false);
-    setMergedFilters([]);
-    
-    setIsValidating(true);
-    
-    try {
-      // Get HCPCS column from merged data
-      const hcpcsColumn = mergedColumns.find(col => 
-        col.field.toLowerCase().includes('hcpcs') || 
-        col.field.toLowerCase().includes('cpt') ||
-        col.field.toLowerCase().includes('code')
-      )?.field;
-      
-      if (!hcpcsColumn) {
-        console.error('No HCPCS column found for validation');
-        return;
-      }
-      
-      // Extract unique HCPCS codes for validation
-      const hcpcsCodes = [...new Set(
-        mergedRows
-          .map(row => {
-            let code = String(row[hcpcsColumn] || '').trim().toUpperCase();
-            // Strip quantity suffixes (x1, x01, x02, etc.)
-            code = code.replace(/X\d{1,2}$/i, '');
-            return code;
-          })
-          .filter(code => code.length > 0 && code !== 'UNDEFINED')
-      )];
-      
-      console.log(`[LOCAL HCPCS VALIDATION] Validating ${hcpcsCodes.length} unique codes from merged grid`);
-      
-      if (hcpcsCodes.length === 0) {
-        console.log('No HCPCS codes found to validate');
-        return;
-      }
-      
-      // Use local validation endpoint
-      console.log(`[LOCAL HCPCS VALIDATION] Validating ${hcpcsCodes.length} codes locally...`);
-      setValidationProgress({ current: 0, total: hcpcsCodes.length });
-      
-      const response = await fetch('/api/validate-hcpcs-local', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ codes: hcpcsCodes }),
-      });
-      
-      if (!response.ok) {
-        console.error(`[LOCAL HCPCS VALIDATION] Request failed with status: ${response.status}`);
-        throw new Error(`Local validation failed: ${response.status}`);
-      }
-      
-      const validationData = await response.json();
-      
-      // Process results
-      const allInvalidCodes = validationData.invalidCodes || [];
-      const allValidationDetails = validationData.validationResults || {};
-      const baseCodeIssues: string[] = [];
-      const modifierIssues: string[] = [];
-      
-      // Categorize issues by type
-      Object.entries(allValidationDetails).forEach(([code, details]: [string, any]) => {
-        if (!details.isValid && details.reason) {
-          if (details.reason.toLowerCase().includes('base')) {
-            baseCodeIssues.push(code);
-          } else if (details.reason.toLowerCase().includes('modifier')) {
-            modifierIssues.push(code);
-          }
-        }
-      });
-      
-      console.log(`[LOCAL HCPCS VALIDATION] Validation completed in ${validationData.processingTime}ms. Found ${allInvalidCodes.length} invalid codes`);
-      console.log(`[LOCAL HCPCS VALIDATION] Cache info:`, validationData.cacheInfo);
-      console.log(`[LOCAL HCPCS VALIDATION] Base code issues: ${baseCodeIssues.length}`, baseCodeIssues.slice(0, 10));
-      console.log(`[LOCAL HCPCS VALIDATION] Modifier issues: ${modifierIssues.length}`, modifierIssues.slice(0, 10));
-      
-      // Update progress to show completion
-      setValidationProgress({ current: hcpcsCodes.length, total: hcpcsCodes.length });
-      
-      // Update invalid codes state with all results
-      const invalidCodesSet = new Set<string>(allInvalidCodes.map((code: string) => String(code)));
-      console.log(`[LOCAL HCPCS VALIDATION] Setting invalid codes:`, {
-        count: invalidCodesSet.size,
-        codes: Array.from(invalidCodesSet).slice(0, 20),
-        allInvalidCodes: allInvalidCodes
-      });
-      
-      // Force state updates to ensure React re-renders
-      setInvalidHcpcsCodes(new Set()); // Clear first
-      setValidationDetails(null);
-      
-      // Then set new values in next tick
-      setTimeout(() => {
-        setInvalidHcpcsCodes(invalidCodesSet);
-        setValidationDetails(allValidationDetails);
-        
-        console.log(`[LOCAL HCPCS VALIDATION] State updated with ${invalidCodesSet.size} invalid codes`);
-        console.log(`[LOCAL HCPCS VALIDATION] Validation details:`, allValidationDetails);
-      }, 0);
-      
-      // Show validation summary to user
-      if (allInvalidCodes.length > 0) {
-        const summary = `Local validation complete: ${allInvalidCodes.length} invalid codes found`;
-        const baseSummary = baseCodeIssues.length > 0 ? ` (${baseCodeIssues.length} base code issues)` : '';
-        const modifierSummary = modifierIssues.length > 0 ? ` (${modifierIssues.length} modifier issues)` : '';
-        console.log(`[LOCAL HCPCS VALIDATION] ${summary}${baseSummary}${modifierSummary}`);
-        
-        // Apply filter after state has been updated
-        setTimeout(() => {
-          // Automatically apply filter to show only invalid codes if any were found
-          const newFilter = { column: 'hcpcs', condition: 'invalid_hcpcs', value: '' };
-          setMergedFilters([newFilter]);
-          setHasValidationFilter(true);
-          console.log('[LOCAL HCPCS VALIDATION] Applied filter to show only invalid codes');
-        }, 100);
-      } else {
-        console.log('[LOCAL HCPCS VALIDATION] ✅ All codes are valid!');
-      }
-      
-    } catch (error) {
-      console.error('[LOCAL HCPCS VALIDATION] Error:', error);
-      // You could show a toast notification here
-    } finally {
-      setIsValidating(false);
-      setValidationProgress(null);
-    }
-  };
+  // Removed handleValidateHcpcsLocal - only AI validation is supported
 
   return (
     <NoSSR>
@@ -4052,64 +3916,13 @@ export default function ExcelImportPage() {
                   }
                 }}
               />
-              {/* Validation Method Toggle */}
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                p: 1,
-                backgroundColor: '#f5f5f5',
-                borderRadius: 1,
-                border: '1px solid #ddd'
-              }}>
-                <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#666' }}>
-                  Method:
-                </Typography>
-                <Button
-                  size="small"
-                  variant={validationMethod === 'ai' ? 'contained' : 'outlined'}
-                  onClick={() => setValidationMethod('ai')}
-                  sx={{
-                    minWidth: '60px',
-                    fontSize: '0.75rem',
-                    py: 0.5,
-                    backgroundColor: validationMethod === 'ai' ? '#9c27b0' : 'transparent',
-                    color: validationMethod === 'ai' ? 'white' : '#9c27b0',
-                    borderColor: '#9c27b0',
-                    '&:hover': {
-                      backgroundColor: validationMethod === 'ai' ? '#7b1fa2' : '#f3e5f5'
-                    }
-                  }}
-                >
-                  🤖 AI
-                </Button>
-                <Button
-                  size="small"
-                  variant={validationMethod === 'local' ? 'contained' : 'outlined'}
-                  onClick={() => setValidationMethod('local')}
-                  sx={{
-                    minWidth: '70px',
-                    fontSize: '0.75rem',
-                    py: 0.5,
-                    backgroundColor: validationMethod === 'local' ? '#4caf50' : 'transparent',
-                    color: validationMethod === 'local' ? 'white' : '#4caf50',
-                    borderColor: '#4caf50',
-                    '&:hover': {
-                      backgroundColor: validationMethod === 'local' ? '#388e3c' : '#e8f5e8'
-                    }
-                  }}
-                >
-                  💾 Local
-                </Button>
-              </Box>
+              {/* Removed validation method toggle - only AI validation is supported */}
               
               <Button 
                 variant="contained" 
                 onClick={hasValidationFilter 
                   ? handleClearValidationFilter 
-                  : validationMethod === 'ai' 
-                    ? handleValidateHcpcs 
-                    : handleValidateHcpcsLocal
+                  : handleValidateHcpcs
                 } 
                 disabled={mergedRows.length === 0 || isValidating}
                 sx={{ 
@@ -4127,7 +3940,7 @@ export default function ExcelImportPage() {
                     : '⏳ Validating...'
                   : hasValidationFilter
                     ? '🔄 Clear Filter'
-                    : `✅ Validate HCPCS (${validationMethod === 'ai' ? 'AI' : 'Local'})`
+                    : '✅ Validate HCPCS'
                 }
               </Button>
             </Box>
