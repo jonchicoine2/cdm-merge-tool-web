@@ -78,8 +78,6 @@ interface AIIntent {
   response?: string;
 }
 
-// First, add type definition at top if not present
-type ValidationDetails = { [code: string]: { isValid: boolean; reason?: string; description?: string; category?: string; confidence?: number } };
 
 export default function ExcelImportPage() {
   const [rowsMaster, setRowsMaster] = useState<ExcelRow[]>([]);
@@ -579,18 +577,14 @@ export default function ExcelImportPage() {
     const apiRef = gridType === 'master' ? masterApiRef :
                   gridType === 'client' ? clientApiRef : mergedApiRef;
 
-    // Get the appropriate columns and HCPCS column
-    let columns: GridColDef[];
+    // Get the appropriate HCPCS column
     let hcpcsColumn: string | null = null;
 
     if (gridType === 'master') {
-      columns = columnsMaster;
       hcpcsColumn = getHCPCSColumnMaster();
     } else if (gridType === 'client') {
-      columns = columnsClient;
       hcpcsColumn = getHCPCSColumnClient();
     } else {
-      columns = mergedColumns;
       // For merged grid, find HCPCS column using the same logic as validation
       const hcpcsCol = mergedColumns.find(col =>
         col.field.toLowerCase().includes('hcpcs') ||
@@ -601,22 +595,26 @@ export default function ExcelImportPage() {
     }
 
     // Start row edit mode
-    apiRef.current.startRowEditMode({ id: rowId });
+    if (apiRef.current) {
+      apiRef.current.startRowEditMode({ id: rowId });
 
-    // If we found an HCPCS column, focus on it after a brief delay
-    if (hcpcsColumn) {
-      setTimeout(() => {
-        try {
-          apiRef.current.setCellFocus(rowId, hcpcsColumn!);
-        } catch (error) {
-          console.log('Could not focus HCPCS cell:', error);
-        }
-      }, 150);
+      // If we found an HCPCS column, focus on it after a brief delay
+      if (hcpcsColumn) {
+        setTimeout(() => {
+          try {
+            if (apiRef.current) {
+              apiRef.current.setCellFocus(rowId, hcpcsColumn!);
+            }
+          } catch (error) {
+            console.log('Could not focus HCPCS cell:', error);
+          }
+        }, 150);
+      }
     }
   };
 
   // Function to create actions column for row operations
-  const createActionsColumn = (gridType: 'master' | 'client' | 'merged'): GridColDef => {
+  const createActionsColumn = useCallback((gridType: 'master' | 'client' | 'merged'): GridColDef => {
     return {
       field: 'actions',
       headerName: 'Actions',
@@ -666,7 +664,7 @@ export default function ExcelImportPage() {
         </Box>
       ),
     };
-  };
+  }, []);
 
   // Filtered data for each grid
   const filteredRowsMaster = filterAndSearchRowsLocal(rowsMaster, searchMaster, masterFilters);
@@ -1082,7 +1080,6 @@ export default function ExcelImportPage() {
       const newFilter = { column, condition, value };
       
       console.log('[FILTER DEBUG] Applying filter:', newFilter, 'to grid:', targetView);
-      console.log('[FILTER DEBUG] Invalid HCPCS codes count:', invalidHcpcsCodes.size);
       
       // Add filter to the correct grid
       switch (targetView) {

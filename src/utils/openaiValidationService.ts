@@ -108,7 +108,15 @@ class OpenAIValidationService {
           const parsed = JSON.parse(jsonMatch[0]);
           if (!parsed.results || !Array.isArray(parsed.results)) throw new Error('Invalid JSON structure');
 
-          const batchResults: OpenAIValidationResult[] = parsed.results.map((item: any) => ({
+          const batchResults: OpenAIValidationResult[] = parsed.results.map((item: {
+              code: string | number;
+              isValid: boolean;
+              reason?: string;
+              description?: string;
+              category?: string;
+              confidence?: number;
+              invalidReason?: string;
+          }) => ({
               code: String(item.code).trim().toUpperCase(),
               isValid: Boolean(item.isValid),
               reason: item.reason || '',
