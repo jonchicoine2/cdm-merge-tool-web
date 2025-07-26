@@ -1,11 +1,14 @@
 "use client";
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Chip, Fab, Tooltip, IconButton } from "@mui/material";
-import { DataGrid, GridColDef, GridSortModel, GridRenderCellParams } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridSortModel, GridRenderCellParams, useGridApiRef } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import EditIcon from "@mui/icons-material/Edit";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DeleteIcon from "@mui/icons-material/Delete";
 import * as XLSX from "xlsx";
 import AIChat, { AIChatHandle } from "../../components/AIChat";
 import dynamic from 'next/dynamic';
@@ -111,22 +114,8 @@ export default function ExcelImportPage() {
   // Comparison statistics state
   const [comparisonStats, setComparisonStats] = useState<ComparisonStats | null>(null);
   
-  // HCPCS validation state
-  const [invalidHcpcsCodes, setInvalidHcpcsCodes] = useState<Set<string>>(new Set());
-  const [validationDetails, setValidationDetails] = useState<{[code: string]: {isValid: boolean; reason?: string}} | null>(null);
-  const [isValidating, setIsValidating] = useState(false);
-  const [validationProgress, setValidationProgress] = useState<{current: number, total: number} | null>(null);
-  const [hasValidationFilter, setHasValidationFilter] = useState(false);
-  // Removed validationMethod - only AI validation is supported
-  
-  // Debug effect to monitor invalidHcpcsCodes changes
-  useEffect(() => {
-    console.log('[HCPCS STATE DEBUG] invalidHcpcsCodes updated:', {
-      size: invalidHcpcsCodes.size,
-      codes: Array.from(invalidHcpcsCodes).slice(0, 10),
-      hasMore: invalidHcpcsCodes.size > 10
-    });
-  }, [invalidHcpcsCodes]);
+
+
   
   useEffect(() => {
     const lastMaster = localStorage.getItem("lastMasterFile");
@@ -382,6 +371,11 @@ export default function ExcelImportPage() {
   const [unmatchedSortModel, setUnmatchedSortModel] = useState<GridSortModel>([]);
   const [duplicatesSortModel, setDuplicatesSortModel] = useState<GridSortModel>([]);
 
+  // API refs for programmatic control of each grid
+  const masterApiRef = useGridApiRef();
+  const clientApiRef = useGridApiRef();
+  const mergedApiRef = useGridApiRef();
+
 
   // Filter states for each grid
   const [masterFilters, setMasterFilters] = useState<{column: string, condition: string, value: string}[]>([]);
@@ -458,22 +452,7 @@ export default function ExcelImportPage() {
             const numValue2 = parseFloat(cellValue);
             const numFilter2 = parseFloat(filterValue);
             return !isNaN(numValue2) && !isNaN(numFilter2) && numValue2 < numFilter2;
-          case 'invalid_hcpcs':
-            // Find the HCPCS column for this row
-            const hcpcsKey = Object.keys(row).find(key => 
-              key.toLowerCase().includes('hcpcs') || key.toLowerCase().includes('cpt') || key.toLowerCase().includes('code')
-            );
-            
-            if (!hcpcsKey) return false;
-            
-            const hcpcsValue = String(row[hcpcsKey] || '').toUpperCase().trim();
-            // Strip quantity suffix for validation check (x1, x01, x02, etc.)
-            const codeForValidation = hcpcsValue.replace(/X\d{1,2}$/i, '');
-            
-            // Check if the code is invalid
-            return invalidHcpcsCodes.has(codeForValidation) || 
-                   codeForValidation === '99999' || 
-                   codeForValidation === 'TEST123';
+
           default:
             return true;
         }
@@ -595,6 +574,100 @@ export default function ExcelImportPage() {
     } as const;
   };
 
+  // Helper function to start row edit mode and focus on HCPCS column
+  const startRowEditModeWithHcpcsFocus = (gridType: 'master' | 'client' | 'merged', rowId: number | string) => {
+    const apiRef = gridType === 'master' ? masterApiRef :
+                  gridType === 'client' ? clientApiRef : mergedApiRef;
+
+    // Get the appropriate columns and HCPCS column
+    let columns: GridColDef[];
+    let hcpcsColumn: string | null = null;
+
+    if (gridType === 'master') {
+      columns = columnsMaster;
+      hcpcsColumn = getHCPCSColumnMaster();
+    } else if (gridType === 'client') {
+      columns = columnsClient;
+      hcpcsColumn = getHCPCSColumnClient();
+    } else {
+      columns = mergedColumns;
+      // For merged grid, find HCPCS column using the same logic as validation
+      const hcpcsCol = mergedColumns.find(col =>
+        col.field.toLowerCase().includes('hcpcs') ||
+        col.field.toLowerCase().includes('cpt') ||
+        col.field.toLowerCase().includes('code')
+      );
+      hcpcsColumn = hcpcsCol?.field || null;
+    }
+
+    // Start row edit mode
+    apiRef.current.startRowEditMode({ id: rowId });
+
+    // If we found an HCPCS column, focus on it after a brief delay
+    if (hcpcsColumn) {
+      setTimeout(() => {
+        try {
+          apiRef.current.setCellFocus(rowId, hcpcsColumn!);
+        } catch (error) {
+          console.log('Could not focus HCPCS cell:', error);
+        }
+      }, 150);
+    }
+  };
+
+  // Function to create actions column for row operations
+  const createActionsColumn = (gridType: 'master' | 'client' | 'merged'): GridColDef => {
+    return {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 140,
+      editable: false,
+      sortable: false,
+      filterable: false,
+      disableColumnMenu: true,
+      renderCell: (params: GridRenderCellParams) => (
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Tooltip title="Edit Row">
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                startRowEditModeWithHcpcsFocus(gridType, params.row.id);
+              }}
+              sx={{ color: '#1976d2' }}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Duplicate Row">
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDuplicateRecord(params.row.id, gridType);
+              }}
+              sx={{ color: '#ed6c02' }}
+            >
+              <ContentCopyIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete Row">
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteRecord(params.row.id, gridType);
+              }}
+              sx={{ color: '#d32f2f' }}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      ),
+    };
+  };
+
   // Filtered data for each grid
   const filteredRowsMaster = filterAndSearchRowsLocal(rowsMaster, searchMaster, masterFilters);
   const filteredRowsClient = filterAndSearchRowsLocal(rowsClient, searchClient, clientFilters);
@@ -610,82 +683,8 @@ export default function ExcelImportPage() {
     
     if (!hcpcsColumn) return mergedColumns;
     
-    // Create enhanced columns with custom HCPCS rendering for validation
-    const enhancedColumns = mergedColumns.map(col => {
-      if (col.field === hcpcsColumn.field) {
-        return {
-          ...col,
-          renderCell: (params: GridRenderCellParams) => {
-            const hcpcsValue = params.value;
-            const hcpcsString = String(hcpcsValue).toUpperCase();
-            // Strip quantity suffix for validation check (x1, x01, x02, etc.)
-            const codeForValidation = hcpcsString.replace(/X\d{1,2}$/i, '');
-            const isInvalid = invalidHcpcsCodes.has(codeForValidation) || codeForValidation === '99999' || codeForValidation === 'TEST123';
-            
-            // Parse code to determine if it's a base code or modifier issue
-            let validationType = '';
-            let validationMessage = '';
-            if (isInvalid && validationDetails?.[codeForValidation]?.reason) {
-              const reason = validationDetails[codeForValidation].reason;
-              if (reason.toLowerCase().includes('modifier')) {
-                validationType = 'modifier';
-                validationMessage = 'Invalid modifier';
-              } else if (reason.toLowerCase().includes('base') || reason.toLowerCase().includes('code')) {
-                validationType = 'base';
-                validationMessage = 'Invalid base code';
-              } else {
-                validationType = 'general';
-                validationMessage = 'Invalid HCPCS code';
-              }
-            }
-            
-            // Debug logging for first few renders
-            if (invalidHcpcsCodes.size > 0 && Math.random() < 0.1) {
-              console.log(`[HCPCS RENDER] Checking ${hcpcsString}, isInvalid: ${isInvalid}, type: ${validationType}, invalidSet size: ${invalidHcpcsCodes.size}`);
-            }
-            
-            return (
-              <Box
-                sx={{
-                  backgroundColor: isInvalid ? '#ffebee' : 'transparent',
-                  color: isInvalid ? '#c62828' : 'inherit',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  fontWeight: isInvalid ? 'bold' : 'normal',
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  border: isInvalid ? '1px solid #ef5350' : 'none',
-                  position: 'relative',
-                }}
-                title={isInvalid ? 
-                  `${validationMessage}: ${validationDetails?.[codeForValidation]?.reason || 'Invalid HCPCS code detected'}` 
-                  : undefined}
-              >
-                {isInvalid && (
-                  <Box sx={{ 
-                    position: 'absolute', 
-                    top: 0, 
-                    right: 0, 
-                    fontSize: '10px', 
-                    backgroundColor: validationType === 'modifier' ? '#ff9800' : '#f44336',
-                    color: 'white',
-                    padding: '1px 4px',
-                    borderRadius: '2px',
-                    fontWeight: 'bold'
-                  }}>
-                    {validationType === 'modifier' ? 'M' : validationType === 'base' ? 'B' : '!'}
-                  </Box>
-                )}
-                {isInvalid && '⚠️ '}{String(hcpcsValue)}
-              </Box>
-            );
-          }
-        };
-      }
-      return col;
-    });
+    // Use regular merged columns without validation rendering
+    const enhancedColumns = mergedColumns;
     
     // Add "Ask AI" column after HCPCS column
     const hcpcsIndex = enhancedColumns.findIndex(col => col.field === hcpcsColumn.field);
@@ -721,7 +720,20 @@ export default function ExcelImportPage() {
     const newColumns = [...enhancedColumns];
     newColumns.splice(hcpcsIndex + 1, 0, askAIColumn);
     return newColumns;
-  }, [mergedColumns, invalidHcpcsCodes, validationDetails]);
+  }, [mergedColumns]);
+
+  // Enhanced columns with actions for each grid
+  const enhancedMasterColumns = useMemo(() => {
+    return [...columnsMaster, createActionsColumn('master')];
+  }, [columnsMaster]);
+
+  const enhancedClientColumns = useMemo(() => {
+    return [...columnsClient, createActionsColumn('client')];
+  }, [columnsClient]);
+
+  const enhancedMergedColumnsWithActions = useMemo(() => {
+    return [...enhancedMergedColumns, createActionsColumn('merged')];
+  }, [enhancedMergedColumns]);
 
   // AI Chat functions
   const getCurrentGridContext = useCallback(() => {
@@ -2486,12 +2498,12 @@ export default function ExcelImportPage() {
         console.error(`Record with ID ${rowId} not found in master grid`);
         return { success: false, originalRowId: rowId };
       }
-      
+
       const maxId = Math.max(...rowsMaster.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
       const newRecord = { ...recordToDuplicate, id: maxId + 1 };
       const updatedRows = [...rowsMaster, newRecord];
       setRowsMaster(updatedRows);
-      
+
       // Update sheet data
       const currentSheet = masterSheetNames[activeMasterTab];
       if (currentSheet && masterSheetData[currentSheet]) {
@@ -2504,8 +2516,14 @@ export default function ExcelImportPage() {
         };
         setMasterSheetData(updatedSheetData);
       }
-      
+
       setHasUnsavedMasterChanges(true);
+
+      // Start edit mode on the new row with HCPCS focus after a brief delay to ensure the grid has updated
+      setTimeout(() => {
+        startRowEditModeWithHcpcsFocus('master', newRecord.id);
+      }, 100);
+
       console.log(`Record duplicated in master grid. New record ID: ${newRecord.id}`);
       return { success: true, newRowId: newRecord.id, originalRowId: rowId };
     } else if (gridType === 'client') {
@@ -2514,12 +2532,12 @@ export default function ExcelImportPage() {
         console.error(`Record with ID ${rowId} not found in client grid`);
         return { success: false, originalRowId: rowId };
       }
-      
+
       const maxId = Math.max(...rowsClient.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
       const newRecord = { ...recordToDuplicate, id: maxId + 1 };
       const updatedRows = [...rowsClient, newRecord];
       setRowsClient(updatedRows);
-      
+
       // Update sheet data
       const currentSheet = clientSheetNames[activeClientTab];
       if (currentSheet && clientSheetData[currentSheet]) {
@@ -2532,8 +2550,14 @@ export default function ExcelImportPage() {
         };
         setClientSheetData(updatedSheetData);
       }
-      
+
       setHasUnsavedChanges(true);
+
+      // Start edit mode on the new row with HCPCS focus after a brief delay to ensure the grid has updated
+      setTimeout(() => {
+        startRowEditModeWithHcpcsFocus('client', newRecord.id);
+      }, 100);
+
       console.log(`Record duplicated in client grid. New record ID: ${newRecord.id}`);
       return { success: true, newRowId: newRecord.id, originalRowId: rowId };
     } else if (gridType === 'merged') {
@@ -2542,13 +2566,19 @@ export default function ExcelImportPage() {
         console.error(`Record with ID ${rowId} not found in merged grid`);
         return { success: false, originalRowId: rowId };
       }
-      
+
       const maxId = Math.max(...mergedRows.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
       const newRecord = { ...recordToDuplicate, id: maxId + 1 };
       const updatedRows = [...mergedRows, newRecord];
       setMergedRows(updatedRows);
       setMergedForExport(updatedRows);
       setHasUnsavedMergedChanges(true);
+
+      // Start edit mode on the new row with HCPCS focus after a brief delay to ensure the grid has updated
+      setTimeout(() => {
+        startRowEditModeWithHcpcsFocus('merged', newRecord.id);
+      }, 100);
+
       console.log(`Record duplicated in merged grid. New record ID: ${newRecord.id}`);
       return { success: true, newRowId: newRecord.id, originalRowId: rowId };
     }
@@ -2732,6 +2762,12 @@ export default function ExcelImportPage() {
       }
       
       setHasUnsavedMasterChanges(true);
+
+      // Start edit mode on the new row with HCPCS focus after a brief delay to ensure the grid has updated
+      setTimeout(() => {
+        startRowEditModeWithHcpcsFocus('master', newRecord.id);
+      }, 100);
+
       console.log(`New record added to master grid. New record ID: ${newRecord.id}`);
     } else if (gridType === 'client') {
       const maxId = rowsClient.length > 0 ? Math.max(...rowsClient.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0)) : 0;
@@ -2761,6 +2797,12 @@ export default function ExcelImportPage() {
       }
       
       setHasUnsavedChanges(true);
+
+      // Start edit mode on the new row with HCPCS focus after a brief delay to ensure the grid has updated
+      setTimeout(() => {
+        startRowEditModeWithHcpcsFocus('client', newRecord.id);
+      }, 100);
+
       console.log(`New record added to client grid. New record ID: ${newRecord.id}`);
     } else if (gridType === 'merged') {
       const maxId = mergedRows.length > 0 ? Math.max(...mergedRows.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0)) : 0;
@@ -2777,306 +2819,23 @@ export default function ExcelImportPage() {
       setMergedRows(updatedRows);
       setMergedForExport(updatedRows);
       setHasUnsavedMergedChanges(true);
+
+      // Start edit mode on the new row with HCPCS focus after a brief delay to ensure the grid has updated
+      setTimeout(() => {
+        startRowEditModeWithHcpcsFocus('merged', newRecord.id);
+      }, 100);
+
       console.log(`New record added to merged grid. New record ID: ${newRecord.id}`);
     }
   };
 
-  // Bulk HCPCS validation function
-  const handleValidateHcpcs = async () => {
-    console.log('[DEBUG] handleValidateHcpcs called');
-    console.log('[DEBUG] mergedRows.length:', mergedRows.length);
-    console.log('[DEBUG] mergedColumns:', mergedColumns);
-    
-    // Reset validation state
-    setInvalidHcpcsCodes(new Set());
-    setValidationDetails(null);
-    setValidationProgress(null);
-    setHasValidationFilter(false);
-    setMergedFilters([]);
-    
-    setIsValidating(true);
-    console.log('[DEBUG] Set isValidating to true');
-    
-    try {
-      // Get HCPCS column from merged data
-      const hcpcsColumn = mergedColumns.find(col => 
-        col.field.toLowerCase().includes('hcpcs') || 
-        col.field.toLowerCase().includes('cpt') ||
-        col.field.toLowerCase().includes('code')
-      )?.field;
-      
-      console.log('[DEBUG] Searching for HCPCS column in:', mergedColumns.map(col => col.field));
-      
-      if (!hcpcsColumn) {
-        console.error('No HCPCS column found for validation');
-        console.log('[DEBUG] Available columns:', mergedColumns.map(col => col.field));
-        alert('No HCPCS column found! Available columns: ' + mergedColumns.map(col => col.field).join(', '));
-        return;
-      }
-      
-      console.log('[DEBUG] Found HCPCS column:', hcpcsColumn);
-      
-      // Extract unique HCPCS codes for validation
-      const hcpcsCodes = [...new Set(
-        mergedRows
-          .map(row => {
-            let code = String(row[hcpcsColumn] || '').trim().toUpperCase();
-            // Strip quantity suffixes (x1, x01, x02, etc.)
-            code = code.replace(/X\d{1,2}$/i, '');
-            return code;
-          })
-          .filter(code => code.length > 0 && code !== 'UNDEFINED')
-      )];
-      
-      console.log(`[HCPCS VALIDATION] Validating ${hcpcsCodes.length} unique codes from merged grid`);
-      console.log('[DEBUG] Sample codes:', hcpcsCodes.slice(0, 10));
-      
-      if (hcpcsCodes.length === 0) {
-        console.log('No HCPCS codes found to validate');
-        alert('No HCPCS codes found to validate in the merged data!');
-        return;
-      }
-      
-      // Use AI validation for all codes (no local cache)
-      console.log('[DEBUG] Validating codes via AI:', hcpcsCodes.slice(0, 5));
-      const codesToValidate = hcpcsCodes;
-      
-      console.log('[DEBUG] Cache check complete');
-      
-      // Use AI validation for all codes (removed cache-only processing)
-      if (false) { // Disabled cached-only block
-        console.log('[HCPCS VALIDATION] All codes validated from cache');
-        const validationResults = Object.entries(cached).map(([code, entry]) => ({
-          code,
-          isValid: entry.isValid,
-          reason: entry.reason,
-          description: entry.description,
-          category: entry.category,
-          confidence: entry.confidence
-        }));
-        
-        // Inline processing (adapt from existing code after streaming)
-        const newInvalidCodes = new Set<string>();
-        const newValidationDetails: ValidationDetails = {};
-        
-        validationResults.forEach(result => {
-          const { code, isValid, reason, description, category, confidence } = result;
-          
-          if (!isValid) {
-            newInvalidCodes.add(code);
-          }
-          
-          newValidationDetails[code] = {
-            isValid,
-            reason,
-            description,
-            category,
-            confidence
-          };
-        });
-        
-        setInvalidHcpcsCodes(newInvalidCodes);
-        setValidationDetails(newValidationDetails);
-        
-        // Update merged rows with validation info
-        // Assuming there's logic to update rows; if not, add similar to existing
-        // For example:
-        const updatedRows = mergedRows.map(row => {
-          const code = String(row[hcpcsColumn] || '').trim().toUpperCase().replace(/X\d{1,2}$/i, '');
-          const details = newValidationDetails[code];
-          if (details) {
-            return {
-              ...row,
-              isValidHcpcs: details.isValid ? 'Yes' : 'No',
-              validationReason: details.reason || '',
-              // Add other fields if needed
-            };
-          }
-          return row;
-        });
-        
-        setMergedRows(updatedRows);
-        
-        console.log('[HCPCS VALIDATION] Cached validation complete');
-        
-        console.log('[HCPCS VALIDATION] Cached validation complete');
-        
-        // Show validation summary to user
-        const allInvalidCodes = Array.from(newInvalidCodes);
-        if (allInvalidCodes.length > 0) {
-          const summary = `Validation complete: ${allInvalidCodes.length} invalid codes found`;
-          console.log(`[HCPCS VALIDATION] ${summary}`);
-          
-          // Apply filter after state has been updated
-          setTimeout(() => {
-            // Automatically apply filter to show only invalid codes if any were found
-            const newFilter = { column: 'hcpcs', condition: 'invalid_hcpcs', value: '' };
-            setMergedFilters([newFilter]);
-            setHasValidationFilter(true);
-            console.log('[HCPCS VALIDATION] Applied filter to show only invalid codes');
-            console.log('[HCPCS VALIDATION] Current invalidHcpcsCodes size:', invalidHcpcsCodes.size);
-          }, 100); // Give time for state to update
-        } else {
-          console.log('[HCPCS VALIDATION] All codes validated successfully!');
-          // Clear any existing filters
-          setMergedFilters([]);
-          setHasValidationFilter(false);
-        }
-        return;
-      }
-      
-      // If we have codes to validate via API, implement the streaming validation here
-      console.log(`[HCPCS VALIDATION] Need to validate ${codesToValidate.length} codes via API - not implemented yet`);
-      
-      setValidationProgress({ current: 0, total: codesToValidate.length });
-      const response = await fetch('/api/validate-hcpcs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codes: codesToValidate }),
-      });
 
-      if (!response.ok) {
-        throw new Error(`Validation failed: ${response.status}`);
-      }
 
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body');
-      }
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let validationData: any = null;
-      let lastProgressUpdate = 0;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        for (const line of lines) {
-          if (line.trim() === '') continue;
-          if (line.startsWith('data: ')) {
-            try {
-              const jsonStr = line.slice(6).trim();
-              if (!jsonStr) continue;
-              const data = JSON.parse(jsonStr);
-              if (data.type === 'progress') {
-                if (data.processed !== lastProgressUpdate) {
-                  lastProgressUpdate = data.processed;
-                  setValidationProgress({ current: data.processed, total: data.total });
-                  console.log(`[HCPCS VALIDATION] Progress: ${data.processed}/${data.total}`);
-                }
-              } else if (data.type === 'complete') {
-                validationData = data.data;
-              } else if (data.type === 'error') {
-                throw new Error(data.error);
-              }
-            } catch (e) {
-              console.error('[HCPCS VALIDATION] Error parsing SSE data:', e, 'Line:', line);
-            }
-          }
-        }
-      }
 
-      // Process remaining buffer
-      if (buffer.trim() && buffer.startsWith('data: ')) {
-        try {
-          const jsonStr = buffer.slice(6).trim();
-          if (jsonStr) {
-            const data = JSON.parse(jsonStr);
-            if (data.type === 'complete' && !validationData) {
-              validationData = data.data;
-            }
-          }
-        } catch (e) {
-          console.error('[HCPCS VALIDATION] Error parsing final buffer:', e);
-        }
-      }
 
-      if (!validationData) {
-        throw new Error('No validation data received');
-      }
 
-      // Assuming validationData has validationResults: { [code]: { isValid, reason, etc. } }
-      const apiResults = Object.entries(validationData.validationResults || {}).map(([code, details]: [string, any]) => ({
-        code,
-        isValid: details.isValid,
-        reason: details.reason,
-        description: details.description,
-        category: details.category,
-        confidence: details.confidence || 0.9
-      }));
 
-      // Use only AI results (no cache combination)
-      const fullResults = apiResults;
-
-      // Cache storage removed - using server-side cache only
-
-      // Process full results (inline, matching cached-only)
-      const newInvalidCodes = new Set<string>();
-      const newValidationDetails: ValidationDetails = {};
-
-      fullResults.forEach(result => {
-        const { code, isValid, reason, description, category, confidence } = result;
-        if (!isValid) {
-          newInvalidCodes.add(code);
-        }
-        newValidationDetails[code] = { isValid, reason, description, category, confidence };
-      });
-
-      setInvalidHcpcsCodes(newInvalidCodes);
-      setValidationDetails(newValidationDetails);
-
-      const updatedRows = mergedRows.map(row => {
-        const code = String(row[hcpcsColumn] || '').trim().toUpperCase().replace(/X\d{1,2}$/i, '');
-        const details = newValidationDetails[code];
-        if (details) {
-          return { ...row, isValidHcpcs: details.isValid ? 'Yes' : 'No', validationReason: details.reason || '' };
-        }
-        return row;
-      });
-
-      setMergedRows(updatedRows);
-
-      console.log('[HCPCS VALIDATION] Validation complete');
-
-      const quotaWarning = validationData.quotaWarning || null;
-      if (quotaWarning) {
-        console.warn(`[HCPCS VALIDATION] ⚠️ ${quotaWarning}`);
-      }
-
-      const allInvalidCodes = Array.from(newInvalidCodes);
-      if (allInvalidCodes.length > 0) {
-        const summary = `Validation complete: ${allInvalidCodes.length} invalid codes found`;
-        console.log(`[HCPCS VALIDATION] ${summary}`);
-        setTimeout(() => {
-          const newFilter = { column: 'hcpcs', condition: 'invalid_hcpcs', value: '' };
-          setMergedFilters([newFilter]);
-          setHasValidationFilter(true);
-          console.log('[HCPCS VALIDATION] Applied filter to show only invalid codes');
-        }, 100);
-      } else {
-        console.log('[HCPCS VALIDATION] All codes validated successfully!');
-        setMergedFilters([]);
-        setHasValidationFilter(false);
-      }
-      
-    } catch (error) {
-      console.error('[HCPCS VALIDATION] Error:', error);
-      // Could add user notification here
-    } finally {
-      setIsValidating(false);
-      setValidationProgress(null);
-    }
-  };
-
-  // Clear validation filter function
-  const handleClearValidationFilter = () => {
-    setMergedFilters([]);
-    setHasValidationFilter(false);
-    console.log('[HCPCS VALIDATION] Cleared validation filter');
-  };
 
   // Removed handleValidateHcpcsLocal - only AI validation is supported
 
@@ -3292,13 +3051,16 @@ export default function ExcelImportPage() {
               
               <Box sx={{ height: 400, width: "100%" }}>
                 <DataGrid
+                  apiRef={masterApiRef}
                   rows={filteredRowsMaster}
-                  columns={columnsMaster}
+                  columns={enhancedMasterColumns}
+                  editMode="row"
                   density="compact"
                   disableVirtualization={aiSelectedGrid !== 'master'}
                   sortModel={masterSortModel}
                   onSortModelChange={setMasterSortModel}
                   checkboxSelection
+                  disableRowSelectionOnClick
                   showToolbar
                   onRowSelectionModelChange={(newRowSelectionModel) => {
                     // Handle the DataGrid selection model format
@@ -3626,13 +3388,16 @@ export default function ExcelImportPage() {
               
               <Box sx={{ height: 400, width: "100%" }}>
                 <DataGrid
+                  apiRef={clientApiRef}
                   rows={filteredRowsClient}
-                  columns={columnsClient}
+                  columns={enhancedClientColumns}
+                  editMode="row"
                   density="compact"
                   disableVirtualization={aiSelectedGrid !== 'client'}
                   sortModel={clientSortModel}
                   onSortModelChange={setClientSortModel}
                   checkboxSelection
+                  disableRowSelectionOnClick
                   showToolbar
                   onRowSelectionModelChange={(newRowSelectionModel) => {
                     // Handle the DataGrid selection model format
@@ -4012,33 +3777,7 @@ export default function ExcelImportPage() {
                   }
                 }}
               />
-              {/* Removed validation method toggle - only AI validation is supported */}
-              
-              <Button 
-                variant="contained" 
-                onClick={hasValidationFilter 
-                  ? handleClearValidationFilter 
-                  : handleValidateHcpcs
-                } 
-                disabled={mergedRows.length === 0 || isValidating}
-                sx={{ 
-                  fontWeight: 'bold', 
-                  backgroundColor: hasValidationFilter ? '#2196f3' : '#ff9800', 
-                  '&:hover': { backgroundColor: hasValidationFilter ? '#1976d2' : '#f57c00' },
-                  '&:disabled': { backgroundColor: '#e0e0e0', color: '#9e9e9e' },
-                  whiteSpace: 'nowrap',
-                  minWidth: 'auto'
-                }}
-              >
-                {isValidating 
-                  ? validationProgress 
-                    ? `⏳ ${validationProgress.current}/${validationProgress.total}` 
-                    : '⏳ Validating...'
-                  : hasValidationFilter
-                    ? '🔄 Clear Filter'
-                    : '✅ Validate HCPCS'
-                }
-              </Button>
+
             </Box>
             
             {/* Save/Cancel buttons for merged editing */}
@@ -4118,13 +3857,16 @@ export default function ExcelImportPage() {
             
             <Box sx={{ height: 400, width: "100%" }}>
               <DataGrid
+                apiRef={mergedApiRef}
                 rows={filteredMergedRows}
-                columns={enhancedMergedColumns}
+                columns={enhancedMergedColumnsWithActions}
+                editMode="row"
                 density="compact"
                 disableVirtualization={aiSelectedGrid !== 'merged'}
                 sortModel={mergedSortModel}
                 onSortModelChange={setMergedSortModel}
                 checkboxSelection
+                disableRowSelectionOnClick
                 showToolbar
 
                 onRowSelectionModelChange={(newRowSelectionModel) => {
@@ -4281,6 +4023,7 @@ export default function ExcelImportPage() {
                   sortModel={unmatchedSortModel}
                   onSortModelChange={setUnmatchedSortModel}
                   checkboxSelection
+                  disableRowSelectionOnClick
                   showToolbar
                   onRowSelectionModelChange={(newRowSelectionModel) => {
                     // Handle the DataGrid selection model format
@@ -4338,6 +4081,7 @@ export default function ExcelImportPage() {
                   sortModel={duplicatesSortModel}
                   onSortModelChange={setDuplicatesSortModel}
                   checkboxSelection
+                  disableRowSelectionOnClick
                   showToolbar
                   onRowSelectionModelChange={(newRowSelectionModel) => {
                     // Handle the DataGrid selection model format
