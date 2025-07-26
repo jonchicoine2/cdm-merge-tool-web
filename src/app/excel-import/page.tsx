@@ -594,21 +594,73 @@ export default function ExcelImportPage() {
       hcpcsColumn = hcpcsCol?.field || null;
     }
 
-    // Start row edit mode
+    console.log(`[FOCUS DEBUG] Starting edit mode for ${gridType} row ${rowId}, HCPCS column: ${hcpcsColumn}`);
+
     if (apiRef.current) {
+      // First, force stop edit mode on ALL rows to ensure clean state
+      try {
+        const editingRows = apiRef.current.getRowModels();
+        editingRows.forEach((_, id) => {
+          if (apiRef.current?.getRowMode(id) === 'edit' && id !== rowId) {
+            console.log(`[FOCUS DEBUG] Stopping edit mode on row ${id}`);
+            apiRef.current.stopRowEditMode({ id });
+          }
+        });
+      } catch (error) {
+        console.log('[FOCUS DEBUG] Error stopping other edit modes:', error);
+      }
+
+      // Start row edit mode
       apiRef.current.startRowEditMode({ id: rowId });
 
-      // If we found an HCPCS column, focus on it after a brief delay
+      // If we found an HCPCS column, focus on it with multiple attempts and longer delays
       if (hcpcsColumn) {
+        // First attempt after 100ms (shorter initial delay)
         setTimeout(() => {
           try {
             if (apiRef.current) {
+              console.log(`[FOCUS DEBUG] First focus attempt on ${hcpcsColumn}`);
               apiRef.current.setCellFocus(rowId, hcpcsColumn!);
             }
           } catch (error) {
-            console.log('Could not focus HCPCS cell:', error);
+            console.log('[FOCUS DEBUG] First focus attempt failed:', error);
           }
-        }, 150);
+        }, 100);
+
+        // Second attempt after 300ms
+        setTimeout(() => {
+          try {
+            if (apiRef.current) {
+              console.log(`[FOCUS DEBUG] Second focus attempt on ${hcpcsColumn}`);
+              apiRef.current.setCellFocus(rowId, hcpcsColumn!);
+            }
+          } catch (error) {
+            console.log('[FOCUS DEBUG] Second focus attempt failed:', error);
+          }
+        }, 300);
+
+        // Third attempt after 500ms with scroll
+        setTimeout(() => {
+          try {
+            if (apiRef.current) {
+              console.log(`[FOCUS DEBUG] Third focus attempt on ${hcpcsColumn} with scroll`);
+
+              // Try to scroll to the cell first
+              const rowIndex = apiRef.current.getRowIndexRelativeToVisibleRows(rowId);
+              const colIndex = apiRef.current.getColumnIndex(hcpcsColumn!);
+              if (rowIndex !== undefined && colIndex !== undefined) {
+                apiRef.current.scrollToIndexes({ rowIndex, colIndex });
+              }
+
+              // Then focus
+              apiRef.current.setCellFocus(rowId, hcpcsColumn!);
+            }
+          } catch (error) {
+            console.log('[FOCUS DEBUG] Third focus attempt failed:', error);
+          }
+        }, 500);
+      } else {
+        console.log('[FOCUS DEBUG] No HCPCS column found for focusing');
       }
     }
   };
@@ -623,52 +675,85 @@ export default function ExcelImportPage() {
       sortable: false,
       filterable: false,
       disableColumnMenu: true,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Tooltip title="Edit Row">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                startRowEditModeWithHcpcsFocus(gridType, params.row.id);
-              }}
-              sx={{ color: '#1976d2' }}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Duplicate Row">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                const result = handleDuplicateRecord(params.row.id, gridType);
-                if (!result.success) {
-                  // Show user-friendly error message
-                  console.error(`Failed to duplicate record with ID ${params.row.id} in ${gridType} grid`);
-                  // You could add a toast notification here if you have one available
-                }
-              }}
-              sx={{ color: '#ed6c02' }}
-            >
-              <ContentCopyIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete Row">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteRecord(params.row.id, gridType);
-              }}
-              sx={{ color: '#d32f2f' }}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      ),
+      renderCell: (params: GridRenderCellParams) => {
+        // Check if this row is in edit mode
+        const isInEditMode = params.api.getRowMode(params.id) === 'edit';
+
+        return (
+          <Box sx={{
+            display: 'flex',
+            gap: 0.5,
+            // Make the entire actions cell non-focusable when in edit mode
+            pointerEvents: isInEditMode ? 'none' : 'auto',
+            opacity: isInEditMode ? 0.5 : 1
+          }}>
+            <Tooltip title={isInEditMode ? "Exit edit mode to use actions" : "Edit Row"}>
+              <span>
+                <IconButton
+                  size="small"
+                  disabled={isInEditMode}
+                  tabIndex={isInEditMode ? -1 : 0} // Remove from tab order when disabled
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startRowEditModeWithHcpcsFocus(gridType, params.row.id);
+                  }}
+                  sx={{
+                    color: isInEditMode ? '#ccc' : '#1976d2',
+                    pointerEvents: isInEditMode ? 'none' : 'auto'
+                  }}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title={isInEditMode ? "Exit edit mode to use actions" : "Duplicate Row"}>
+              <span>
+                <IconButton
+                  size="small"
+                  disabled={isInEditMode}
+                  tabIndex={isInEditMode ? -1 : 0} // Remove from tab order when disabled
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const result = handleDuplicateRecord(params.row.id, gridType);
+                    if (!result.success) {
+                      // Show user-friendly error message
+                      console.error(`Failed to duplicate record with ID ${params.row.id} in ${gridType} grid`);
+                      // You could add a toast notification here if you have one available
+                    }
+                  }}
+                  sx={{
+                    color: isInEditMode ? '#ccc' : '#ed6c02',
+                    pointerEvents: isInEditMode ? 'none' : 'auto'
+                  }}
+                >
+                  <ContentCopyIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title={isInEditMode ? "Exit edit mode to use actions" : "Delete Row"}>
+              <span>
+                <IconButton
+                  size="small"
+                  disabled={isInEditMode}
+                  tabIndex={isInEditMode ? -1 : 0} // Remove from tab order when disabled
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteRecord(params.row.id, gridType);
+                  }}
+                  sx={{
+                    color: isInEditMode ? '#ccc' : '#d32f2f',
+                    pointerEvents: isInEditMode ? 'none' : 'auto'
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
+        );
+      },
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Filtered data for each grid
@@ -686,10 +771,12 @@ export default function ExcelImportPage() {
   // Enhanced columns with actions for each grid
   const enhancedMasterColumns = useMemo(() => {
     return [...columnsMaster, createActionsColumn('master')];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnsMaster]);
 
   const enhancedClientColumns = useMemo(() => {
     return [...columnsClient, createActionsColumn('client')];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnsClient]);
 
   const enhancedMergedColumnsWithActions = useMemo(() => {
@@ -729,6 +816,7 @@ export default function ExcelImportPage() {
 
     // Add Actions column first, then Ask AI column at the very end
     return [...enhancedMergedColumns, createActionsColumn('merged'), askAIColumn];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enhancedMergedColumns, mergedColumns]);
 
   // AI Chat functions
@@ -2566,7 +2654,7 @@ export default function ExcelImportPage() {
 
       setHasUnsavedMasterChanges(true);
 
-      // Start edit mode on the new row with HCPCS focus after a brief delay to ensure the grid has updated
+      // Start edit mode on the NEW duplicated row with HCPCS focus
       setTimeout(() => {
         startRowEditModeWithHcpcsFocus('master', newRecord.id);
       }, 100);
@@ -2605,7 +2693,7 @@ export default function ExcelImportPage() {
 
       setHasUnsavedChanges(true);
 
-      // Start edit mode on the new row with HCPCS focus after a brief delay to ensure the grid has updated
+      // Start edit mode on the NEW duplicated row with HCPCS focus
       setTimeout(() => {
         startRowEditModeWithHcpcsFocus('client', newRecord.id);
       }, 100);
@@ -2646,9 +2734,9 @@ export default function ExcelImportPage() {
       setMergedForExport(updatedRows);
       setHasUnsavedMergedChanges(true);
 
-      // Start edit mode on the new row with HCPCS focus after a brief delay to ensure the grid has updated
+      // Start edit mode on the CURRENT row (the one being duplicated) with HCPCS focus
       setTimeout(() => {
-        startRowEditModeWithHcpcsFocus('merged', newRecord.id);
+        startRowEditModeWithHcpcsFocus('merged', rowId);
       }, 100);
 
       console.log(`Record duplicated in merged grid. New record ID: ${newRecord.id}`);
@@ -3230,6 +3318,10 @@ export default function ExcelImportPage() {
                   onProcessRowUpdateError={(error) => {
                     console.error('Master row update error:', error);
                   }}
+                  onRowEditStop={(params) => {
+                    // Auto-exit edit mode when clicking outside or pressing Escape
+                    console.log('[EDIT MODE] Master row edit stopped:', params.id);
+                  }}
                   sx={getDataGridStyles('master')}
                 />
               </Box>
@@ -3564,6 +3656,10 @@ export default function ExcelImportPage() {
                   }}
                   onProcessRowUpdateError={(error) => {
                     console.error('Row update error:', error);
+                  }}
+                  onRowEditStop={(params) => {
+                    // Auto-exit edit mode when clicking outside or pressing Escape
+                    console.log('[EDIT MODE] Client row edit stopped:', params.id);
                   }}
                   sx={getDataGridStyles('client')}
                 />
@@ -4028,6 +4124,10 @@ export default function ExcelImportPage() {
                 }}
                 onProcessRowUpdateError={(error) => {
                   console.error('Merged row update error:', error);
+                }}
+                onRowEditStop={(params) => {
+                  // Auto-exit edit mode when clicking outside or pressing Escape
+                  console.log('[EDIT MODE] Merged row edit stopped:', params.id);
                 }}
                 sx={getDataGridStyles('merged')}
               />
