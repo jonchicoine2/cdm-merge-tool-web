@@ -2496,8 +2496,7 @@ export default function ExcelImportPage() {
     // Set up variables based on grid type
     if (gridType === 'master') {
       // Look in filteredRowsMaster first (what's visible), then fall back to rowsMaster
-      const recordToDuplicate = filteredRowsMaster.find(row => row.id === rowId || row.id === Number(rowId) || row.id === String(rowId)) ||
-                               rowsMaster.find(row => row.id === rowId || row.id === Number(rowId) || row.id === String(rowId));
+      const recordToDuplicate = filteredRowsMaster.find(row => String(row.id) === String(rowId)) || rowsMaster.find(row => String(row.id) === String(rowId));
       if (!recordToDuplicate) {
         console.error(`Record with ID ${rowId} not found in master grid`);
         return { success: false, originalRowId: rowId };
@@ -2532,8 +2531,7 @@ export default function ExcelImportPage() {
       return { success: true, newRowId: newRecord.id, originalRowId: rowId };
     } else if (gridType === 'client') {
       // Look in filteredRowsClient first (what's visible), then fall back to rowsClient
-      const recordToDuplicate = filteredRowsClient.find(row => row.id === rowId || row.id === Number(rowId) || row.id === String(rowId)) ||
-                               rowsClient.find(row => row.id === rowId || row.id === Number(rowId) || row.id === String(rowId));
+      const recordToDuplicate = filteredRowsClient.find(row => String(row.id) === String(rowId)) || rowsClient.find(row => String(row.id) === String(rowId));
       if (!recordToDuplicate) {
         console.error(`Record with ID ${rowId} not found in client grid`);
         return { success: false, originalRowId: rowId };
@@ -2568,8 +2566,7 @@ export default function ExcelImportPage() {
       return { success: true, newRowId: newRecord.id, originalRowId: rowId };
     } else if (gridType === 'merged') {
       // Look in filteredMergedRows first (what's visible), then fall back to mergedRows
-      const recordToDuplicate = filteredMergedRows.find(row => row.id === rowId || row.id === Number(rowId) || row.id === String(rowId)) ||
-                               mergedRows.find(row => row.id === rowId || row.id === Number(rowId) || row.id === String(rowId));
+      const recordToDuplicate = filteredMergedRows.find(row => String(row.id) === String(rowId)) || mergedRows.find(row => String(row.id) === String(rowId));
       
       if (!recordToDuplicate) {
         console.error(`Record with ID ${rowId} not found in merged grid`);
