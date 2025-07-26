@@ -613,21 +613,25 @@ export default function ExcelImportPage() {
       // Start row edit mode
       apiRef.current.startRowEditMode({ id: rowId });
 
-      // If we found an HCPCS column, focus on it with multiple attempts and longer delays
+      // Immediately move focus away from actions column to HCPCS column
       if (hcpcsColumn) {
-        // First attempt after 100ms (shorter initial delay)
+        // Very quick first attempt to grab focus away from actions column
         setTimeout(() => {
           try {
             if (apiRef.current) {
-              console.log(`[FOCUS DEBUG] First focus attempt on ${hcpcsColumn}`);
+              console.log(`[FOCUS DEBUG] Immediate focus grab attempt on ${hcpcsColumn}`);
+              // Blur any currently focused element first
+              if (document.activeElement && document.activeElement instanceof HTMLElement) {
+                document.activeElement.blur();
+              }
               apiRef.current.setCellFocus(rowId, hcpcsColumn!);
             }
           } catch (error) {
-            console.log('[FOCUS DEBUG] First focus attempt failed:', error);
+            console.log('[FOCUS DEBUG] Immediate focus attempt failed:', error);
           }
-        }, 100);
+        }, 10); // Very short delay
 
-        // Second attempt after 300ms
+        // Second attempt after 100ms
         setTimeout(() => {
           try {
             if (apiRef.current) {
@@ -637,13 +641,25 @@ export default function ExcelImportPage() {
           } catch (error) {
             console.log('[FOCUS DEBUG] Second focus attempt failed:', error);
           }
-        }, 300);
+        }, 100);
 
-        // Third attempt after 500ms with scroll
+        // Third attempt after 300ms
         setTimeout(() => {
           try {
             if (apiRef.current) {
-              console.log(`[FOCUS DEBUG] Third focus attempt on ${hcpcsColumn} with scroll`);
+              console.log(`[FOCUS DEBUG] Third focus attempt on ${hcpcsColumn}`);
+              apiRef.current.setCellFocus(rowId, hcpcsColumn!);
+            }
+          } catch (error) {
+            console.log('[FOCUS DEBUG] Third focus attempt failed:', error);
+          }
+        }, 300);
+
+        // Final attempt after 500ms with scroll
+        setTimeout(() => {
+          try {
+            if (apiRef.current) {
+              console.log(`[FOCUS DEBUG] Final focus attempt on ${hcpcsColumn} with scroll`);
 
               // Try to scroll to the cell first
               const rowIndex = apiRef.current.getRowIndexRelativeToVisibleRows(rowId);
@@ -656,11 +672,17 @@ export default function ExcelImportPage() {
               apiRef.current.setCellFocus(rowId, hcpcsColumn!);
             }
           } catch (error) {
-            console.log('[FOCUS DEBUG] Third focus attempt failed:', error);
+            console.log('[FOCUS DEBUG] Final focus attempt failed:', error);
           }
         }, 500);
       } else {
         console.log('[FOCUS DEBUG] No HCPCS column found for focusing');
+        // If no HCPCS column, at least blur the actions column
+        setTimeout(() => {
+          if (document.activeElement && document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+          }
+        }, 10);
       }
     }
   };
@@ -678,6 +700,9 @@ export default function ExcelImportPage() {
       renderCell: (params: GridRenderCellParams) => {
         // Check if this row is in edit mode
         const isInEditMode = params.api.getRowMode(params.id) === 'edit';
+
+        // Debug logging
+        console.log(`[ACTIONS DEBUG] Row ${params.id} - isInEditMode: ${isInEditMode}`);
 
         return (
           <Box sx={{
@@ -2654,9 +2679,9 @@ export default function ExcelImportPage() {
 
       setHasUnsavedMasterChanges(true);
 
-      // Start edit mode on the NEW duplicated row with HCPCS focus
+      // Start edit mode on the ORIGINAL row (the one being duplicated) with HCPCS focus
       setTimeout(() => {
-        startRowEditModeWithHcpcsFocus('master', newRecord.id);
+        startRowEditModeWithHcpcsFocus('master', rowId);
       }, 100);
 
       console.log(`Record duplicated in master grid. New record ID: ${newRecord.id}`);
@@ -2693,9 +2718,9 @@ export default function ExcelImportPage() {
 
       setHasUnsavedChanges(true);
 
-      // Start edit mode on the NEW duplicated row with HCPCS focus
+      // Start edit mode on the ORIGINAL row (the one being duplicated) with HCPCS focus
       setTimeout(() => {
-        startRowEditModeWithHcpcsFocus('client', newRecord.id);
+        startRowEditModeWithHcpcsFocus('client', rowId);
       }, 100);
 
       console.log(`Record duplicated in client grid. New record ID: ${newRecord.id}`);
