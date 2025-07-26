@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Chip, Fab, Tooltip, IconButton } from "@mui/material";
 import { DataGrid, GridColDef, GridSortModel, GridRenderCellParams } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import * as XLSX from "xlsx";
@@ -310,13 +311,40 @@ export default function ExcelImportPage() {
   const [dupsClient, setDupsClient] = useState<ExcelRow[]>([]);
   const [mergedForExport, setMergedForExport] = useState<ExcelRow[]>([]);
 
-  // Search state for each grid
+  // Search state for each grid - input values (immediate UI updates)
+  const [searchMasterInput, setSearchMasterInput] = useState("");
+  const [searchClientInput, setSearchClientInput] = useState("");
+  const [searchMergedInput, setSearchMergedInput] = useState("");
+
+  // Search state for filtering (debounced)
   const [searchMaster, setSearchMaster] = useState("");
   const [searchClient, setSearchClient] = useState("");
   const [searchMerged, setSearchMerged] = useState("");
   
   // Tab state for errors and duplicates
   const [errorsTabValue, setErrorsTabValue] = useState(0);
+
+  // Debounced search effects (500ms delay)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchMaster(searchMasterInput);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchMasterInput]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchClient(searchClientInput);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchClientInput]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchMerged(searchMergedInput);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchMergedInput]);
 
   // AI Chat state with localStorage persistence
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -1017,12 +1045,15 @@ export default function ExcelImportPage() {
       
       switch (targetView) {
         case 'master':
+          setSearchMasterInput(searchValue);
           setSearchMaster(searchValue);
           break;
         case 'client':
+          setSearchClientInput(searchValue);
           setSearchClient(searchValue);
           break;
         case 'merged':
+          setSearchMergedInput(searchValue);
           setSearchMerged(searchValue);
           break;
       }
@@ -1701,7 +1732,7 @@ export default function ExcelImportPage() {
     }
   }, [getHCPCSColumnMaster, getHCPCSColumnClient, columnsMaster, columnsClient, mergedColumns, unmatchedClient.length, dupsClient.length]);
 
-  const handleCompare = useCallback(() => {
+  const handleMerge = useCallback(() => {
     // Start timing the comparison
     const startTime = performance.now();
     
@@ -1801,10 +1832,34 @@ export default function ExcelImportPage() {
       });
       return mergedRow;
     });
-    setMergedRows(merged);
-    setMergedForExport(merged);
+
+    // Format HCPCS codes in merged data to ensure proper format (XXXXX-XX)
+    const formattedMerged = merged.map(row => {
+      const formattedRow = { ...row };
+      Object.keys(formattedRow).forEach(key => {
+        // Check if this column contains HCPCS codes (by column name)
+        if (key.toLowerCase().includes('hcpcs') || key.toLowerCase().includes('cpt') || key.toLowerCase().includes('code')) {
+          const value = formattedRow[key];
+          if (typeof value === 'string' && value.length >= 7) {
+            const sixthChar = value.charAt(5);
+            // Don't insert hyphen if:
+            // 1. There's already a hyphen in the 6th position, OR
+            // 2. The 6th character is 'x' (quantity indicator like x1, x2, x01, x02)
+            if (sixthChar !== '-' && sixthChar.toLowerCase() !== 'x') {
+              // Insert hyphen between 5th and 6th characters
+              formattedRow[key] = `${value.substring(0, 5)}-${value.substring(5)}`;
+            }
+            // Otherwise, leave the value unchanged
+          }
+        }
+      });
+      return formattedRow;
+    });
+
+    setMergedRows(formattedMerged);
+    setMergedForExport(formattedMerged);
     // Save original merged data for cancel functionality
-    setOriginalMergedData([...merged]);
+    setOriginalMergedData([...formattedMerged]);
     setHasUnsavedMergedChanges(false);
 
     // --- New: Collect errors (Client not matched) and dups (Client with duplicate CDM numbers) ---
@@ -1865,9 +1920,9 @@ export default function ExcelImportPage() {
   useEffect(() => {
     if (rowsMaster.length > 0 && rowsClient.length > 0 && !showCompare) {
       console.log('[DEBUG] Auto-triggering comparison - rowsMaster:', rowsMaster.length, 'rowsClient:', rowsClient.length);
-      handleCompare();
+      handleMerge();
     }
-  }, [rowsMaster.length, rowsClient.length, showCompare, handleCompare]);
+  }, [rowsMaster.length, rowsClient.length, showCompare, handleMerge]);
 
   // Apply HCPCS sorting when merged data is available
   useEffect(() => {
@@ -3114,12 +3169,25 @@ export default function ExcelImportPage() {
                 fullWidth
                 variant="outlined"
                 placeholder="Search master data..."
-                value={searchMaster}
-                onChange={(e) => setSearchMaster(e.target.value)}
+                value={searchMasterInput}
+                onChange={(e) => setSearchMasterInput(e.target.value)}
                 slotProps={{ input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon />
+                      {searchMasterInput ? (
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSearchMasterInput('');
+                            setSearchMaster('');
+                          }}
+                          edge="start"
+                        >
+                          <ClearIcon />
+                        </IconButton>
+                      ) : (
+                        <SearchIcon />
+                      )}
                     </InputAdornment>
                   ),
                 }}}
@@ -3223,14 +3291,15 @@ export default function ExcelImportPage() {
               )}
               
               <Box sx={{ height: 400, width: "100%" }}>
-                <DataGrid 
-                  rows={filteredRowsMaster} 
+                <DataGrid
+                  rows={filteredRowsMaster}
                   columns={columnsMaster}
                   density="compact"
                   disableVirtualization={aiSelectedGrid !== 'master'}
                   sortModel={masterSortModel}
                   onSortModelChange={setMasterSortModel}
                   checkboxSelection
+                  showToolbar
                   onRowSelectionModelChange={(newRowSelectionModel) => {
                     // Handle the DataGrid selection model format
                     let selectedId = null;
@@ -3434,12 +3503,25 @@ export default function ExcelImportPage() {
                 fullWidth
                 variant="outlined"
                 placeholder="Search client data..."
-                value={searchClient}
-                onChange={(e) => setSearchClient(e.target.value)}
+                value={searchClientInput}
+                onChange={(e) => setSearchClientInput(e.target.value)}
                 slotProps={{ input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon />
+                      {searchClientInput ? (
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSearchClientInput('');
+                            setSearchClient('');
+                          }}
+                          edge="start"
+                        >
+                          <ClearIcon />
+                        </IconButton>
+                      ) : (
+                        <SearchIcon />
+                      )}
                     </InputAdornment>
                   ),
                 }}}
@@ -3543,14 +3625,15 @@ export default function ExcelImportPage() {
               )}
               
               <Box sx={{ height: 400, width: "100%" }}>
-                <DataGrid 
-                  rows={filteredRowsClient} 
+                <DataGrid
+                  rows={filteredRowsClient}
                   columns={columnsClient}
                   density="compact"
                   disableVirtualization={aiSelectedGrid !== 'client'}
                   sortModel={clientSortModel}
                   onSortModelChange={setClientSortModel}
                   checkboxSelection
+                  showToolbar
                   onRowSelectionModelChange={(newRowSelectionModel) => {
                     // Handle the DataGrid selection model format
                     let selectedId = null;
@@ -3763,7 +3846,7 @@ export default function ExcelImportPage() {
         </Button>
         <Button 
           variant="contained" 
-          onClick={handleCompare} 
+          onClick={handleMerge}
           disabled={rowsMaster.length === 0 || rowsClient.length === 0}
           sx={{ 
             fontWeight: 'bold', 
@@ -3772,7 +3855,7 @@ export default function ExcelImportPage() {
             '&:disabled': { backgroundColor: '#e0e0e0', color: '#9e9e9e' }
           }}
         >
-          🔍 Compare
+          🔍 Merge
         </Button>
         <Button 
           variant="contained" 
@@ -3885,12 +3968,25 @@ export default function ExcelImportPage() {
                 fullWidth
                 variant="outlined"
                 placeholder="Search merged data..."
-                value={searchMerged}
-                onChange={(e) => setSearchMerged(e.target.value)}
+                value={searchMergedInput}
+                onChange={(e) => setSearchMergedInput(e.target.value)}
                 slotProps={{ input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon />
+                      {searchMergedInput ? (
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSearchMergedInput('');
+                            setSearchMerged('');
+                          }}
+                          edge="start"
+                        >
+                          <ClearIcon />
+                        </IconButton>
+                      ) : (
+                        <SearchIcon />
+                      )}
                     </InputAdornment>
                   ),
                 }}}
@@ -4021,14 +4117,16 @@ export default function ExcelImportPage() {
             )}
             
             <Box sx={{ height: 400, width: "100%" }}>
-              <DataGrid 
-                rows={filteredMergedRows} 
+              <DataGrid
+                rows={filteredMergedRows}
                 columns={enhancedMergedColumns}
                 density="compact"
                 disableVirtualization={aiSelectedGrid !== 'merged'}
                 sortModel={mergedSortModel}
                 onSortModelChange={setMergedSortModel}
                 checkboxSelection
+                showToolbar
+
                 onRowSelectionModelChange={(newRowSelectionModel) => {
                   console.log('[MERGED GRID] Selection change triggered! aiSelectedGrid:', aiSelectedGrid);
                   console.log('[MERGED GRID] Raw newRowSelectionModel:', newRowSelectionModel);
@@ -4175,14 +4273,15 @@ export default function ExcelImportPage() {
               }}
             >
               {unmatchedClient.length > 0 ? (
-                <DataGrid 
-                  rows={filteredUnmatchedClient} 
+                <DataGrid
+                  rows={filteredUnmatchedClient}
                   columns={columnsClient}
                   density="compact"
                   disableVirtualization={aiSelectedGrid !== 'unmatched'}
                   sortModel={unmatchedSortModel}
                   onSortModelChange={setUnmatchedSortModel}
                   checkboxSelection
+                  showToolbar
                   onRowSelectionModelChange={(newRowSelectionModel) => {
                     // Handle the DataGrid selection model format
                     let selectedId = null;
@@ -4231,14 +4330,15 @@ export default function ExcelImportPage() {
               }}
             >
               {dupsClient.length > 0 ? (
-                <DataGrid 
-                  rows={filteredDupsClient} 
+                <DataGrid
+                  rows={filteredDupsClient}
                   columns={columnsClient}
                   density="compact"
                   disableVirtualization={aiSelectedGrid !== 'duplicates'}
                   sortModel={duplicatesSortModel}
                   onSortModelChange={setDuplicatesSortModel}
                   checkboxSelection
+                  showToolbar
                   onRowSelectionModelChange={(newRowSelectionModel) => {
                     // Handle the DataGrid selection model format
                     let selectedId = null;
