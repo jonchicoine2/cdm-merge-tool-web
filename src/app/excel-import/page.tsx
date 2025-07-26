@@ -675,19 +675,26 @@ export default function ExcelImportPage() {
   const filteredUnmatchedClient = filterAndSearchRowsLocal(unmatchedClient, "", unmatchedFilters);
   const filteredDupsClient = filterAndSearchRowsLocal(dupsClient, "", duplicatesFilters);
 
-  // Enhanced merged columns with "Ask AI" button
+  // Enhanced merged columns (without Ask AI button - it will be added at the end)
   const enhancedMergedColumns = useMemo(() => {
-    const hcpcsColumn = mergedColumns.find(col => 
+    return mergedColumns;
+  }, [mergedColumns]);
+
+  // Enhanced columns with actions for each grid
+  const enhancedMasterColumns = useMemo(() => {
+    return [...columnsMaster, createActionsColumn('master')];
+  }, [columnsMaster]);
+
+  const enhancedClientColumns = useMemo(() => {
+    return [...columnsClient, createActionsColumn('client')];
+  }, [columnsClient]);
+
+  const enhancedMergedColumnsWithActions = useMemo(() => {
+    const hcpcsColumn = mergedColumns.find(col =>
       col.field.toLowerCase().includes('hcpcs')
     );
-    
-    if (!hcpcsColumn) return mergedColumns;
-    
-    // Use regular merged columns without validation rendering
-    const enhancedColumns = mergedColumns;
-    
-    // Add "Ask AI" column after HCPCS column
-    const hcpcsIndex = enhancedColumns.findIndex(col => col.field === hcpcsColumn.field);
+
+    // Create Ask AI column
     const askAIColumn: GridColDef = {
       field: 'askAI',
       headerName: 'Ask AI',
@@ -696,9 +703,10 @@ export default function ExcelImportPage() {
       filterable: false,
       disableColumnMenu: true,
       renderCell: (params) => {
+        if (!hcpcsColumn) return null;
         const hcpcsValue = params.row[hcpcsColumn.field];
         if (!hcpcsValue) return null;
-        
+
         return (
           <Tooltip title={`Ask AI: What is ${hcpcsValue} for?`}>
             <IconButton
@@ -715,25 +723,10 @@ export default function ExcelImportPage() {
         );
       }
     };
-    
-    // Insert Ask AI column after HCPCS column
-    const newColumns = [...enhancedColumns];
-    newColumns.splice(hcpcsIndex + 1, 0, askAIColumn);
-    return newColumns;
-  }, [mergedColumns]);
 
-  // Enhanced columns with actions for each grid
-  const enhancedMasterColumns = useMemo(() => {
-    return [...columnsMaster, createActionsColumn('master')];
-  }, [columnsMaster]);
-
-  const enhancedClientColumns = useMemo(() => {
-    return [...columnsClient, createActionsColumn('client')];
-  }, [columnsClient]);
-
-  const enhancedMergedColumnsWithActions = useMemo(() => {
-    return [...enhancedMergedColumns, createActionsColumn('merged')];
-  }, [enhancedMergedColumns]);
+    // Add Actions column first, then Ask AI column at the very end
+    return [...enhancedMergedColumns, createActionsColumn('merged'), askAIColumn];
+  }, [enhancedMergedColumns, mergedColumns]);
 
   // AI Chat functions
   const getCurrentGridContext = useCallback(() => {
@@ -2084,13 +2077,25 @@ export default function ExcelImportPage() {
     if (json.length === 0) return { rows: [], columns: [] };
     
     const headers = json[0] as string[];
-    const columns: GridColDef[] = headers.map((header, idx) => ({
-      field: header || `col${idx}`,
-      headerName: header || `Column ${idx + 1}`,
-      width: 150,
-      editable: isEditable,
-      type: 'string',
-    }));
+    const columns: GridColDef[] = headers.map((header, idx) => {
+      const field = header || `col${idx}`;
+      const headerName = header || `Column ${idx + 1}`;
+
+      // Set width based on column type - quantity columns are half width
+      let width = 150; // default width
+      const fieldLower = field.toLowerCase();
+      if (['quantity', 'qty', 'units', 'unit', 'count'].some(term => fieldLower.includes(term))) {
+        width = 75; // half width for quantity columns
+      }
+
+      return {
+        field,
+        headerName,
+        width,
+        editable: isEditable,
+        type: 'string',
+      };
+    });
     
     const rows: ExcelRow[] = Array.from(json.slice(1)).map((row, idx) => {
       const rowArr = row as unknown[];
@@ -3106,9 +3111,9 @@ export default function ExcelImportPage() {
                         
                         // Additional validation for HCPCS codes (if column contains "HCPCS")
                         if (key.toLowerCase().includes('hcpcs') && validatedRow[key]) {
-                          const hcpcsValue = String(validatedRow[key]).toUpperCase().trim();
-                          // Basic HCPCS format validation (5 characters, alphanumeric)
-                          if (hcpcsValue.length > 0 && !/^[A-Z0-9]{1,8}(-[A-Z0-9]{1,2})?$/.test(hcpcsValue)) {
+                          const hcpcsValue = String(validatedRow[key]).trim();
+                          // Basic HCPCS format validation (5 characters, alphanumeric) - case insensitive
+                          if (hcpcsValue.length > 0 && !/^[A-Za-z0-9]{1,8}(-[A-Za-z0-9]{1,2})?$/i.test(hcpcsValue)) {
                             console.warn(`Invalid HCPCS format: ${hcpcsValue}. Expected format: XXXXX or XXXXX-XX`);
                           }
                           validatedRow[key] = hcpcsValue;
@@ -3441,9 +3446,9 @@ export default function ExcelImportPage() {
                         
                         // Additional validation for HCPCS codes (if column contains "HCPCS")
                         if (key.toLowerCase().includes('hcpcs') && validatedRow[key]) {
-                          const hcpcsValue = String(validatedRow[key]).toUpperCase().trim();
-                          // Basic HCPCS format validation (5 characters, alphanumeric)
-                          if (hcpcsValue.length > 0 && !/^[A-Z0-9]{1,8}(-[A-Z0-9]{1,2})?$/.test(hcpcsValue)) {
+                          const hcpcsValue = String(validatedRow[key]).trim();
+                          // Basic HCPCS format validation (5 characters, alphanumeric) - case insensitive
+                          if (hcpcsValue.length > 0 && !/^[A-Za-z0-9]{1,8}(-[A-Za-z0-9]{1,2})?$/i.test(hcpcsValue)) {
                             console.warn(`Invalid HCPCS format: ${hcpcsValue}. Expected format: XXXXX or XXXXX-XX`);
                           }
                           validatedRow[key] = hcpcsValue;
@@ -3917,9 +3922,9 @@ export default function ExcelImportPage() {
                       
                       // Additional validation for HCPCS codes (if column contains "HCPCS")
                       if (key.toLowerCase().includes('hcpcs') && validatedRow[key]) {
-                        const hcpcsValue = String(validatedRow[key]).toUpperCase().trim();
-                        // Basic HCPCS format validation (5 characters, alphanumeric)
-                        if (hcpcsValue.length > 0 && !/^[A-Z0-9]{1,8}(-[A-Z0-9]{1,2})?$/.test(hcpcsValue)) {
+                        const hcpcsValue = String(validatedRow[key]).trim();
+                        // Basic HCPCS format validation (5 characters, alphanumeric) - case insensitive
+                        if (hcpcsValue.length > 0 && !/^[A-Za-z0-9]{1,8}(-[A-Za-z0-9]{1,2})?$/i.test(hcpcsValue)) {
                           console.warn(`Invalid HCPCS format: ${hcpcsValue}. Expected format: XXXXX or XXXXX-XX`);
                         }
                         validatedRow[key] = hcpcsValue;
