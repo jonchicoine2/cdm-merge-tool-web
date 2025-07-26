@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Chip, Fab, Tooltip, IconButton } from "@mui/material";
-import { DataGrid, GridColDef, GridSortModel, GridRenderCellParams, useGridApiRef } from "@mui/x-data-grid";
+import { DataGridPro, GridColDef, GridSortModel, GridRenderCellParams, useGridApiRef, GridRowSelectionModel, GridRowEditStopParams } from "@mui/x-data-grid-pro";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
@@ -172,15 +172,12 @@ export default function ExcelImportPage() {
   };
   
   // File information card component with consistent theming
-  const FileInfoCard = ({ metadata, type }: { metadata: FileMetadata | null, type: 'Master' | 'Client' }) => {
-    console.log(`[DEBUG] FileInfoCard render - ${type}:`, metadata);
+  const FileInfoCard = ({ metadata }: { metadata: FileMetadata | null }) => {
     
     if (!metadata) {
-      console.log(`[DEBUG] No metadata for ${type}, not rendering card`);
       return null;
     }
     
-    console.log(`[DEBUG] Rendering ${type} FileInfoCard with metadata:`, metadata);
     
     return (
       <Box sx={{ 
@@ -415,6 +412,49 @@ export default function ExcelImportPage() {
   const [selectedRowsUnmatched, setSelectedRowsUnmatched] = useState<(number | string)[]>([]);
   const [selectedRowsDuplicates, setSelectedRowsDuplicates] = useState<(number | string)[]>([]);
 
+  // Edit mode tracking states - track which rows are in edit mode for each grid
+  // REMOVED: These states are no longer needed with the simplified approach
+  // const [editingRowsMaster, setEditingRowsMaster] = useState<Set<number | string>>(new Set());
+  // const [editingRowsClient, setEditingRowsClient] = useState<Set<number | string>>(new Set());
+  // const [editingRowsMerged, setEditingRowsMerged] = useState<Set<number | string>>(new Set());
+
+  // Global focus prevention for actions columns
+  useEffect(() => {
+    const preventActionsFocus = (event: FocusEvent) => {
+      const target = event.target as HTMLElement;
+      if (target) {
+        // Check if the focused element is within an actions column
+        const actionsCell = target.closest('[data-field="actions"]');
+        const actionsButton = target.closest('.actions-cell-non-focusable');
+
+        if (actionsCell || actionsButton) {
+          event.preventDefault();
+          event.stopPropagation();
+          target.blur();
+
+          // Try to find the next focusable element (HCPCS column)
+          const row = target.closest('[role="row"]');
+          if (row) {
+            const hcpcsCell = row.querySelector('[data-field*="hcpcs"], [data-field*="HCPCS"], [data-field*="cpt"], [data-field*="code"]');
+            if (hcpcsCell) {
+              const hcpcsInput = hcpcsCell.querySelector('input, [role="textbox"]') as HTMLElement;
+              if (hcpcsInput) {
+                setTimeout(() => hcpcsInput.focus(), 10);
+              }
+            }
+          }
+        }
+      }
+    };
+
+    // Add global focus event listener
+    document.addEventListener('focusin', preventActionsFocus, true);
+
+    return () => {
+      document.removeEventListener('focusin', preventActionsFocus, true);
+    };
+  }, []);
+
 
   // Advanced filter function that applies AI filters
   const applyFilters = (rows: ExcelRow[], filters: {column: string, condition: string, value: string}[]): ExcelRow[] => {
@@ -541,34 +581,72 @@ export default function ExcelImportPage() {
       console.log(`[GRID CLICK] Switching active grid from ${aiSelectedGrid} to ${gridType}`);
       setAiSelectedGrid(gridType);
     } else {
-      console.log(`[GRID CLICK] Grid ${gridType} already active`);
-    }
+      }
   };
 
-  // Function to get DataGrid styles with conditional scroll handling
-  const getDataGridStyles = (gridType: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') => {
+  // Function to get DataGridPro styles with conditional scroll handling
+  const getDataGridProStyles = (gridType: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') => {
     const isActive = aiSelectedGrid === gridType;
     return {
       pointerEvents: isActive ? 'auto' : 'none',
-      '& .MuiDataGrid-virtualScroller': {
+      '& .MuiDataGridPro-virtualScroller': {
         pointerEvents: isActive ? 'auto' : 'none',
       },
-      '& .MuiDataGrid-scrollArea': {
+      '& .MuiDataGridPro-scrollArea': {
         pointerEvents: isActive ? 'auto' : 'none',
       },
-      '& .MuiDataGrid-cell': {
+      '& .MuiDataGridPro-cell': {
         pointerEvents: isActive ? 'auto' : 'none',
       },
-      '& .MuiDataGrid-row': {
+      '& .MuiDataGridPro-row': {
         pointerEvents: isActive ? 'auto' : 'none',
       },
       // Always allow checkbox selection regardless of active state
-      '& .MuiDataGrid-checkboxInput': {
+      '& .MuiDataGridPro-checkboxInput': {
         pointerEvents: 'auto',
       },
       '& .MuiCheckbox-root': {
         pointerEvents: 'auto',
       },
+      // Make actions column completely non-focusable
+      '& [data-field="actions"]': {
+        tabIndex: -1,
+        '&:focus': {
+          outline: 'none !important',
+          boxShadow: 'none !important'
+        },
+        '&.MuiDataGridPro-cell--editing': {
+          outline: 'none !important'
+        }
+      },
+      '& .actions-cell-non-focusable': {
+        tabIndex: -1,
+        '& *': {
+          tabIndex: '-1 !important',
+          outline: 'none !important',
+          '&:focus': {
+            outline: 'none !important',
+            boxShadow: 'none !important',
+            backgroundColor: 'transparent !important'
+          },
+          '&:focus-visible': {
+            outline: 'none !important',
+            boxShadow: 'none !important'
+          }
+        }
+      },
+      '& .actions-header-non-focusable': {
+        tabIndex: '-1 !important',
+        outline: 'none !important',
+        '&:focus': {
+          outline: 'none !important',
+          boxShadow: 'none !important'
+        },
+        '&:focus-visible': {
+          outline: 'none !important',
+          boxShadow: 'none !important'
+        }
+      }
     } as const;
   };
 
@@ -585,104 +663,28 @@ export default function ExcelImportPage() {
     } else if (gridType === 'client') {
       hcpcsColumn = getHCPCSColumnClient();
     } else {
-      // For merged grid, find HCPCS column using the same logic as validation
+      // For merged grid, look for HCPCS column (uses master column names)
+      // The correct column name is "HCPCs" with lowercase 's'
       const hcpcsCol = mergedColumns.find(col =>
-        col.field.toLowerCase().includes('hcpcs') ||
-        col.field.toLowerCase().includes('cpt') ||
-        col.field.toLowerCase().includes('code')
+        col.field === 'HCPCs' || // Exact match for master column name
+        col.field.toLowerCase().includes('hcpcs')
       );
       hcpcsColumn = hcpcsCol?.field || null;
     }
 
-    console.log(`[FOCUS DEBUG] Starting edit mode for ${gridType} row ${rowId}, HCPCS column: ${hcpcsColumn}`);
-
     if (apiRef.current) {
-      // First, force stop edit mode on ALL rows to ensure clean state
       try {
-        const editingRows = apiRef.current.getRowModels();
-        editingRows.forEach((_, id) => {
-          if (apiRef.current?.getRowMode(id) === 'edit' && id !== rowId) {
-            console.log(`[FOCUS DEBUG] Stopping edit mode on row ${id}`);
-            apiRef.current.stopRowEditMode({ id });
-          }
-        });
+        // Start edit mode for the row
+        apiRef.current.startRowEditMode({ id: rowId });
+
+        // Focus on HCPCS column if found
+        if (hcpcsColumn) {
+          setTimeout(() => {
+            apiRef.current?.setCellFocus(rowId, hcpcsColumn);
+          }, 100);
+        }
       } catch (error) {
-        console.log('[FOCUS DEBUG] Error stopping other edit modes:', error);
-      }
-
-      // Start row edit mode
-      apiRef.current.startRowEditMode({ id: rowId });
-
-      // Immediately move focus away from actions column to HCPCS column
-      if (hcpcsColumn) {
-        // Very quick first attempt to grab focus away from actions column
-        setTimeout(() => {
-          try {
-            if (apiRef.current) {
-              console.log(`[FOCUS DEBUG] Immediate focus grab attempt on ${hcpcsColumn}`);
-              // Blur any currently focused element first
-              if (document.activeElement && document.activeElement instanceof HTMLElement) {
-                document.activeElement.blur();
-              }
-              apiRef.current.setCellFocus(rowId, hcpcsColumn!);
-            }
-          } catch (error) {
-            console.log('[FOCUS DEBUG] Immediate focus attempt failed:', error);
-          }
-        }, 10); // Very short delay
-
-        // Second attempt after 100ms
-        setTimeout(() => {
-          try {
-            if (apiRef.current) {
-              console.log(`[FOCUS DEBUG] Second focus attempt on ${hcpcsColumn}`);
-              apiRef.current.setCellFocus(rowId, hcpcsColumn!);
-            }
-          } catch (error) {
-            console.log('[FOCUS DEBUG] Second focus attempt failed:', error);
-          }
-        }, 100);
-
-        // Third attempt after 300ms
-        setTimeout(() => {
-          try {
-            if (apiRef.current) {
-              console.log(`[FOCUS DEBUG] Third focus attempt on ${hcpcsColumn}`);
-              apiRef.current.setCellFocus(rowId, hcpcsColumn!);
-            }
-          } catch (error) {
-            console.log('[FOCUS DEBUG] Third focus attempt failed:', error);
-          }
-        }, 300);
-
-        // Final attempt after 500ms with scroll
-        setTimeout(() => {
-          try {
-            if (apiRef.current) {
-              console.log(`[FOCUS DEBUG] Final focus attempt on ${hcpcsColumn} with scroll`);
-
-              // Try to scroll to the cell first
-              const rowIndex = apiRef.current.getRowIndexRelativeToVisibleRows(rowId);
-              const colIndex = apiRef.current.getColumnIndex(hcpcsColumn!);
-              if (rowIndex !== undefined && colIndex !== undefined) {
-                apiRef.current.scrollToIndexes({ rowIndex, colIndex });
-              }
-
-              // Then focus
-              apiRef.current.setCellFocus(rowId, hcpcsColumn!);
-            }
-          } catch (error) {
-            console.log('[FOCUS DEBUG] Final focus attempt failed:', error);
-          }
-        }, 500);
-      } else {
-        console.log('[FOCUS DEBUG] No HCPCS column found for focusing');
-        // If no HCPCS column, at least blur the actions column
-        setTimeout(() => {
-          if (document.activeElement && document.activeElement instanceof HTMLElement) {
-            document.activeElement.blur();
-          }
-        }, 10);
+        console.error('[EDIT MODE] Error starting row edit mode:', error);
       }
     }
   };
@@ -697,48 +699,83 @@ export default function ExcelImportPage() {
       sortable: false,
       filterable: false,
       disableColumnMenu: true,
+      disableReorder: true,
+      hideable: false,
+      // Make the column completely non-focusable
+      cellClassName: 'actions-cell-non-focusable',
+      headerClassName: 'actions-header-non-focusable',
+      // Use renderCell with custom tabIndex
       renderCell: (params: GridRenderCellParams) => {
-        // Check if this row is in edit mode
-        const isInEditMode = params.api.getRowMode(params.id) === 'edit';
-
-        // Debug logging
-        console.log(`[ACTIONS DEBUG] Row ${params.id} - isInEditMode: ${isInEditMode}`);
+        // PERFORMANCE FIX: Removed the expensive getRowMode check that was called for every row on every render
+        // Actions will always be available - the grid's built-in edit mode handling will manage conflicts
 
         return (
           <Box sx={{
             display: 'flex',
             gap: 0.5,
-            // Make the entire actions cell non-focusable when in edit mode
-            pointerEvents: isInEditMode ? 'none' : 'auto',
-            opacity: isInEditMode ? 0.5 : 1
+            // Make the entire actions cell completely non-focusable
+            '& *': {
+              tabIndex: -1, // Remove ALL elements from tab order
+              outline: 'none !important', // Remove focus outline
+              '&:focus': {
+                outline: 'none !important',
+                boxShadow: 'none !important'
+              }
+            }
           }}>
-            <Tooltip title={isInEditMode ? "Exit edit mode to use actions" : "Edit Row"}>
+            <Tooltip title="Edit Row">
               <span>
                 <IconButton
                   size="small"
-                  disabled={isInEditMode}
-                  tabIndex={isInEditMode ? -1 : 0} // Remove from tab order when disabled
-                  onClick={(e) => {
-                    e.stopPropagation();
+                  tabIndex={-1} // Remove from tab order
+                  onClick={() => {
                     startRowEditModeWithHcpcsFocus(gridType, params.row.id);
                   }}
                   sx={{
-                    color: isInEditMode ? '#ccc' : '#1976d2',
-                    pointerEvents: isInEditMode ? 'none' : 'auto'
+                    color: '#1976d2',
+                    // Force no focus styles
+                    '&:focus': {
+                      outline: 'none !important',
+                      boxShadow: 'none !important',
+                      backgroundColor: 'transparent !important'
+                    },
+                    '&:focus-visible': {
+                      outline: 'none !important',
+                      boxShadow: 'none !important'
+                    }
                   }}
                 >
                   <EditIcon fontSize="small" />
                 </IconButton>
               </span>
             </Tooltip>
-            <Tooltip title={isInEditMode ? "Exit edit mode to use actions" : "Duplicate Row"}>
+            <Tooltip title="Duplicate Row">
               <span>
                 <IconButton
                   size="small"
-                  disabled={isInEditMode}
-                  tabIndex={isInEditMode ? -1 : 0} // Remove from tab order when disabled
+                  tabIndex={-1} // ALWAYS remove from tab order
+                  disableFocusRipple={true}
+                  disableRipple={true}
+                  onFocus={(e) => {
+                    // Immediately blur if somehow focused
+                    console.log('[FOCUS PREVENTION] Duplicate button focused, blurring immediately');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.blur();
+                  }}
+                  onMouseDown={(e) => {
+                    // Prevent focus on mouse down
+                    e.preventDefault();
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
+                    e.preventDefault(); // Prevent default focus behavior
+
+                    // Immediately blur the button that was clicked
+                    if (e.currentTarget instanceof HTMLElement) {
+                      e.currentTarget.blur();
+                    }
+
                     const result = handleDuplicateRecord(params.row.id, gridType);
                     if (!result.success) {
                       // Show user-friendly error message
@@ -747,27 +784,57 @@ export default function ExcelImportPage() {
                     }
                   }}
                   sx={{
-                    color: isInEditMode ? '#ccc' : '#ed6c02',
-                    pointerEvents: isInEditMode ? 'none' : 'auto'
+                    color: '#ed6c02',
+                    // Force no focus styles
+                    '&:focus': {
+                      outline: 'none !important',
+                      boxShadow: 'none !important',
+                      backgroundColor: 'transparent !important'
+                    },
+                    '&:focus-visible': {
+                      outline: 'none !important',
+                      boxShadow: 'none !important'
+                    }
                   }}
                 >
                   <ContentCopyIcon fontSize="small" />
                 </IconButton>
               </span>
             </Tooltip>
-            <Tooltip title={isInEditMode ? "Exit edit mode to use actions" : "Delete Row"}>
+            <Tooltip title="Delete Row">
               <span>
                 <IconButton
                   size="small"
-                  disabled={isInEditMode}
-                  tabIndex={isInEditMode ? -1 : 0} // Remove from tab order when disabled
+                  tabIndex={-1} // ALWAYS remove from tab order
+                  disableFocusRipple={true}
+                  disableRipple={true}
+                  onFocus={(e) => {
+                    // Immediately blur if somehow focused
+                    console.log('[FOCUS PREVENTION] Delete button focused, blurring immediately');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.blur();
+                  }}
+                  onMouseDown={(e) => {
+                    // Prevent focus on mouse down
+                    e.preventDefault();
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDeleteRecord(params.row.id, gridType);
                   }}
                   sx={{
-                    color: isInEditMode ? '#ccc' : '#d32f2f',
-                    pointerEvents: isInEditMode ? 'none' : 'auto'
+                    color: '#d32f2f',
+                    // Force no focus styles
+                    '&:focus': {
+                      outline: 'none !important',
+                      boxShadow: 'none !important',
+                      backgroundColor: 'transparent !important'
+                    },
+                    '&:focus-visible': {
+                      outline: 'none !important',
+                      boxShadow: 'none !important'
+                    }
                   }}
                 >
                   <DeleteIcon fontSize="small" />
@@ -778,7 +845,6 @@ export default function ExcelImportPage() {
         );
       },
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Filtered data for each grid
@@ -867,40 +933,23 @@ export default function ExcelImportPage() {
     
     // Get selected row information for current grid (use checkbox selections if available, fallback to single selection)
     const getSelectedRowInfo = () => {
-      console.log('[ROW SELECTION DEBUG] Getting row info for grid:', aiSelectedGrid);
-      console.log('[ROW SELECTION DEBUG] All selection states:', {
-        master: { single: selectedRowMaster, multi: selectedRowsMaster },
-        client: { single: selectedRowClient, multi: selectedRowsClient },
-        merged: { single: selectedRowMerged, multi: selectedRowsMerged },
-        unmatched: { single: selectedRowUnmatched, multi: selectedRowsUnmatched },
-        duplicates: { single: selectedRowDuplicates, multi: selectedRowsDuplicates }
-      });
       
       switch (aiSelectedGrid) {
         case 'master':
           const masterSelectedId = selectedRowsMaster.length > 0 ? selectedRowsMaster[0] : selectedRowMaster;
-          console.log('[ROW SELECTION DEBUG] Master grid selected ID:', masterSelectedId);
           return { selectedRowId: masterSelectedId, selectedRowData: masterSelectedId ? (rows.find(row => row.id === masterSelectedId) || null) : null };
         case 'client':
           const clientSelectedId = selectedRowsClient.length > 0 ? selectedRowsClient[0] : selectedRowClient;
-          console.log('[ROW SELECTION DEBUG] Client grid selected ID:', clientSelectedId);
           return { selectedRowId: clientSelectedId, selectedRowData: clientSelectedId ? (rows.find(row => row.id === clientSelectedId) || null) : null };
         case 'merged':
           const mergedSelectedId = selectedRowsMerged.length > 0 ? selectedRowsMerged[0] : selectedRowMerged;
-          console.log('[ROW SELECTION DEBUG] Merged grid selected ID:', mergedSelectedId);
-          console.log('[ROW SELECTION DEBUG] selectedRowsMerged:', selectedRowsMerged);
-          console.log('[ROW SELECTION DEBUG] selectedRowMerged:', selectedRowMerged);
-          console.log('[ROW SELECTION DEBUG] rows length:', rows.length);
           const foundRow = mergedSelectedId ? (rows.find(row => row.id === mergedSelectedId) || null) : null;
-          console.log('[ROW SELECTION DEBUG] Found row data:', foundRow ? 'found' : 'not found');
           return { selectedRowId: mergedSelectedId, selectedRowData: foundRow };
         case 'unmatched':
           const unmatchedSelectedId = selectedRowsUnmatched.length > 0 ? selectedRowsUnmatched[0] : selectedRowUnmatched;
-          console.log('[ROW SELECTION DEBUG] Unmatched grid selected ID:', unmatchedSelectedId);
           return { selectedRowId: unmatchedSelectedId, selectedRowData: unmatchedSelectedId ? (rows.find(row => row.id === unmatchedSelectedId) || null) : null };
         case 'duplicates':
           const duplicatesSelectedId = selectedRowsDuplicates.length > 0 ? selectedRowsDuplicates[0] : selectedRowDuplicates;
-          console.log('[ROW SELECTION DEBUG] Duplicates grid selected ID:', duplicatesSelectedId);
           return { selectedRowId: duplicatesSelectedId, selectedRowData: duplicatesSelectedId ? (rows.find(row => row.id === duplicatesSelectedId) || null) : null };
         default:
           return { selectedRowId: null, selectedRowData: null };
@@ -909,7 +958,6 @@ export default function ExcelImportPage() {
     
     const { selectedRowId, selectedRowData } = getSelectedRowInfo();
     
-    console.log('[DEBUG CONTEXT] Final selected row info:', { selectedRowId, selectedRowData: selectedRowData ? 'present' : 'null' });
     
     // Extract HCPCS information for user-friendly row identification
     const getHcpcsInfo = (rowData: Record<string, unknown> | null) => {
@@ -959,34 +1007,10 @@ export default function ExcelImportPage() {
         default:
           count = 0;
       }
-      console.log(`[GET SELECTED COUNT] Grid: ${aiSelectedGrid}, Count: ${count}, Arrays:`, {
-        selectedRowsMaster, selectedRowsClient, selectedRowsMerged, selectedRowsUnmatched, selectedRowsDuplicates
-      });
       return count;
     };
     
     const selectedRowCount = getSelectedRowCount();
-    
-    console.log('[CONTEXT CREATION] Grid context for AI:', {
-      aiSelectedGrid,
-      selectedRowId,
-      selectedHcpcs,
-      selectedRowCount,
-      hasSelectedRowData: !!selectedRowData,
-      allSelections: {
-        master: { single: selectedRowMaster, multi: selectedRowsMaster },
-        client: { single: selectedRowClient, multi: selectedRowsClient },
-        merged: { single: selectedRowMerged, multi: selectedRowsMerged }
-      }
-    });
-    
-    console.log('[CONTEXT CREATION] Raw selection arrays:', {
-      selectedRowsMaster,
-      selectedRowsClient,
-      selectedRowsMerged,
-      selectedRowsUnmatched,
-      selectedRowsDuplicates
-    });
     
     return {
       columns: columns.map(col => col.field),
@@ -1730,8 +1754,7 @@ export default function ExcelImportPage() {
     
     // Strategy 1: Exact match
     if (clientFields.includes(masterField)) {
-      console.log(`[COLUMN MATCH] Exact match: ${masterField}`);
-      return masterField;
+        return masterField;
     }
     
     // Strategy 2: Case-insensitive match
@@ -1739,7 +1762,6 @@ export default function ExcelImportPage() {
       field.toLowerCase() === masterField.toLowerCase()
     );
     if (caseInsensitiveMatch) {
-      console.log(`[COLUMN MATCH] Case-insensitive match: ${masterField} -> ${caseInsensitiveMatch}`);
       return caseInsensitiveMatch;
     }
     
@@ -1789,7 +1811,6 @@ export default function ExcelImportPage() {
       }
     }
     
-    console.log(`[COLUMN MATCH] No match found for: ${masterField}`);
     return null;
   }
   
@@ -2313,7 +2334,7 @@ export default function ExcelImportPage() {
     if (lastMasterData && lastClientData && lastMasterFile && lastClientFile) {
       console.log('[DEBUG] Starting restore session - processing sheets first, then metadata');
       
-      // Clear all selection state before restoring to prevent DataGrid errors
+      // Clear all selection state before restoring to prevent DataGridPro errors
       setSelectedRowMaster(null);
       setSelectedRowsMaster([]);
       setSelectedRowClient(null);
@@ -3065,7 +3086,7 @@ export default function ExcelImportPage() {
           {masterSheetNames.length > 0 ? (
             // Show tabs and grid when data is loaded
             <>
-              <FileInfoCard metadata={masterFileMetadata} type="Master" />
+              <FileInfoCard metadata={masterFileMetadata} />
               
               {masterSheetNames.length > 0 && (
                 <Tabs 
@@ -3235,7 +3256,7 @@ export default function ExcelImportPage() {
               )}
               
               <Box sx={{ height: 400, width: "100%" }}>
-                <DataGrid
+                <DataGridPro
                   apiRef={masterApiRef}
                   rows={filteredRowsMaster}
                   columns={enhancedMasterColumns}
@@ -3247,8 +3268,8 @@ export default function ExcelImportPage() {
                   checkboxSelection
                   disableRowSelectionOnClick
                   showToolbar
-                  onRowSelectionModelChange={(newRowSelectionModel) => {
-                    // Handle the DataGrid selection model format
+                  onRowSelectionModelChange={(newRowSelectionModel: GridRowSelectionModel) => {
+                    // Handle the DataGridPro selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
                     
@@ -3273,7 +3294,7 @@ export default function ExcelImportPage() {
                       setSelectedRowsMaster(selectedIds);
                     }, 10);
                   }}
-                  processRowUpdate={(newRow) => {
+                  processRowUpdate={(newRow: ExcelRow) => {
                     // Basic validation for edited cells
                     const validatedRow = { ...newRow };
                     
@@ -3340,14 +3361,14 @@ export default function ExcelImportPage() {
                     
                     return validatedRow;
                   }}
-                  onProcessRowUpdateError={(error) => {
+                  onProcessRowUpdateError={(error: unknown) => {
                     console.error('Master row update error:', error);
                   }}
-                  onRowEditStop={(params) => {
+                  onRowEditStop={(params: GridRowEditStopParams) => {
                     // Auto-exit edit mode when clicking outside or pressing Escape
                     console.log('[EDIT MODE] Master row edit stopped:', params.id);
                   }}
-                  sx={getDataGridStyles('master')}
+                  sx={getDataGridProStyles('master')}
                 />
               </Box>
             </>
@@ -3406,7 +3427,7 @@ export default function ExcelImportPage() {
           {clientSheetNames.length > 0 ? (
             // Show tabs and grid when data is loaded
             <>
-              <FileInfoCard metadata={clientFileMetadata} type="Client" />
+              <FileInfoCard metadata={clientFileMetadata} />
               
               {clientSheetNames.length > 0 && (
                 <Tabs 
@@ -3576,7 +3597,7 @@ export default function ExcelImportPage() {
               )}
               
               <Box sx={{ height: 400, width: "100%" }}>
-                <DataGrid
+                <DataGridPro
                   apiRef={clientApiRef}
                   rows={filteredRowsClient}
                   columns={enhancedClientColumns}
@@ -3588,8 +3609,8 @@ export default function ExcelImportPage() {
                   checkboxSelection
                   disableRowSelectionOnClick
                   showToolbar
-                  onRowSelectionModelChange={(newRowSelectionModel) => {
-                    // Handle the DataGrid selection model format
+                  onRowSelectionModelChange={(newRowSelectionModel: GridRowSelectionModel) => {
+                    // Handle the DataGridPro selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
                     
@@ -3612,7 +3633,7 @@ export default function ExcelImportPage() {
                       setSelectedRowsClient(selectedIds);
                     }, 10);
                   }}
-                  processRowUpdate={(newRow) => {
+                  processRowUpdate={(newRow: ExcelRow) => {
                     // Basic validation for edited cells
                     const validatedRow = { ...newRow };
                     
@@ -3679,14 +3700,14 @@ export default function ExcelImportPage() {
                     
                     return validatedRow;
                   }}
-                  onProcessRowUpdateError={(error) => {
+                  onProcessRowUpdateError={(error: unknown) => {
                     console.error('Row update error:', error);
                   }}
-                  onRowEditStop={(params) => {
+                  onRowEditStop={(params: GridRowEditStopParams) => {
                     // Auto-exit edit mode when clicking outside or pressing Escape
                     console.log('[EDIT MODE] Client row edit stopped:', params.id);
                   }}
-                  sx={getDataGridStyles('client')}
+                  sx={getDataGridProStyles('client')}
                 />
               </Box>
             </>
@@ -4049,7 +4070,7 @@ export default function ExcelImportPage() {
             )}
             
             <Box sx={{ height: 400, width: "100%" }}>
-              <DataGrid
+              <DataGridPro
                 apiRef={mergedApiRef}
                 rows={filteredMergedRows}
                 columns={enhancedMergedColumnsWithActions}
@@ -4069,7 +4090,7 @@ export default function ExcelImportPage() {
                   console.log('[MERGED GRID] Is Array?', Array.isArray(newRowSelectionModel));
                   console.log('[MERGED GRID] Length:', Array.isArray(newRowSelectionModel) ? newRowSelectionModel.length : 'N/A');
                   
-                  // Handle the DataGrid selection model format
+                  // Handle the DataGridPro selection model format
                   let selectedId = null;
                   let selectedIds: (number | string)[] = [];
                   
@@ -4150,11 +4171,10 @@ export default function ExcelImportPage() {
                 onProcessRowUpdateError={(error) => {
                   console.error('Merged row update error:', error);
                 }}
-                onRowEditStop={(params) => {
+                onRowEditStop={() => {
                   // Auto-exit edit mode when clicking outside or pressing Escape
-                  console.log('[EDIT MODE] Merged row edit stopped:', params.id);
                 }}
-                sx={getDataGridStyles('merged')}
+                sx={getDataGridProStyles('merged')}
               />
             </Box>
           </Box>
@@ -4212,7 +4232,7 @@ export default function ExcelImportPage() {
               }}
             >
               {unmatchedClient.length > 0 ? (
-                <DataGrid
+                <DataGridPro
                   rows={filteredUnmatchedClient}
                   columns={columnsClient}
                   density="compact"
@@ -4222,8 +4242,8 @@ export default function ExcelImportPage() {
                   checkboxSelection
                   disableRowSelectionOnClick
                   showToolbar
-                  onRowSelectionModelChange={(newRowSelectionModel) => {
-                    // Handle the DataGrid selection model format
+                  onRowSelectionModelChange={(newRowSelectionModel: GridRowSelectionModel) => {
+                    // Handle the DataGridPro selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
                     
@@ -4246,7 +4266,7 @@ export default function ExcelImportPage() {
                       setSelectedRowsUnmatched(selectedIds);
                     }, 10);
                   }}
-                  sx={getDataGridStyles('unmatched')}
+                  sx={getDataGridProStyles('unmatched')}
                 />
               ) : (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -4270,7 +4290,7 @@ export default function ExcelImportPage() {
               }}
             >
               {dupsClient.length > 0 ? (
-                <DataGrid
+                <DataGridPro
                   rows={filteredDupsClient}
                   columns={columnsClient}
                   density="compact"
@@ -4280,8 +4300,8 @@ export default function ExcelImportPage() {
                   checkboxSelection
                   disableRowSelectionOnClick
                   showToolbar
-                  onRowSelectionModelChange={(newRowSelectionModel) => {
-                    // Handle the DataGrid selection model format
+                  onRowSelectionModelChange={(newRowSelectionModel: GridRowSelectionModel) => {
+                    // Handle the DataGridPro selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
                     
@@ -4304,7 +4324,7 @@ export default function ExcelImportPage() {
                       setSelectedRowsDuplicates(selectedIds);
                     }, 10);
                   }}
-                  sx={getDataGridStyles('duplicates')}
+                  sx={getDataGridProStyles('duplicates')}
                 />
               ) : (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>

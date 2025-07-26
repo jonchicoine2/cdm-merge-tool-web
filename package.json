@@ -15,6 +15,8 @@
     "@mui/icons-material": "^7.1.2",
     "@mui/material": "^7.1.2",
     "@mui/x-data-grid": "^8.6.0",
+    "@mui/x-data-grid-pro": "^8.9.1",
+    "@mui/x-license": "^8.9.0",
     "next": "15.3.4",
     "openai": "^5.8.2",
     "react": "^19.0.0",
