@@ -642,7 +642,12 @@ export default function ExcelImportPage() {
               size="small"
               onClick={(e) => {
                 e.stopPropagation();
-                handleDuplicateRecord(params.row.id, gridType);
+                const result = handleDuplicateRecord(params.row.id, gridType);
+                if (!result.success) {
+                  // Show user-friendly error message
+                  console.error(`Failed to duplicate record with ID ${params.row.id} in ${gridType} grid`);
+                  // You could add a toast notification here if you have one available
+                }
               }}
               sx={{ color: '#ed6c02' }}
             >
@@ -2491,105 +2496,91 @@ export default function ExcelImportPage() {
     };
   };
 
-  // Record manipulation functions
+
+
+  // Record manipulation functions - SIMPLIFIED
   const handleDuplicateRecord = (rowId: number | string, gridType: 'master' | 'client' | 'merged'): { success: boolean; newRowId?: number | string; originalRowId: number | string } => {
-    // Set up variables based on grid type
-    if (gridType === 'master') {
-      // Look in filteredRowsMaster first (what's visible), then fall back to rowsMaster
-      const recordToDuplicate = filteredRowsMaster.find(row => String(row.id) === String(rowId)) || rowsMaster.find(row => String(row.id) === String(rowId));
-      if (!recordToDuplicate) {
-        console.error(`Record with ID ${rowId} not found in master grid`);
+    console.log(`[DUPLICATE] Starting duplication for ID ${rowId} in ${gridType} grid`);
+
+    try {
+      let sourceRows, setRows, recordToDuplicate, newId;
+
+      // Get the right data source and setter based on grid type
+      if (gridType === 'master') {
+        sourceRows = rowsMaster;
+        setRows = setRowsMaster;
+      } else if (gridType === 'client') {
+        sourceRows = rowsClient;
+        setRows = setRowsClient;
+      } else if (gridType === 'merged') {
+        sourceRows = mergedRows;
+        setRows = setMergedRows;
+      } else {
         return { success: false, originalRowId: rowId };
       }
 
-      const maxId = Math.max(...rowsMaster.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
-      const newRecord = { ...recordToDuplicate, id: maxId + 1 };
-      const updatedRows = [...rowsMaster, newRecord];
-      setRowsMaster(updatedRows);
+      // Find the record to duplicate
+      console.log(`[DUPLICATE DEBUG] Looking for row ID ${rowId} in ${gridType} grid`);
+      console.log(`[DUPLICATE DEBUG] Available IDs in ${gridType}:`, sourceRows.slice(0, 5).map(r => r.id));
+      console.log(`[DUPLICATE DEBUG] Total rows in ${gridType}:`, sourceRows.length);
 
-      // Update sheet data
-      const currentSheet = masterSheetNames[activeMasterTab];
-      if (currentSheet && masterSheetData[currentSheet]) {
-        const updatedSheetData = {
-          ...masterSheetData,
-          [currentSheet]: {
-            ...masterSheetData[currentSheet],
-            rows: updatedRows
-          }
-        };
-        setMasterSheetData(updatedSheetData);
-      }
-
-      setHasUnsavedMasterChanges(true);
-
-      // Start edit mode on the new row with HCPCS focus after a brief delay to ensure the grid has updated
-      setTimeout(() => {
-        startRowEditModeWithHcpcsFocus('master', newRecord.id);
-      }, 100);
-
-      console.log(`Record duplicated in master grid. New record ID: ${newRecord.id}`);
-      return { success: true, newRowId: newRecord.id, originalRowId: rowId };
-    } else if (gridType === 'client') {
-      // Look in filteredRowsClient first (what's visible), then fall back to rowsClient
-      const recordToDuplicate = filteredRowsClient.find(row => String(row.id) === String(rowId)) || rowsClient.find(row => String(row.id) === String(rowId));
+      recordToDuplicate = sourceRows.find(row => String(row.id) === String(rowId));
       if (!recordToDuplicate) {
-        console.error(`Record with ID ${rowId} not found in client grid`);
+        console.error(`Record with ID ${rowId} not found in ${gridType} grid`);
+        console.error(`Available IDs:`, sourceRows.map(r => r.id).slice(0, 10));
         return { success: false, originalRowId: rowId };
       }
 
-      const maxId = Math.max(...rowsClient.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
-      const newRecord = { ...recordToDuplicate, id: maxId + 1 };
-      const updatedRows = [...rowsClient, newRecord];
-      setRowsClient(updatedRows);
+      // Generate new ID
+      const maxId = Math.max(...sourceRows.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
+      newId = maxId + 1;
 
-      // Update sheet data
-      const currentSheet = clientSheetNames[activeClientTab];
-      if (currentSheet && clientSheetData[currentSheet]) {
-        const updatedSheetData = {
-          ...clientSheetData,
-          [currentSheet]: {
-            ...clientSheetData[currentSheet],
-            rows: updatedRows
-          }
-        };
-        setClientSheetData(updatedSheetData);
+      // Create new record
+      const newRecord = { ...recordToDuplicate, id: newId };
+      const updatedRows = [...sourceRows, newRecord];
+
+      // Update the state
+      setRows(updatedRows);
+
+      // Handle additional updates for specific grids
+      if (gridType === 'master') {
+        setHasUnsavedMasterChanges(true);
+        // Update sheet data
+        const currentSheet = masterSheetNames[activeMasterTab];
+        if (currentSheet && masterSheetData[currentSheet]) {
+          setMasterSheetData(prev => ({
+            ...prev,
+            [currentSheet]: {
+              ...prev[currentSheet],
+              rows: updatedRows
+            }
+          }));
+        }
+      } else if (gridType === 'client') {
+        setHasUnsavedChanges(true);
+        // Update sheet data
+        const currentSheet = clientSheetNames[activeClientTab];
+        if (currentSheet && clientSheetData[currentSheet]) {
+          setClientSheetData(prev => ({
+            ...prev,
+            [currentSheet]: {
+              ...prev[currentSheet],
+              rows: updatedRows
+            }
+          }));
+        }
+      } else if (gridType === 'merged') {
+        setMergedForExport(updatedRows);
+        setHasUnsavedMergedChanges(true);
       }
 
-      setHasUnsavedChanges(true);
+      console.log(`Record duplicated in ${gridType} grid. New record ID: ${newId}`);
+      return { success: true, newRowId: newId, originalRowId: rowId };
 
-      // Start edit mode on the new row with HCPCS focus after a brief delay to ensure the grid has updated
-      setTimeout(() => {
-        startRowEditModeWithHcpcsFocus('client', newRecord.id);
-      }, 100);
-
-      console.log(`Record duplicated in client grid. New record ID: ${newRecord.id}`);
-      return { success: true, newRowId: newRecord.id, originalRowId: rowId };
-    } else if (gridType === 'merged') {
-      // Look in filteredMergedRows first (what's visible), then fall back to mergedRows
-      const recordToDuplicate = filteredMergedRows.find(row => String(row.id) === String(rowId)) || mergedRows.find(row => String(row.id) === String(rowId));
-      
-      if (!recordToDuplicate) {
-        console.error(`Record with ID ${rowId} not found in merged grid`);
-        return { success: false, originalRowId: rowId };
-      }
-
-      const maxId = Math.max(...mergedRows.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
-      const newRecord = { ...recordToDuplicate, id: maxId + 1 };
-      const updatedRows = [...mergedRows, newRecord];
-      setMergedRows(updatedRows);
-      setMergedForExport(updatedRows);
-      setHasUnsavedMergedChanges(true);
-
-      // Start edit mode on the new row with HCPCS focus after a brief delay to ensure the grid has updated
-      setTimeout(() => {
-        startRowEditModeWithHcpcsFocus('merged', newRecord.id);
-      }, 100);
-
-      console.log(`Record duplicated in merged grid. New record ID: ${newRecord.id}`);
-      return { success: true, newRowId: newRecord.id, originalRowId: rowId };
+    } catch (error) {
+      console.error(`Error duplicating record in ${gridType} grid:`, error);
+      return { success: false, originalRowId: rowId };
     }
-    
-    return { success: false, originalRowId: rowId };
   };
 
   const handleDeleteRecord = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
