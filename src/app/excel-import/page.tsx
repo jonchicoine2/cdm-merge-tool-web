@@ -87,6 +87,7 @@ export default function ExcelImportPage() {
   const [mergedRows, setMergedRows] = useState<ExcelRow[]>([]);
   const [mergedColumns, setMergedColumns] = useState<GridColDef[]>([]);
   const [showCompare, setShowCompare] = useState(false);
+  const [hasInitialSort, setHasInitialSort] = useState(false);
   const fileMasterInputRef = useRef<HTMLInputElement>(null);
   const fileClientInputRef = useRef<HTMLInputElement>(null);
   const [dragOverMaster, setDragOverMaster] = useState(false);
@@ -158,8 +159,8 @@ export default function ExcelImportPage() {
   
   // Debug tab state
   useEffect(() => {
-    console.log('[DEBUG] Master sheets:', masterSheetNames, 'Active tab:', activeMasterTab);
-    console.log('[DEBUG] Client sheets:', clientSheetNames, 'Active tab:', activeClientTab);
+    // console.log('[DEBUG] Master sheets:', masterSheetNames, 'Active tab:', activeMasterTab);
+    // console.log('[DEBUG] Client sheets:', clientSheetNames, 'Active tab:', activeClientTab);
   }, [masterSheetNames, clientSheetNames, activeMasterTab, activeClientTab]);
   
   // Helper function to format file size
@@ -651,7 +652,8 @@ export default function ExcelImportPage() {
   };
 
   // Helper function to start row edit mode and focus on HCPCS column
-  const startRowEditModeWithHcpcsFocus = (gridType: 'master' | 'client' | 'merged', rowId: number | string) => {
+  const startRowEditModeWithHcpcsFocus = useCallback((gridType: 'master' | 'client' | 'merged', rowId: number | string) => {
+    console.log(`[FOCUS] Starting edit mode for ${gridType} grid, row ID: ${rowId}`);
     const apiRef = gridType === 'master' ? masterApiRef :
                   gridType === 'client' ? clientApiRef : mergedApiRef;
 
@@ -659,35 +661,86 @@ export default function ExcelImportPage() {
     let hcpcsColumn: string | null = null;
 
     if (gridType === 'master') {
-      hcpcsColumn = getHCPCSColumnMaster();
-    } else if (gridType === 'client') {
-      hcpcsColumn = getHCPCSColumnClient();
-    } else {
-      // For merged grid, look for HCPCS column (uses master column names)
-      // The correct column name is "HCPCs" with lowercase 's'
-      const hcpcsCol = mergedColumns.find(col =>
-        col.field === 'HCPCs' || // Exact match for master column name
+      // Find HCPCS column directly in master columns
+      const masterHcpcsCol = columnsMaster.find(col => 
         col.field.toLowerCase().includes('hcpcs')
       );
-      hcpcsColumn = hcpcsCol?.field || null;
+      hcpcsColumn = masterHcpcsCol?.field || null;
+    } else if (gridType === 'client') {
+      // Find HCPCS column directly in client columns  
+      const clientHcpcsCol = columnsClient.find(col =>
+        col.field.toLowerCase().includes('hcpcs')
+      );
+      hcpcsColumn = clientHcpcsCol?.field || null;
+    } else {
+      // For merged grid, look for HCPCS column (uses master column names)
+      console.log(`[FOCUS] mergedColumns.length: ${mergedColumns.length}`);
+      console.log(`[FOCUS] Available merged columns:`, mergedColumns.map(col => col.field));
+      
+      // Check what the DataGrid API actually knows about its columns
+      try {
+        const gridColumns = apiRef.current?.getAllColumns?.() || [];
+        console.log(`[FOCUS] DataGrid API knows about columns:`, gridColumns.map(col => col.field));
+        
+        // Try to get the HCPCS column directly from the grid
+        const gridHcpcsCol = gridColumns.find(col => 
+          col.field === 'HCPCs' || col.field.toLowerCase().includes('hcpcs')
+        );
+        console.log(`[FOCUS] DataGrid HCPCS column:`, gridHcpcsCol?.field || null);
+      } catch (error) {
+        console.log(`[FOCUS] Error accessing DataGrid columns:`, error);
+      }
+      
+      if (mergedColumns.length > 0) {
+        // The correct column name is "HCPCs" with lowercase 's'
+        const hcpcsCol = mergedColumns.find(col =>
+          col.field === 'HCPCs' || // Exact match for master column name
+          col.field.toLowerCase().includes('hcpcs')
+        );
+        hcpcsColumn = hcpcsCol?.field || null;
+      } else {
+        // Direct fallback - we know the merged grid uses 'HCPCs' column
+        console.log(`[FOCUS] WARNING: mergedColumns is empty, using direct fallback to 'HCPCs'`);
+        hcpcsColumn = 'HCPCs';
+      }
+      console.log(`[FOCUS] Found HCPCS column in merged grid:`, hcpcsColumn);
     }
 
     if (apiRef.current) {
       try {
+        console.log(`[FOCUS] Found HCPCS column: ${hcpcsColumn}`);
         // Start edit mode for the row
         apiRef.current.startRowEditMode({ id: rowId });
+        console.log(`[FOCUS] Started edit mode for row ${rowId}`);
 
         // Focus on HCPCS column if found
         if (hcpcsColumn) {
           setTimeout(() => {
-            apiRef.current?.setCellFocus(rowId, hcpcsColumn);
+            console.log(`[FOCUS] About to set cell focus on row ${rowId}, column ${hcpcsColumn}`);
+            // Check if the row exists in the grid before focusing
+            try {
+              const rowExists = apiRef.current?.getRow(rowId);
+              console.log(`[FOCUS] Row ${rowId} exists in grid:`, !!rowExists);
+              if (rowExists) {
+                apiRef.current?.setCellFocus(rowId, hcpcsColumn);
+                console.log(`[FOCUS] Set cell focus completed for row ${rowId}`);
+              } else {
+                console.log(`[FOCUS] Row ${rowId} not found in grid, cannot focus`);
+              }
+            } catch (error) {
+              console.error(`[FOCUS] Error checking/focusing row ${rowId}:`, error);
+            }
           }, 100);
+        } else {
+          console.log(`[FOCUS] No HCPCS column found, skipping cell focus`);
         }
       } catch (error) {
         console.error('[EDIT MODE] Error starting row edit mode:', error);
       }
+    } else {
+      console.error(`[FOCUS] No apiRef found for ${gridType} grid`);
     }
-  };
+  }, [mergedColumns, columnsMaster, columnsClient]); // Add dependencies
 
   // Function to create actions column for row operations
   const createActionsColumn = useCallback((gridType: 'master' | 'client' | 'merged'): GridColDef => {
@@ -1553,17 +1606,21 @@ export default function ExcelImportPage() {
     try {
       console.log('[SAMPLE DATA] Starting to load sample data...');
       
-      // Load the sample files
-      const masterFileResponse = await fetch('/sample%20sheets/ED%20Master%20CDM%202025.xlsx');
-      const clientFileResponse = await fetch('/sample%20sheets/Client%20ED%20w%20Hyphens.xlsx');
+      // Load the sample files in parallel
+      const [masterFileResponse, clientFileResponse] = await Promise.all([
+        fetch('/sample%20sheets/ED%20Master%20CDM%202025.xlsx'),
+        fetch('/sample%20sheets/Client%20ED%20w%20Hyphens.xlsx')
+      ]);
       
       if (!masterFileResponse.ok || !clientFileResponse.ok) {
         console.error('[SAMPLE DATA] Failed to fetch sample files');
         return;
       }
       
-      const masterBlob = await masterFileResponse.blob();
-      const clientBlob = await clientFileResponse.blob();
+      const [masterBlob, clientBlob] = await Promise.all([
+        masterFileResponse.blob(),
+        clientFileResponse.blob()
+      ]);
       
       // Create File objects
       const masterFile = new File([masterBlob], 'ED Master CDM 2025.xlsx', {
@@ -1573,25 +1630,13 @@ export default function ExcelImportPage() {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
       
-      console.log('[SAMPLE DATA] Sample files loaded, processing master file...');
+      console.log('[SAMPLE DATA] Sample files loaded, processing both files...');
       
-      // Load master file first
-      await new Promise<void>((resolve) => {
-        handleFileUpload(masterFile, "Master", false);
-        // Wait a bit for the master file to process
-        setTimeout(resolve, 1000);
-      });
+      // Process both files immediately without delays
+      handleFileUpload(masterFile, "Master", false);
+      handleFileUpload(clientFile, "Client", false);
       
-      console.log('[SAMPLE DATA] Master file processed, processing client file...');
-      
-      // Load client file second
-      await new Promise<void>((resolve) => {
-        handleFileUpload(clientFile, "Client", false);
-        // Wait a bit for the client file to process
-        setTimeout(resolve, 1000);
-      });
-      
-      console.log('[SAMPLE DATA] Both files processed, will auto-compare when ready...');
+      console.log('[SAMPLE DATA] File processing initiated...');
       
     } catch (error) {
       console.error('[SAMPLE DATA] Error loading sample data:', error);
@@ -1691,9 +1736,11 @@ export default function ExcelImportPage() {
 
   // Find HCPCS and Modifier columns for each file independently
   const getHCPCSColumnMaster = useCallback(() => {
+    console.log(`[HCPCS] Looking for HCPCS in master columns:`, columnsMaster.map(col => col.field));
     const hcpcsColumn = columnsMaster.find(col => 
-      findMatchingColumn("HCPCS", [col]) === col.field
+      col.field.toLowerCase().includes('hcpcs')
     );
+    console.log(`[HCPCS] Found master HCPCS column:`, hcpcsColumn?.field || null);
     return hcpcsColumn?.field || null;
   }, [columnsMaster]);
   
@@ -1953,6 +2000,7 @@ export default function ExcelImportPage() {
     // The merged result should ALWAYS use ALL master columns as the structure
     // This ensures no duplicate columns and maintains master sheet structure
     const mergedColumns = columnsMaster.map(col => ({ ...col, editable: true }));
+    console.log(`[MERGE] Setting mergedColumns with ${mergedColumns.length} columns:`, mergedColumns.map(col => col.field));
     setMergedColumns(mergedColumns);
     // Build merged rows: for each match, populate master columns with client data where possible
     const merged: ExcelRow[] = matchedKeys.map((key: string, idx: number) => {
@@ -2065,13 +2113,17 @@ export default function ExcelImportPage() {
     }
   }, [rowsMaster.length, rowsClient.length, showCompare, handleMerge]);
 
-  // Apply HCPCS sorting when merged data is available
+  // Apply HCPCS sorting when merged data is initially loaded (not on row additions/deletions)
   useEffect(() => {
-    if (mergedRows.length > 0 && mergedColumns.length > 0) {
-      console.log('[DEBUG] Merged data available, applying HCPCS sorting');
-      setTimeout(() => setHcpcsDefaultSorting(), 500);
+    if (mergedRows.length > 0 && mergedColumns.length > 0 && !hasInitialSort) {
+      console.log(`[DEBUG] Initial merged data available (${mergedRows.length} rows), applying HCPCS sorting in 500ms`);
+      setTimeout(() => {
+        console.log('[DEBUG] Executing initial HCPCS sorting now');
+        setHcpcsDefaultSorting();
+        setHasInitialSort(true);
+      }, 500);
     }
-  }, [mergedRows.length, mergedColumns.length, setHcpcsDefaultSorting]);
+  }, [mergedRows.length, mergedColumns.length, setHcpcsDefaultSorting, hasInitialSort]);
 
   const handleExport = () => {
     if (mergedForExport.length === 0) return;
@@ -2366,6 +2418,7 @@ export default function ExcelImportPage() {
     setMergedRows([]);
     setMergedColumns([]);
     setShowCompare(false);
+    setHasInitialSort(false); // Reset sorting flag for new data
     setMasterSheetData({});
     setClientSheetData({});
     setMasterSheetNames([]);
@@ -2700,9 +2753,9 @@ export default function ExcelImportPage() {
 
       setHasUnsavedMasterChanges(true);
 
-      // Start edit mode on the ORIGINAL row (the one being duplicated) with HCPCS focus
+      // Start edit mode on the NEW duplicated row with HCPCS focus
       setTimeout(() => {
-        startRowEditModeWithHcpcsFocus('master', rowId);
+        startRowEditModeWithHcpcsFocus('master', newRecord.id);
       }, 100);
 
       console.log(`Record duplicated in master grid. New record ID: ${newRecord.id}`);
@@ -2739,9 +2792,9 @@ export default function ExcelImportPage() {
 
       setHasUnsavedChanges(true);
 
-      // Start edit mode on the ORIGINAL row (the one being duplicated) with HCPCS focus
+      // Start edit mode on the NEW duplicated row with HCPCS focus
       setTimeout(() => {
-        startRowEditModeWithHcpcsFocus('client', rowId);
+        startRowEditModeWithHcpcsFocus('client', newRecord.id);
       }, 100);
 
       console.log(`Record duplicated in client grid. New record ID: ${newRecord.id}`);
@@ -2776,16 +2829,18 @@ export default function ExcelImportPage() {
       const maxId = Math.max(...currentMergedRows.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
       const newRecord = { ...recordToDuplicate, id: maxId + 1 };
       const updatedRows = [...currentMergedRows, newRecord];
+      console.log(`[DUPLICATE] Created new record with ID: ${newRecord.id}, updating rows from ${currentMergedRows.length} to ${updatedRows.length}`);
       setMergedRows(updatedRows);
       setMergedForExport(updatedRows);
       setHasUnsavedMergedChanges(true);
 
-      // Start edit mode on the CURRENT row (the one being duplicated) with HCPCS focus
+      // Start edit mode on the NEW duplicated row with HCPCS focus
       setTimeout(() => {
-        startRowEditModeWithHcpcsFocus('merged', rowId);
+        startRowEditModeWithHcpcsFocus('merged', newRecord.id);
       }, 100);
 
-      console.log(`Record duplicated in merged grid. New record ID: ${newRecord.id}`);
+      console.log(`[DUPLICATE] Record duplicated in merged grid. New record ID: ${newRecord.id}, Original ID: ${rowId}`);
+      console.log(`[DUPLICATE] About to focus on new record ID: ${newRecord.id} in 100ms`);
       return { success: true, newRowId: newRecord.id, originalRowId: rowId };
     }
 
@@ -3262,7 +3317,7 @@ export default function ExcelImportPage() {
                   columns={enhancedMasterColumns}
                   editMode="row"
                   density="compact"
-                  disableVirtualization={aiSelectedGrid !== 'master'}
+                  disableVirtualization={false}
                   sortModel={masterSortModel}
                   onSortModelChange={setMasterSortModel}
                   checkboxSelection
@@ -3603,7 +3658,7 @@ export default function ExcelImportPage() {
                   columns={enhancedClientColumns}
                   editMode="row"
                   density="compact"
-                  disableVirtualization={aiSelectedGrid !== 'client'}
+                  disableVirtualization={false}
                   sortModel={clientSortModel}
                   onSortModelChange={setClientSortModel}
                   checkboxSelection
@@ -4076,7 +4131,7 @@ export default function ExcelImportPage() {
                 columns={enhancedMergedColumnsWithActions}
                 editMode="row"
                 density="compact"
-                disableVirtualization={aiSelectedGrid !== 'merged'}
+                disableVirtualization={false}
                 sortModel={mergedSortModel}
                 onSortModelChange={setMergedSortModel}
                 checkboxSelection
@@ -4236,7 +4291,7 @@ export default function ExcelImportPage() {
                   rows={filteredUnmatchedClient}
                   columns={columnsClient}
                   density="compact"
-                  disableVirtualization={aiSelectedGrid !== 'unmatched'}
+                  disableVirtualization={false}
                   sortModel={unmatchedSortModel}
                   onSortModelChange={setUnmatchedSortModel}
                   checkboxSelection
@@ -4294,7 +4349,7 @@ export default function ExcelImportPage() {
                   rows={filteredDupsClient}
                   columns={columnsClient}
                   density="compact"
-                  disableVirtualization={aiSelectedGrid !== 'duplicates'}
+                  disableVirtualization={false}
                   sortModel={duplicatesSortModel}
                   onSortModelChange={setDuplicatesSortModel}
                   checkboxSelection
