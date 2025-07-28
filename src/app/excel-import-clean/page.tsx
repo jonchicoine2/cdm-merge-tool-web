@@ -118,65 +118,74 @@ export default function ExcelImportCleanPage() {
 
         {/* Welcome Section */}
         <WelcomeSection onLoadSampleData={fileOps.handleLoadSampleData} />
-        
-        {/* Master Section */}
-        <Box sx={{ mb: 4 }}>
-          {fileOps.rowsMaster.length === 0 ? (
-            <FileUploadArea
-              fileType="Master"
-              rows={fileOps.rowsMaster}
-              columns={fileOps.columnsMaster}
-              fileMetadata={fileOps.masterFileMetadata}
-              sheetNames={fileOps.masterSheetNames}
-              activeTab={fileOps.activeMasterTab}
-              sheetData={fileOps.masterSheetData}
-              dragOver={fileOps.dragOverMaster}
-              onFileUpload={fileOps.handleFileUpload}
-              onTabChange={fileOps.handleMasterTabChange}
-              onDragEnter={handleDragEnter("Master")}
-              onDragLeave={handleDragLeave("Master")}
-              onDrop={handleDrop("Master")}
-            />
-          ) : (
-            <DataGridSection
-              title="📄 Master Data"
-              rows={fileOps.rowsMaster}
-              columns={fileOps.columnsMaster}
-              gridType="master"
-              fileMetadata={fileOps.masterFileMetadata}
-              onRowUpdate={fileOps.handleMasterRowUpdate}
-            />
-          )}
-        </Box>
 
-        {/* Client Section */}
-        <Box sx={{ mb: 4 }}>
-          {fileOps.rowsClient.length === 0 ? (
-            <FileUploadArea
-              fileType="Client"
-              rows={fileOps.rowsClient}
-              columns={fileOps.columnsClient}
-              fileMetadata={fileOps.clientFileMetadata}
-              sheetNames={fileOps.clientSheetNames}
-              activeTab={fileOps.activeClientTab}
-              sheetData={fileOps.clientSheetData}
-              dragOver={fileOps.dragOverClient}
-              onFileUpload={fileOps.handleFileUpload}
-              onTabChange={fileOps.handleClientTabChange}
-              onDragEnter={handleDragEnter("Client")}
-              onDragLeave={handleDragLeave("Client")}
-              onDrop={handleDrop("Client")}
-            />
-          ) : (
-            <DataGridSection
-              title="📋 Client Data"
-              rows={fileOps.rowsClient}
-              columns={fileOps.columnsClient}
-              gridType="client"
-              fileMetadata={fileOps.clientFileMetadata}
-              onRowUpdate={fileOps.handleClientRowUpdate}
-            />
-          )}
+        {/* Master and Client Sections - Horizontal Layout */}
+        <Box sx={{
+          display: "flex",
+          gap: 2,
+          flexDirection: { xs: 'column', md: 'row' },
+          width: '100%',
+          mb: 4
+        }}>
+          {/* Master Section */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            {fileOps.rowsMaster.length === 0 ? (
+              <FileUploadArea
+                fileType="Master"
+                rows={fileOps.rowsMaster}
+                columns={fileOps.columnsMaster}
+                fileMetadata={fileOps.masterFileMetadata}
+                sheetNames={fileOps.masterSheetNames}
+                activeTab={fileOps.activeMasterTab}
+                sheetData={fileOps.masterSheetData}
+                dragOver={fileOps.dragOverMaster}
+                onFileUpload={fileOps.handleFileUpload}
+                onTabChange={fileOps.handleMasterTabChange}
+                onDragEnter={handleDragEnter("Master")}
+                onDragLeave={handleDragLeave("Master")}
+                onDrop={handleDrop("Master")}
+              />
+            ) : (
+              <DataGridSection
+                title="📄 Master Data"
+                rows={fileOps.rowsMaster}
+                columns={fileOps.columnsMaster}
+                gridType="master"
+                fileMetadata={fileOps.masterFileMetadata}
+                onRowUpdate={fileOps.handleMasterRowUpdate}
+              />
+            )}
+          </Box>
+
+          {/* Client Section */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            {fileOps.rowsClient.length === 0 ? (
+              <FileUploadArea
+                fileType="Client"
+                rows={fileOps.rowsClient}
+                columns={fileOps.columnsClient}
+                fileMetadata={fileOps.clientFileMetadata}
+                sheetNames={fileOps.clientSheetNames}
+                activeTab={fileOps.activeClientTab}
+                sheetData={fileOps.clientSheetData}
+                dragOver={fileOps.dragOverClient}
+                onFileUpload={fileOps.handleFileUpload}
+                onTabChange={fileOps.handleClientTabChange}
+                onDragEnter={handleDragEnter("Client")}
+                onDragLeave={handleDragLeave("Client")}
+                onDrop={handleDrop("Client")}
+              />
+            ) : (
+              <DataGridSection
+                title="📋 Client Data"
+                rows={fileOps.rowsClient}
+                columns={fileOps.columnsClient}
+                gridType="client"
+                fileMetadata={fileOps.clientFileMetadata}
+                onRowUpdate={fileOps.handleClientRowUpdate}
+              />
+            )}
+          </Box>
         </Box>
 
         {/* Compare Button */}
