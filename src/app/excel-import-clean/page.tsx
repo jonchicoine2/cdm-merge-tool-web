@@ -144,6 +144,7 @@ export default function ExcelImportCleanPage() {
               columns={fileOps.columnsMaster}
               gridType="master"
               fileMetadata={fileOps.masterFileMetadata}
+              onRowUpdate={fileOps.handleMasterRowUpdate}
             />
           )}
         </Box>
@@ -173,6 +174,7 @@ export default function ExcelImportCleanPage() {
               columns={fileOps.columnsClient}
               gridType="client"
               fileMetadata={fileOps.clientFileMetadata}
+              onRowUpdate={fileOps.handleClientRowUpdate}
             />
           )}
         </Box>

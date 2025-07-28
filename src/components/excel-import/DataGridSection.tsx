@@ -11,7 +11,8 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
   fileMetadata,
   apiRef,
   headerColor = '#1976d2',
-  backgroundColor = '#f8fbff'
+  backgroundColor = '#f8fbff',
+  onRowUpdate
 }) => {
   // Only hide if both rows and columns are empty (no file loaded)
   if (rows.length === 0 && columns.length === 0) return null;
@@ -105,12 +106,41 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
           columns={columns}
           checkboxSelection
           disableRowSelectionOnClick
+          editMode="row"
           slots={{ toolbar: GridToolbar }}
           slotProps={{
             toolbar: {
               showQuickFilter: true,
               quickFilterProps: { debounceMs: 500 },
             },
+          }}
+          processRowUpdate={(newRow) => {
+            // Basic validation for edited cells
+            const validatedRow = { ...newRow };
+
+            // Validate and clean each field
+            Object.keys(validatedRow).forEach(key => {
+              if (key !== 'id') {
+                const value = validatedRow[key];
+
+                // Convert to string and trim whitespace
+                if (value !== null && value !== undefined) {
+                  validatedRow[key] = String(value).trim();
+                } else {
+                  validatedRow[key] = '';
+                }
+              }
+            });
+
+            // Call the onRowUpdate callback if provided
+            if (onRowUpdate) {
+              onRowUpdate(validatedRow);
+            }
+
+            return validatedRow;
+          }}
+          onProcessRowUpdateError={(error: unknown) => {
+            console.error('Row update error:', error);
           }}
           sx={{
             '& .MuiDataGrid-root': {

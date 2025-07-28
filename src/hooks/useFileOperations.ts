@@ -219,6 +219,47 @@ export const useFileOperations = () => {
     setRows(updatedRows);
   };
 
+  // Row update handlers for cell edits
+  const handleMasterRowUpdate = (updatedRow: ExcelRow) => {
+    const updatedRows = rowsMaster.map(row =>
+      row.id === updatedRow.id ? updatedRow : row
+    );
+    setRowsMaster(updatedRows);
+
+    // Also update the sheet data
+    const currentSheet = masterSheetNames[activeMasterTab];
+    if (currentSheet && masterSheetData[currentSheet]) {
+      const updatedSheetData = {
+        ...masterSheetData,
+        [currentSheet]: {
+          ...masterSheetData[currentSheet],
+          rows: updatedRows
+        }
+      };
+      setMasterSheetData(updatedSheetData);
+    }
+  };
+
+  const handleClientRowUpdate = (updatedRow: ExcelRow) => {
+    const updatedRows = rowsClient.map(row =>
+      row.id === updatedRow.id ? updatedRow : row
+    );
+    setRowsClient(updatedRows);
+
+    // Also update the sheet data
+    const currentSheet = clientSheetNames[activeClientTab];
+    if (currentSheet && clientSheetData[currentSheet]) {
+      const updatedSheetData = {
+        ...clientSheetData,
+        [currentSheet]: {
+          ...clientSheetData[currentSheet],
+          rows: updatedRows
+        }
+      };
+      setClientSheetData(updatedSheetData);
+    }
+  };
+
   // Export functions
   // Export function matching original implementation
   const handleExport = (mergedRows: ExcelRow[], unmatchedClient: ExcelRow[], dupsClient: ExcelRow[]) => {
@@ -307,6 +348,8 @@ export const useFileOperations = () => {
     handleClientTabChange,
     handleDuplicateRow,
     handleDeleteRow,
+    handleMasterRowUpdate,
+    handleClientRowUpdate,
     handleExport
   };
 };

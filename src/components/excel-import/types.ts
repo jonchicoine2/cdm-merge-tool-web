@@ -31,6 +31,7 @@ export interface DataGridSectionProps {
   apiRef?: any;
   headerColor?: string;
   backgroundColor?: string;
+  onRowUpdate?: (updatedRow: ExcelRow) => void;
 }
 
 export interface ComparisonResultsProps {

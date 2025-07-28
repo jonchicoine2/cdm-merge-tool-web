@@ -217,27 +217,29 @@ export function getDescriptionColumn(columns: GridColDef[]): string | null {
 }
 
 export function validateForDuplicates(data: ExcelRow[], hcpcsCol: string, modifierCol: string | null): ExcelRow[] {
-  const seen = new Set<string>();
-  const duplicates: ExcelRow[] = [];
-  
+  // Use raw key logic like the original implementation (not parsed comparison key)
+  const getRawKey = (row: ExcelRow): string => {
+    const hcpcs = String(row[hcpcsCol] || "").toUpperCase().trim();
+    const modifier = modifierCol ? String(row[modifierCol] || "").toUpperCase().trim() : "";
+    // If there's a modifier column, use both; otherwise, use the full HCPCS field as-is
+    return modifierCol ? `${hcpcs}-${modifier}` : hcpcs;
+  };
+
+  // Count occurrences of each key (like original implementation)
+  const rawKeyCount: Record<string, number> = {};
   data.forEach(row => {
-    const key = getCompareKey(row, hcpcsCol, modifierCol, {
-      root00: true,
-      root25: true,
-      ignoreTrauma: false,
-      root50: false,
-      root59: false,
-      rootXU: false,
-      root76: false
-    });
-    
-    if (seen.has(key)) {
-      duplicates.push(row);
-    } else {
-      seen.add(key);
+    const key = getRawKey(row);
+    if (key) {
+      rawKeyCount[key] = (rawKeyCount[key] || 0) + 1;
     }
   });
-  
+
+  // Find duplicate keys (keys that appear more than once)
+  const duplicateKeys = Object.keys(rawKeyCount).filter(key => rawKeyCount[key] > 1);
+
+  // Return ALL rows that have duplicate keys (not just subsequent occurrences)
+  const duplicates = data.filter(row => duplicateKeys.includes(getRawKey(row)));
+
   return duplicates;
 }
 
