@@ -30,6 +30,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
+    "playwright": "^1.54.1",
     "ts-prune": "^0.10.3",
     "typescript": "^5",
     "unimported": "^1.31.0"

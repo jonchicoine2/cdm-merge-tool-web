@@ -12,6 +12,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import * as XLSX from "xlsx";
 import AIChat, { AIChatHandle } from "../../components/AIChat";
 import dynamic from 'next/dynamic';
+import Link from "next/link";
 import { filterAndSearchRows } from "../../utils/excelOperations";
 // Removed cptCacheService import - no longer used
 
@@ -2026,19 +2027,19 @@ export default function ExcelImportPage() {
     const formattedMerged = merged.map(row => {
       const formattedRow = { ...row };
       Object.keys(formattedRow).forEach(key => {
-        // Check if this column contains HCPCS codes (by column name)
-        if (key.toLowerCase().includes('hcpcs') || key.toLowerCase().includes('cpt') || key.toLowerCase().includes('code')) {
+        // Only target specifically HCPCS/CPT columns (more restrictive)
+        if (key.toLowerCase().includes('hcpcs') || key.toLowerCase().includes('cpt')) {
           const value = formattedRow[key];
-          if (typeof value === 'string' && value.length >= 7) {
-            const sixthChar = value.charAt(5);
-            // Don't insert hyphen if:
-            // 1. There's already a hyphen in the 6th position, OR
-            // 2. The 6th character is 'x' (quantity indicator like x1, x2, x01, x02)
-            if (sixthChar !== '-' && sixthChar.toLowerCase() !== 'x') {
-              // Insert hyphen between 5th and 6th characters
-              formattedRow[key] = `${value.substring(0, 5)}-${value.substring(5)}`;
+          if (typeof value === 'string') {
+            const trimmedValue = value.trim();
+            // Check for exactly 7 characters matching CPT+modifier pattern
+            if (trimmedValue.length === 7 &&
+                /^[A-Z0-9]{5}[A-Z0-9]{2}$/i.test(trimmedValue) &&
+                !trimmedValue.includes('-')) {
+              // Insert hyphen between base code and modifier
+              formattedRow[key] = `${trimmedValue.substring(0, 5)}-${trimmedValue.substring(5)}`;
             }
-            // Otherwise, leave the value unchanged
+            // Leave everything else unchanged
           }
         }
       });
@@ -3102,20 +3103,60 @@ export default function ExcelImportPage() {
 
   return (
     <NoSSR>
-    <Box sx={{ 
-      p: 4, 
+    <Box sx={{
+      p: 4,
       background: 'linear-gradient(135deg, #f8fbff 0%, #e3f2fd 50%, #f0f8ff 100%)',
       minHeight: '100vh',
       marginRight: isChatOpen ? { xs: '90vw', sm: `${chatWidth}px` } : 0,
       transition: 'margin-right 0.3s ease',
     }}>
-      <Typography variant="h3" gutterBottom sx={{ 
-        color: '#1976d2', 
-        fontWeight: 'bold', 
+      {/* Navigation Header */}
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        mb: 3,
+        p: 2,
+        backgroundColor: 'rgba(255,255,255,0.8)',
+        borderRadius: 2,
+        border: '1px solid #e0e0e0'
+      }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Chip
+            label="ORIGINAL UI"
+            color="primary"
+            size="small"
+            sx={{ fontWeight: 'bold' }}
+          />
+          <Typography variant="body2" color="text.secondary">
+            Full-featured interface with AI chat and advanced editing
+          </Typography>
+        </Box>
+        <Link href="/excel-import-clean" style={{ textDecoration: 'none' }}>
+          <Button
+            variant="outlined"
+            size="small"
+            sx={{
+              borderColor: '#4caf50',
+              color: '#4caf50',
+              '&:hover': {
+                backgroundColor: '#4caf50',
+                color: 'white'
+              }
+            }}
+          >
+            ✨ Switch to Clean UI
+          </Button>
+        </Link>
+      </Box>
+
+      <Typography variant="h3" gutterBottom sx={{
+        color: '#1976d2',
+        fontWeight: 'bold',
         textAlign: 'center',
         mb: 4,
         textShadow: '0 2px 4px rgba(25, 118, 210, 0.2)'
-      }}> 
+      }}>
        🔧 VIC CDM MERGE TOOL
       </Typography>
       
