@@ -12,7 +12,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import * as XLSX from "xlsx";
 import AIChat, { AIChatHandle } from "../../components/AIChat";
 import dynamic from 'next/dynamic';
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { filterAndSearchRows } from "../../utils/excelOperations";
 // Removed cptCacheService import - no longer used
 
@@ -81,6 +81,8 @@ interface AIIntent {
 
 
 export default function ExcelImportPage() {
+  const router = useRouter();
+
   const [rowsMaster, setRowsMaster] = useState<ExcelRow[]>([]);
   const [columnsMaster, setColumnsMaster] = useState<GridColDef[]>([]);
   const [rowsClient, setRowsClient] = useState<ExcelRow[]>([]);
@@ -157,7 +159,20 @@ export default function ExcelImportPage() {
       }
     }
   }, []);
-  
+
+  // Hidden keyboard shortcut to toggle UI (Ctrl+Shift+U)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.key === 'U') {
+        event.preventDefault();
+        router.push('/excel-import-clean');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [router]);
+
   // Debug tab state
   useEffect(() => {
     // console.log('[DEBUG] Master sheets:', masterSheetNames, 'Active tab:', activeMasterTab);
@@ -3110,45 +3125,7 @@ export default function ExcelImportPage() {
       marginRight: isChatOpen ? { xs: '90vw', sm: `${chatWidth}px` } : 0,
       transition: 'margin-right 0.3s ease',
     }}>
-      {/* Navigation Header */}
-      <Box sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        mb: 3,
-        p: 2,
-        backgroundColor: 'rgba(255,255,255,0.8)',
-        borderRadius: 2,
-        border: '1px solid #e0e0e0'
-      }}>
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Chip
-            label="ORIGINAL UI"
-            color="primary"
-            size="small"
-            sx={{ fontWeight: 'bold' }}
-          />
-          <Typography variant="body2" color="text.secondary">
-            Full-featured interface with AI chat and advanced editing
-          </Typography>
-        </Box>
-        <Link href="/excel-import-clean" style={{ textDecoration: 'none' }}>
-          <Button
-            variant="outlined"
-            size="small"
-            sx={{
-              borderColor: '#4caf50',
-              color: '#4caf50',
-              '&:hover': {
-                backgroundColor: '#4caf50',
-                color: 'white'
-              }
-            }}
-          >
-            ✨ Switch to Clean UI
-          </Button>
-        </Link>
-      </Box>
+
 
       <Typography variant="h3" gutterBottom sx={{
         color: '#1976d2',
@@ -4462,6 +4439,30 @@ export default function ExcelImportPage() {
         onGridChange={setAiSelectedGrid}
         onWidthChange={handleChatWidthChange}
       />
+
+      {/* UI Toggle Reminder */}
+      <Box sx={{
+        mt: 4,
+        pt: 2,
+        borderTop: '1px solid rgba(0,0,0,0.1)',
+        textAlign: 'center'
+      }}>
+        <Typography
+          variant="caption"
+          onClick={() => router.push('/excel-import-clean')}
+          sx={{
+            color: 'rgba(0,0,0,0.5)',
+            fontSize: '0.7rem',
+            cursor: 'pointer',
+            '&:hover': {
+              color: 'rgba(0,0,0,0.7)',
+              textDecoration: 'underline'
+            }
+          }}
+        >
+          Press Ctrl+Shift+U to switch UI versions
+        </Typography>
+      </Box>
     </Box>
     </NoSSR>
   );

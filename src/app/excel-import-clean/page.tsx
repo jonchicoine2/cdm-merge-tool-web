@@ -1,7 +1,7 @@
 "use client";
-import React, { useState } from "react";
-import { Button, Box, Typography, Chip } from "@mui/material";
-import Link from "next/link";
+import React, { useState, useEffect } from "react";
+import { Button, Box, Typography } from "@mui/material";
+import { useRouter } from "next/navigation";
 
 import dynamic from 'next/dynamic';
 import { ModifierCriteria } from "../../utils/excelOperations";
@@ -35,6 +35,8 @@ const NoSSR = dynamic(() => Promise.resolve(({ children }: { children: React.Rea
 });
 
 export default function ExcelImportCleanPage() {
+  const router = useRouter();
+
   // Use custom hooks for data management
   const fileOps = useFileOperations();
   const comparison = useComparison();
@@ -51,7 +53,18 @@ export default function ExcelImportCleanPage() {
     root76: false,
   });
 
+  // Hidden keyboard shortcut to toggle UI (Ctrl+Shift+U)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.key === 'U') {
+        event.preventDefault();
+        router.push('/excel-import');
+      }
+    };
 
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [router]);
 
   // Drag and drop handlers
   const handleDragEnter = (fileType: "Master" | "Client") => () => {
@@ -101,45 +114,7 @@ export default function ExcelImportCleanPage() {
         background: 'linear-gradient(135deg, #f8fbff 0%, #e3f2fd 50%, #f0f8ff 100%)',
         minHeight: '100vh'
       }}>
-        {/* Navigation Header */}
-        <Box sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 3,
-          p: 2,
-          backgroundColor: 'rgba(255,255,255,0.8)',
-          borderRadius: 2,
-          border: '1px solid #e0e0e0'
-        }}>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <Chip
-              label="NEW CLEAN UI"
-              color="success"
-              size="small"
-              sx={{ fontWeight: 'bold' }}
-            />
-            <Typography variant="body2" color="text.secondary">
-              Streamlined interface with integrated file metadata
-            </Typography>
-          </Box>
-          <Link href="/excel-import" style={{ textDecoration: 'none' }}>
-            <Button
-              variant="outlined"
-              size="small"
-              sx={{
-                borderColor: '#1976d2',
-                color: '#1976d2',
-                '&:hover': {
-                  backgroundColor: '#1976d2',
-                  color: 'white'
-                }
-              }}
-            >
-              🔄 Switch to Original UI
-            </Button>
-          </Link>
-        </Box>
+
 
         {/* Welcome Section */}
         <WelcomeSection onLoadSampleData={fileOps.handleLoadSampleData} />
@@ -257,8 +232,23 @@ export default function ExcelImportCleanPage() {
           <Typography variant="body2" sx={{ mb: 1 }}>
             🏥 VIC CDM Merge Tool - Healthcare Data Processing & Analysis
           </Typography>
-          <Typography variant="caption">
+          <Typography variant="caption" sx={{ display: 'block', mb: 2 }}>
             Streamlined Excel import, HCPCS code matching, and data merging without AI complexity
+          </Typography>
+          <Typography
+            variant="caption"
+            onClick={() => router.push('/excel-import')}
+            sx={{
+              color: 'rgba(0,0,0,0.4)',
+              fontSize: '0.7rem',
+              cursor: 'pointer',
+              '&:hover': {
+                color: 'rgba(0,0,0,0.6)',
+                textDecoration: 'underline'
+              }
+            }}
+          >
+            Press Ctrl+Shift+U to switch UI versions
           </Typography>
         </Box>
       </Box>
