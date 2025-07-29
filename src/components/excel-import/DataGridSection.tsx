@@ -246,8 +246,8 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
           showToolbar
           isCellEditable={() => false}
           onCellDoubleClick={(params) => {
-            // Only trigger edit for merged grid with actions
-            if (gridType === 'merged' && onEditRow) {
+            // Trigger edit dialog for any grid type when onEditRow is provided
+            if (onEditRow) {
               onEditRow(params.row.id, gridType);
             }
           }}

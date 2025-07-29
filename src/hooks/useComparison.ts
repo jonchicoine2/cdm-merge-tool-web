@@ -20,6 +20,35 @@ export const useComparison = () => {
   const [showCompare, setShowCompare] = useState(false);
   const [comparisonStats, setComparisonStats] = useState<ComparisonStats | null>(null);
 
+  // Create wider columns for merged grid to utilize full screen space
+  const createMergedGridColumns = (masterColumns: GridColDef[]): GridColDef[] => {
+    return masterColumns.map(col => {
+      const fieldLower = col.field.toLowerCase();
+      let width = 150; // default width for merged grid
+
+      // Generous widths for merged grid that has full screen space
+      if (fieldLower.includes('hcpcs') || fieldLower.includes('hcpc')) {
+        width = 120; // More breathing room for HCPCS codes
+      } else if (fieldLower.includes('cdm') || fieldLower.includes('code')) {
+        width = 110; // Slightly wider for codes
+      } else if (fieldLower.includes('description') || fieldLower.includes('desc')) {
+        width = 400; // Much wider for descriptions - they need the space
+      } else if (['quantity', 'qty', 'units', 'unit', 'count'].some(term => fieldLower.includes(term))) {
+        width = 80; // A bit more room for quantities
+      } else if (fieldLower.includes('modifier') || fieldLower.includes('mod')) {
+        width = 110; // More space for modifiers
+      } else {
+        width = 150; // Generous default for other columns
+      }
+
+      return {
+        ...col,
+        width,
+        editable: true
+      };
+    });
+  };
+
   const performComparison = useCallback((
     rowsMaster: ExcelRow[],
     columnsMaster: GridColDef[],
@@ -119,7 +148,7 @@ export const useComparison = () => {
 
     // Update state
     setMergedRows(matched);
-    setMergedColumns(columnsMaster); // Use master columns for merged data
+    setMergedColumns(createMergedGridColumns(columnsMaster)); // Use wider columns for merged grid
     setUnmatchedClient(unmatched);
     setDupsClient(duplicates);
     setComparisonStats(stats);
@@ -137,7 +166,9 @@ export const useComparison = () => {
 
   const loadSharedData = (sharedData: SharedAppData) => {
     setMergedRows(sharedData.mergedRows || []);
-    setMergedColumns(sharedData.mergedColumns || []);
+    // Ensure merged columns have proper widths for full screen display
+    const mergedCols = sharedData.mergedColumns || [];
+    setMergedColumns(mergedCols.length > 0 ? createMergedGridColumns(mergedCols) : []);
     setUnmatchedClient(sharedData.unmatchedClient || []);
     setDupsClient(sharedData.dupsClient || []);
     setComparisonStats(sharedData.comparisonStats);

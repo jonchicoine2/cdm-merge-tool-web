@@ -53,11 +53,8 @@ export const createRowActionsColumn = ({
             display: 'flex',
             alignItems: 'center',
             height: '100%',
-            opacity: 0,
-            transition: 'opacity 0.2s ease',
-            '.MuiDataGrid-row:hover &': {
-              opacity: 1
-            }
+            opacity: 1, // Always show action buttons
+            gap: 0.5 // Add some spacing between buttons
           }}
         >
           <Tooltip title="Edit Row">

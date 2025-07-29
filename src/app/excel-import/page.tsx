@@ -1955,17 +1955,46 @@ export default function ExcelImportPage() {
     return null;
   }
   
+  // Create wider columns for merged grid to utilize full screen space
+  const createMergedGridColumns = useCallback((masterColumns: GridColDef[]): GridColDef[] => {
+    return masterColumns.map(col => {
+      const fieldLower = col.field.toLowerCase();
+      let width = 150; // default width for merged grid
+
+      // Generous widths for merged grid that has full screen space
+      if (fieldLower.includes('hcpcs') || fieldLower.includes('hcpc')) {
+        width = 120; // More breathing room for HCPCS codes
+      } else if (fieldLower.includes('cdm') || fieldLower.includes('code')) {
+        width = 110; // Slightly wider for codes
+      } else if (fieldLower.includes('description') || fieldLower.includes('desc')) {
+        width = 400; // Much wider for descriptions - they need the space
+      } else if (['quantity', 'qty', 'units', 'unit', 'count'].some(term => fieldLower.includes(term))) {
+        width = 80; // A bit more room for quantities
+      } else if (fieldLower.includes('modifier') || fieldLower.includes('mod')) {
+        width = 110; // More space for modifiers
+      } else {
+        width = 150; // Generous default for other columns
+      }
+
+      return {
+        ...col,
+        width,
+        editable: true
+      };
+    });
+  }, []);
+
   // Create column mapping between master and client
   const createColumnMapping = useCallback((masterColumns: GridColDef[], clientColumns: GridColDef[]): {[masterField: string]: string} => {
     const mapping: {[masterField: string]: string} = {};
-    
+
     masterColumns.forEach(masterCol => {
       const matchingClientField = findMatchingColumn(masterCol.field, clientColumns);
       if (matchingClientField) {
         mapping[masterCol.field] = matchingClientField;
       }
     });
-    
+
     console.log('[COLUMN MAPPING] Final mapping:', mapping);
     return mapping;
   }, []);
@@ -2093,8 +2122,9 @@ export default function ExcelImportPage() {
     
     // The merged result should ALWAYS use ALL master columns as the structure
     // This ensures no duplicate columns and maintains master sheet structure
-    const mergedColumns = columnsMaster.map(col => ({ ...col, editable: true }));
-    console.log(`[MERGE] Setting mergedColumns with ${mergedColumns.length} columns:`, mergedColumns.map(col => col.field));
+    // Use wider columns for merged grid to utilize full screen space
+    const mergedColumns = createMergedGridColumns(columnsMaster);
+    console.log(`[MERGE] Setting mergedColumns with ${mergedColumns.length} columns:`, mergedColumns.map(col => `${col.field}(${col.width}px)`));
     setMergedColumns(mergedColumns);
     // Build merged rows: for each match, populate master columns with client data where possible
     const merged: ExcelRow[] = matchedKeys.map((key: string, idx: number) => {
