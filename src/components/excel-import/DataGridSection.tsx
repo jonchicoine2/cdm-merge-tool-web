@@ -93,7 +93,7 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
       onDeleteRow
     });
 
-    return [...columns, actionsColumn];
+    return [actionsColumn, ...columns];
   }, [columns, enableRowActions, gridType, onEditRow, onCreateNewFromRow, onDeleteRow]);
 
   const formatFileSize = (bytes: number): string => {

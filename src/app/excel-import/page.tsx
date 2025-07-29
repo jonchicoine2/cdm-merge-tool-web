@@ -1008,12 +1008,12 @@ export default function ExcelImportPage() {
 
   // Enhanced columns with actions for each grid
   const enhancedMasterColumns = useMemo(() => {
-    return [...columnsMaster, createActionsColumn('master')];
+    return [createActionsColumn('master'), ...columnsMaster];
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnsMaster]);
 
   const enhancedClientColumns = useMemo(() => {
-    return [...columnsClient, createActionsColumn('client')];
+    return [createActionsColumn('client'), ...columnsClient];
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnsClient]);
 
@@ -1053,7 +1053,7 @@ export default function ExcelImportPage() {
     };
 
     // Add Actions column first, then Ask AI column at the very end
-    return [...enhancedMergedColumns, createActionsColumn('merged'), askAIColumn];
+    return [createActionsColumn('merged'), ...enhancedMergedColumns, askAIColumn];
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enhancedMergedColumns, mergedColumns]);
 
