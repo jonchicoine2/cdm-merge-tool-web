@@ -81,9 +81,9 @@ export default function ExcelImportCleanPage() {
   // Row edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<ExcelRow | null>(null);
-  const [editingGridType, setEditingGridType] = useState<'master' | 'client'>('master');
+  const [editingGridType, setEditingGridType] = useState<'master' | 'client' | 'merged'>('master');
   const [editModalTitle, setEditModalTitle] = useState('');
-  const [editModalMode, setEditModalMode] = useState<'edit' | 'duplicate'>('edit');
+  const [editModalMode, setEditModalMode] = useState<'edit' | 'create-new' | 'duplicate'>('edit');
 
   // Function to save current state to shared data
   const saveCurrentStateToShared = useCallback(() => {
@@ -244,10 +244,12 @@ export default function ExcelImportCleanPage() {
       switch (type) {
         case 'master':
           fileOps.resetMaster();
+          comparison.resetComparison(); // Reset comparison when master data is reset
           showNotification('Master data reset successfully!', 'info');
           break;
         case 'client':
           fileOps.resetClient();
+          comparison.resetComparison(); // Reset comparison when client data is reset
           showNotification('Client data reset successfully!', 'info');
           break;
         case 'both':
@@ -395,22 +397,74 @@ export default function ExcelImportCleanPage() {
     comparison.setMergedRows(updatedMergedRows);
   };
 
+  // Row operation handlers for master and client grids
+  const handleMasterClientEdit = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
+    if (gridType === 'merged') return;
+    const isMaster = gridType === 'master';
+    const rows = isMaster ? fileOps.rowsMaster : fileOps.rowsClient;
+    const rowToEdit = rows.find(row => row.id === rowId);
+
+    if (rowToEdit) {
+      setEditingRow(rowToEdit);
+      setEditingGridType(gridType);
+      setEditModalTitle(`Edit ${isMaster ? 'Master' : 'Client'} Row`);
+      setEditModalMode('edit');
+      setEditModalOpen(true);
+    }
+  };
+
+  const handleMasterClientCreate = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
+    if (gridType === 'merged') return;
+    const isMaster = gridType === 'master';
+    const rows = isMaster ? fileOps.rowsMaster : fileOps.rowsClient;
+    const rowToDuplicate = rows.find(row => row.id === rowId);
+
+    if (rowToDuplicate) {
+      setEditingRow(rowToDuplicate);
+      setEditingGridType(gridType);
+      setEditModalTitle(`Create New ${isMaster ? 'Master' : 'Client'} Row`);
+      setEditModalMode('create-new');
+      setEditModalOpen(true);
+    }
+  };
+
+  const handleMasterClientDelete = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
+    if (gridType === 'merged') return;
+    if (gridType === 'master') {
+      fileOps.setRowsMaster(fileOps.rowsMaster.filter(row => row.id !== rowId));
+    } else {
+      fileOps.setRowsClient(fileOps.rowsClient.filter(row => row.id !== rowId));
+    }
+  };
+
   const handleSaveEditedRow = (updatedRow: ExcelRow) => {
-    if (editingGridType === 'master') {
+    const isMaster = editingGridType === 'master';
+    const isClient = editingGridType === 'client';
+
+    if (!isMaster && !isClient) { // Merged grid
       if (editModalMode === 'create-new') {
-        // For create-new mode, create a new row with a new ID
-        const newRow = {
-          ...updatedRow,
-          id: Date.now() // Generate new ID for new record
-        };
+        const newRow = { ...updatedRow, id: Date.now() };
         comparison.setMergedRows([...comparison.mergedRows, newRow]);
       } else {
-        // For edit mode, update the existing row
         const updatedMergedRows = comparison.mergedRows.map(row =>
           row.id === updatedRow.id ? updatedRow : row
         );
         comparison.setMergedRows(updatedMergedRows);
       }
+      return;
+    }
+
+    const rows = isMaster ? fileOps.rowsMaster : fileOps.rowsClient;
+    const setRows = isMaster ? fileOps.setRowsMaster : fileOps.setRowsClient;
+
+    if (editModalMode === 'create-new') {
+      const newRow = { ...updatedRow, id: Date.now() };
+      setRows([...rows, newRow]);
+    } else {
+      const updatedRows = rows.map(row =>
+        row.id === updatedRow.id ? updatedRow : row
+      );
+      setRows(updatedRows);
     }
   };
 
@@ -488,6 +542,10 @@ export default function ExcelImportCleanPage() {
                 gridType="master"
                 fileMetadata={fileOps.masterFileMetadata}
                 onRowUpdate={fileOps.handleMasterRowUpdate}
+                enableRowActions={true}
+                onEditRow={handleMasterClientEdit}
+                onCreateNewFromRow={handleMasterClientCreate}
+                onDeleteRow={handleMasterClientDelete}
               />
             )}
           </Box>
@@ -520,6 +578,10 @@ export default function ExcelImportCleanPage() {
                 gridType="client"
                 fileMetadata={fileOps.clientFileMetadata}
                 onRowUpdate={fileOps.handleClientRowUpdate}
+                enableRowActions={true}
+                onEditRow={handleMasterClientEdit}
+                onCreateNewFromRow={handleMasterClientCreate}
+                onDeleteRow={handleMasterClientDelete}
               />
             )}
           </Box>
@@ -564,18 +626,32 @@ export default function ExcelImportCleanPage() {
         <ImprovedRowEditModal
           open={editModalOpen}
           row={editingRow}
-          columns={comparison.mergedColumns.length > 0 ? comparison.mergedColumns : fileOps.columnsMaster}
-          mode={editModalMode}
+          columns={
+            editingGridType === 'master' ? fileOps.columnsMaster :
+            editingGridType === 'client' ? fileOps.columnsClient :
+            comparison.mergedColumns
+          }
+          mode={editModalMode === 'duplicate' ? 'create-new' : editModalMode}
           title={editModalTitle}
           onClose={handleCloseEditModal}
           onSave={handleSaveEditedRow}
-          existingRows={comparison.mergedRows}
-          hcpcsColumn={comparison.mergedColumns.length > 0 ?
-                      comparison.mergedColumns.find(col => col.field.toLowerCase().includes('hcpcs'))?.field :
-                      fileOps.columnsMaster.find(col => col.field.toLowerCase().includes('hcpcs'))?.field}
-          modifierColumn={comparison.mergedColumns.length > 0 ?
-                         comparison.mergedColumns.find(col => col.field.toLowerCase().includes('modifier'))?.field :
-                         fileOps.columnsMaster.find(col => col.field.toLowerCase().includes('modifier'))?.field}
+          existingRows={
+            editingGridType === 'master' ? fileOps.rowsMaster :
+            editingGridType === 'client' ? fileOps.rowsClient :
+            comparison.mergedRows
+          }
+          hcpcsColumn={
+            (editingGridType === 'master' ? fileOps.columnsMaster :
+             editingGridType === 'client' ? fileOps.columnsClient :
+             comparison.mergedColumns)
+            .find(col => col.field.toLowerCase().includes('hcpcs'))?.field
+          }
+          modifierColumn={
+            (editingGridType === 'master' ? fileOps.columnsMaster :
+             editingGridType === 'client' ? fileOps.columnsClient :
+             comparison.mergedColumns)
+            .find(col => col.field.toLowerCase().includes('modifier'))?.field
+          }
         />
 
         {/* Notification Snackbar */}

@@ -31,7 +31,7 @@ export const createRowActionsColumn = ({
   return {
     field: 'actions',
     headerName: 'Actions',
-    width: 200,
+    width: 100,
     editable: false,
     sortable: false,
     filterable: false,
@@ -51,7 +51,6 @@ export const createRowActionsColumn = ({
           className="row-actions"
           sx={{
             display: 'flex',
-            gap: 0.5,
             alignItems: 'center',
             height: '100%',
             opacity: 0,
@@ -70,6 +69,7 @@ export const createRowActionsColumn = ({
               }}
               sx={{
                 color: '#1976d2',
+                padding: '2px',
                 '&:hover': {
                   backgroundColor: 'rgba(25, 118, 210, 0.04)'
                 }
@@ -88,6 +88,7 @@ export const createRowActionsColumn = ({
               }}
               sx={{
                 color: '#4caf50',
+                padding: '2px',
                 '&:hover': {
                   backgroundColor: 'rgba(76, 175, 80, 0.04)'
                 }
@@ -106,6 +107,7 @@ export const createRowActionsColumn = ({
               }}
               sx={{
                 color: '#d32f2f',
+                padding: '2px',
                 '&:hover': {
                   backgroundColor: 'rgba(211, 47, 47, 0.04)'
                 }

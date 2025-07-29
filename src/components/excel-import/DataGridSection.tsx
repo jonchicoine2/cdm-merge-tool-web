@@ -242,6 +242,7 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
           rows={rows}
           columns={displayColumns}
           density="compact"
+          disableColumnResize={true}
           showToolbar
           isCellEditable={() => false}
           onCellDoubleClick={(params) => {
@@ -252,15 +253,6 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
           }}
           onRowClick={(params) => {
             // Row selection happens automatically, this is just for any additional logic
-          }}
-          sx={{
-            // Hide cell focus outline - we want row selection only
-            '& .MuiDataGrid-cell:focus': {
-              outline: 'none',
-            },
-            '& .MuiDataGrid-cell:focus-within': {
-              outline: 'none',
-            },
           }}
           slots={{ toolbar: GridToolbar }}
           slotProps={{
@@ -301,6 +293,13 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
             console.error('Row update error:', error);
           }}
           sx={{
+            // Hide cell focus outline - we want row selection only
+            '& .MuiDataGrid-cell:focus': {
+              outline: 'none',
+            },
+            '& .MuiDataGrid-cell:focus-within': {
+              outline: 'none',
+            },
             // Hover-based scroll control - completely disable interaction until active
             pointerEvents: isGridActive ? 'auto' : 'none',
             '& .MuiDataGrid-virtualScroller': {
