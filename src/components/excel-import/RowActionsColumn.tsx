@@ -12,20 +12,20 @@ import {
   Typography
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 export interface RowActionsProps {
   gridType: 'master' | 'client' | 'merged';
   onEditRow: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
-  onDuplicateRow: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
+  onCreateNewFromRow: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
   onDeleteRow: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
 }
 
 export const createRowActionsColumn = ({
   gridType,
   onEditRow,
-  onDuplicateRow,
+  onCreateNewFromRow,
   onDeleteRow
 }: RowActionsProps): GridColDef => {
   return {
@@ -79,21 +79,21 @@ export const createRowActionsColumn = ({
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="Duplicate Row">
+          <Tooltip title="Create New From This">
             <IconButton
               size="small"
               onClick={(e) => {
                 e.stopPropagation();
-                onDuplicateRow(params.row.id, gridType);
+                onCreateNewFromRow(params.row.id, gridType);
               }}
               sx={{
-                color: '#ed6c02',
+                color: '#4caf50',
                 '&:hover': {
-                  backgroundColor: 'rgba(237, 108, 2, 0.04)'
+                  backgroundColor: 'rgba(76, 175, 80, 0.04)'
                 }
               }}
             >
-              <ContentCopyIcon fontSize="small" />
+              <AddIcon fontSize="small" />
             </IconButton>
           </Tooltip>
 

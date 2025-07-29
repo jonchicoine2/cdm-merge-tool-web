@@ -19,7 +19,7 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
   comparisonStats,
   // Row operations props
   onEditRow,
-  onDuplicateRow,
+  onCreateNewFromRow,
   onDeleteRow,
   enableRowActions = false,
   // UI options
@@ -82,19 +82,19 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
 
   // Create columns with actions column if enabled
   const displayColumns = useMemo(() => {
-    if (!enableRowActions || !onEditRow || !onDuplicateRow || !onDeleteRow) {
+    if (!enableRowActions || !onEditRow || !onCreateNewFromRow || !onDeleteRow) {
       return columns;
     }
 
     const actionsColumn = createRowActionsColumn({
       gridType,
       onEditRow,
-      onDuplicateRow,
+      onCreateNewFromRow,
       onDeleteRow
     });
 
     return [...columns, actionsColumn];
-  }, [columns, enableRowActions, gridType, onEditRow, onDuplicateRow, onDeleteRow]);
+  }, [columns, enableRowActions, gridType, onEditRow, onCreateNewFromRow, onDeleteRow]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';

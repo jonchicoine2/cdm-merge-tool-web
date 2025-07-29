@@ -17,7 +17,7 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
   isExporting = false,
   enableRowActions,
   onEditRow,
-  onDuplicateRow,
+  onCreateNewFromRow,
   onDeleteRow
 }) => {
   const mergedApiRef = useGridApiRef();
@@ -178,7 +178,7 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
               backgroundColor="#e8f5e8"
               enableRowActions={enableRowActions}
               onEditRow={onEditRow}
-              onDuplicateRow={onDuplicateRow}
+              onCreateNewFromRow={onCreateNewFromRow}
               onDeleteRow={onDeleteRow}
               hideHeader={true} // Add this prop to hide the default header
             />

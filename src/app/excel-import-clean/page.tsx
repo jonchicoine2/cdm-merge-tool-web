@@ -370,16 +370,16 @@ export default function ExcelImportCleanPage() {
     }
   };
 
-  const handleDuplicateRow = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
-    if (gridType !== 'merged') return; // Only allow duplicating merged rows
+  const handleCreateNewFromRow = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
+    if (gridType !== 'merged') return; // Only allow creating new from merged rows
 
     const rowToDuplicate = comparison.mergedRows.find(row => row.id === rowId);
     if (rowToDuplicate) {
-      // For duplicate mode, we pass the original row and let the modal handle the duplication
+      // For create-new mode, we pass the original row and let the modal handle the creation
       setEditingRow(rowToDuplicate);
       setEditingGridType('master'); // Use master columns for editing
-      setEditModalTitle('Duplicate Merged Row');
-      setEditModalMode('duplicate');
+      setEditModalTitle('Create New Merged Row');
+      setEditModalMode('create-new');
       setEditModalOpen(true);
     }
   };
@@ -397,11 +397,11 @@ export default function ExcelImportCleanPage() {
 
   const handleSaveEditedRow = (updatedRow: ExcelRow) => {
     if (editingGridType === 'master') {
-      if (editModalMode === 'duplicate') {
-        // For duplicate mode, create a new row with a new ID
+      if (editModalMode === 'create-new') {
+        // For create-new mode, create a new row with a new ID
         const newRow = {
           ...updatedRow,
-          id: Date.now() // Generate new ID for duplicate
+          id: Date.now() // Generate new ID for new record
         };
         comparison.setMergedRows([...comparison.mergedRows, newRow]);
       } else {
@@ -543,7 +543,7 @@ export default function ExcelImportCleanPage() {
               isExporting={isExporting}
               enableRowActions={true}
               onEditRow={handleEditRow}
-              onDuplicateRow={handleDuplicateRow}
+              onCreateNewFromRow={handleCreateNewFromRow}
               onDeleteRow={handleDeleteRow}
             />
           </Box>
@@ -569,6 +569,13 @@ export default function ExcelImportCleanPage() {
           title={editModalTitle}
           onClose={handleCloseEditModal}
           onSave={handleSaveEditedRow}
+          existingRows={comparison.mergedRows}
+          hcpcsColumn={comparison.mergedColumns.length > 0 ?
+                      comparison.mergedColumns.find(col => col.field.toLowerCase().includes('hcpcs'))?.field :
+                      fileOps.columnsMaster.find(col => col.field.toLowerCase().includes('hcpcs'))?.field}
+          modifierColumn={comparison.mergedColumns.length > 0 ?
+                         comparison.mergedColumns.find(col => col.field.toLowerCase().includes('modifier'))?.field :
+                         fileOps.columnsMaster.find(col => col.field.toLowerCase().includes('modifier'))?.field}
         />
 
         {/* Notification Snackbar */}

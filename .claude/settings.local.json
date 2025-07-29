@@ -23,7 +23,9 @@
       "Bash(npx eslint:*)",
       "Bash(rm:*)",
       "Bash(mkdir:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "WebFetch(domain:mui.com)",
+      "WebFetch(domain:mui.com)"
     ],
     "deny": []
   }

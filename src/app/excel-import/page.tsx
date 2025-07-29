@@ -8,6 +8,7 @@ import SmartToyIcon from "@mui/icons-material/SmartToy";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import * as XLSX from "xlsx";
 import AIChat, { AIChatHandle } from "../../components/AIChat";
@@ -15,6 +16,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from "next/navigation";
 import { filterAndSearchRows, formatHCPCSWithHyphens } from "../../utils/excelOperations";
 import { saveSharedData, loadSharedData, SharedAppData } from "../../utils/sharedDataPersistence";
+import ImprovedRowEditModal from "../../components/excel-import/ImprovedRowEditModal";
 // Removed cptCacheService import - no longer used
 
 // Create a NoSSR wrapper component to disable server-side rendering
@@ -116,10 +118,15 @@ export default function ExcelImportPage() {
   
   // Comparison statistics state
   const [comparisonStats, setComparisonStats] = useState<ComparisonStats | null>(null);
-  
+
+  // Modal state for edit/create-new functionality
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingRow, setEditingRow] = useState<ExcelRow | null>(null);
+  const [editModalMode, setEditModalMode] = useState<'edit' | 'create-new'>('edit');
+  const [editingGridType, setEditingGridType] = useState<'master' | 'client' | 'merged'>('master');
 
 
-  
+
   // Function to load shared data from other UI
   const loadSharedDataToState = useCallback(() => {
     const sharedData = loadSharedData();
@@ -160,49 +167,26 @@ export default function ExcelImportPage() {
   }, []);
 
   useEffect(() => {
-    // First try to load shared data from other UI
-    const loadedShared = loadSharedDataToState();
+    // Only try to load shared data from other UI (clean UI), not localStorage
+    loadSharedDataToState();
 
-    if (!loadedShared) {
-      // Fall back to loading individual localStorage items (legacy behavior)
-      const lastMaster = localStorage.getItem("lastMasterFile");
-      const lastMasterData = localStorage.getItem("lastMasterData");
-      const lastMasterMetadata = localStorage.getItem("lastMasterMetadata");
-      if (lastMaster) {
-        setLastMasterFile(lastMaster);
-      }
-      if (lastMasterData) {
-        setLastMasterData(lastMasterData);
-      }
-      if (lastMasterMetadata) {
-        try {
-          const metadata = JSON.parse(lastMasterMetadata);
-          // Convert uploadTime back to Date object
-          metadata.uploadTime = new Date(metadata.uploadTime);
-          setMasterFileMetadata(metadata);
-        } catch (e) {
-          console.error('Failed to parse master metadata:', e);
-        }
-      }
-      const lastClient = localStorage.getItem("lastClientFile");
-      const lastClientData = localStorage.getItem("lastClientData");
-      const lastClientMetadata = localStorage.getItem("lastClientMetadata");
-      if (lastClient) {
-        setLastClientFile(lastClient);
-      }
-      if (lastClientData) {
-        setLastClientData(lastClientData);
-      }
-      if (lastClientMetadata) {
-        try {
-          const metadata = JSON.parse(lastClientMetadata);
-          // Convert uploadTime back to Date object
-          metadata.uploadTime = new Date(metadata.uploadTime);
-          setClientFileMetadata(metadata);
-        } catch (e) {
-          console.error('Failed to parse client metadata:', e);
-        }
-      }
+    // Load localStorage items for button state only (don't restore data automatically)
+    const lastMaster = localStorage.getItem("lastMasterFile");
+    const lastMasterData = localStorage.getItem("lastMasterData");
+    const lastClient = localStorage.getItem("lastClientFile");
+    const lastClientData = localStorage.getItem("lastClientData");
+
+    if (lastMaster) {
+      setLastMasterFile(lastMaster);
+    }
+    if (lastMasterData) {
+      setLastMasterData(lastMasterData);
+    }
+    if (lastClient) {
+      setLastClientFile(lastClient);
+    }
+    if (lastClientData) {
+      setLastClientData(lastClientData);
     }
   }, [loadSharedDataToState]);
 
@@ -835,7 +819,7 @@ export default function ExcelImportPage() {
                   size="small"
                   tabIndex={-1} // Remove from tab order
                   onClick={() => {
-                    startRowEditModeWithHcpcsFocus(gridType, params.row.id);
+                    handleEditRow(params.row.id, gridType);
                   }}
                   sx={{
                     color: '#1976d2',
@@ -855,7 +839,7 @@ export default function ExcelImportPage() {
                 </IconButton>
               </span>
             </Tooltip>
-            <Tooltip title="Duplicate Row">
+            <Tooltip title="Create New From This">
               <span>
                 <IconButton
                   size="small"
@@ -864,7 +848,7 @@ export default function ExcelImportPage() {
                   disableRipple={true}
                   onFocus={(e) => {
                     // Immediately blur if somehow focused
-                    console.log('[FOCUS PREVENTION] Duplicate button focused, blurring immediately');
+                    console.log('[FOCUS PREVENTION] Create new button focused, blurring immediately');
                     e.preventDefault();
                     e.stopPropagation();
                     e.currentTarget.blur();
@@ -882,15 +866,15 @@ export default function ExcelImportPage() {
                       e.currentTarget.blur();
                     }
 
-                    const result = handleDuplicateRecord(params.row.id, gridType);
+                    const result = handleCreateNewFromExisting(params.row.id, gridType);
                     if (!result.success) {
                       // Show user-friendly error message
-                      console.error(`Failed to duplicate record with ID ${params.row.id} in ${gridType} grid`);
+                      console.error(`Failed to create new record from ID ${params.row.id} in ${gridType} grid`);
                       // You could add a toast notification here if you have one available
                     }
                   }}
                   sx={{
-                    color: '#ed6c02',
+                    color: '#4caf50',
                     // Force no focus styles
                     '&:focus': {
                       outline: 'none !important',
@@ -903,7 +887,7 @@ export default function ExcelImportPage() {
                     }
                   }}
                 >
-                  <ContentCopyIcon fontSize="small" />
+                  <AddIcon fontSize="small" />
                 </IconButton>
               </span>
             </Tooltip>
@@ -1614,16 +1598,16 @@ export default function ExcelImportPage() {
         const rowToAnalyze = currentRows.find(row => row.id === rowId);
         const hcpcsCode = getRowHcpcs(rowToAnalyze);
         
-        // Call the duplicate function
-        const result = handleDuplicateRecord(rowId, targetView as 'master' | 'client' | 'merged');
-        console.log('[DUPLICATE ACTION] Duplicate result:', result);
-        
+        // Call the create new function
+        const result = handleCreateNewFromExisting(rowId, targetView as 'master' | 'client' | 'merged');
+        console.log('[CREATE NEW ACTION] Create new result:', result);
+
         if (result.success && result.newRowId) {
           const identifier = hcpcsCode ? `HCPCS code ${hcpcsCode}` : `row ID ${result.originalRowId}`;
-          console.log(`✅ Successfully duplicated ${identifier} in ${targetView} grid. New record ID: ${result.newRowId}`);
+          console.log(`✅ Successfully created new record from ${identifier} in ${targetView} grid. New record ID: ${result.newRowId}`);
         } else {
           const identifier = hcpcsCode ? `HCPCS code ${hcpcsCode}` : `row ID ${result.originalRowId}`;
-          console.error(`❌ Failed to duplicate ${identifier} in ${targetView} grid`);
+          console.error(`❌ Failed to create new record from ${identifier} in ${targetView} grid`);
         }
       }, 100); // Small delay to ensure state synchronization
     }
@@ -2580,8 +2564,8 @@ export default function ExcelImportPage() {
   const handleClearAllData = async () => {
     // First do a normal reset
     handleReset();
-    
-    // Then clear all localStorage data
+
+    // Then clear all localStorage data (legacy items)
     localStorage.removeItem("lastMasterFile");
     localStorage.removeItem("lastMasterData");
     localStorage.removeItem("lastMasterSheet");
@@ -2590,7 +2574,10 @@ export default function ExcelImportPage() {
     localStorage.removeItem("lastClientData");
     localStorage.removeItem("lastClientSheet");
     localStorage.removeItem("lastClientMetadata");
-    
+
+    // Clear shared data (new system)
+    clearSharedData();
+
     // Clear the state variables too
     setLastMasterFile(null);
     setLastMasterData(null);
@@ -2848,134 +2835,197 @@ export default function ExcelImportPage() {
   }, [filteredRowsClient]);
 
   // Record manipulation functions
-  const handleDuplicateRecord = (rowId: number | string, gridType: 'master' | 'client' | 'merged'): { success: boolean; newRowId?: number | string; originalRowId: number | string } => {
-    console.log(`[DUPLICATE] Starting duplication for ID ${rowId} in ${gridType} grid`);
+  const handleCreateNewFromExisting = (rowId: number | string, gridType: 'master' | 'client' | 'merged'): { success: boolean; newRowId?: number | string; originalRowId: number | string } => {
+    console.log(`[CREATE NEW] Opening modal to create new record from ID ${rowId} in ${gridType} grid`);
 
-    // Set up variables based on grid type
+    // Find the record to use as template based on grid type
+    let recordToUseAsTemplate: ExcelRow | undefined;
+    let currentRows: ExcelRow[];
+    let currentColumns: GridColDef[];
+
     if (gridType === 'master') {
-      // Get current state values from refs to avoid closure issues
-      const currentRowsMaster = rowsMasterRef.current;
-      const currentFilteredRowsMaster = filteredRowsMasterRef.current;
+      currentRows = rowsMasterRef.current;
+      currentColumns = columnsMaster;
+      const filteredRows = filteredRowsMasterRef.current;
+      recordToUseAsTemplate = filteredRows.find(row => String(row.id) === String(rowId)) || currentRows.find(row => String(row.id) === String(rowId));
 
-      // Look in filteredRowsMaster first (what's visible), then fall back to rowsMaster
-      const recordToDuplicate = currentFilteredRowsMaster.find(row => String(row.id) === String(rowId)) || currentRowsMaster.find(row => String(row.id) === String(rowId));
-      if (!recordToDuplicate) {
+      if (!recordToUseAsTemplate) {
         console.error(`Record with ID ${rowId} not found in master grid`);
         return { success: false, originalRowId: rowId };
       }
 
-      const maxId = Math.max(...currentRowsMaster.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
-      const newRecord = { ...recordToDuplicate, id: maxId + 1 };
-      const updatedRows = [...currentRowsMaster, newRecord];
-      setRowsMaster(updatedRows);
+      // Open the modal with the record as template
+      setEditingRow(recordToUseAsTemplate);
+      setEditModalMode('create-new');
+      setEditingGridType('master');
+      setEditModalOpen(true);
 
-      // Update sheet data
-      const currentSheet = masterSheetNames[activeMasterTab];
-      if (currentSheet && masterSheetData[currentSheet]) {
-        const updatedSheetData = {
-          ...masterSheetData,
-          [currentSheet]: {
-            ...masterSheetData[currentSheet],
-            rows: updatedRows
-          }
-        };
-        setMasterSheetData(updatedSheetData);
-      }
-
-      setHasUnsavedMasterChanges(true);
-
-      // Start edit mode on the NEW duplicated row with HCPCS focus
-      setTimeout(() => {
-        startRowEditModeWithHcpcsFocus('master', newRecord.id);
-      }, 100);
-
-      console.log(`Record duplicated in master grid. New record ID: ${newRecord.id}`);
-      return { success: true, newRowId: newRecord.id, originalRowId: rowId };
+      console.log(`Opened create-new modal for master grid using record ID ${rowId} as template`);
+      return { success: true, originalRowId: rowId };
     } else if (gridType === 'client') {
-      // Get current state values from refs to avoid closure issues
-      const currentRowsClient = rowsClientRef.current;
-      const currentFilteredRowsClient = filteredRowsClientRef.current;
+      currentRows = rowsClientRef.current;
+      currentColumns = columnsClient;
+      const filteredRows = filteredRowsClientRef.current;
+      recordToUseAsTemplate = filteredRows.find(row => String(row.id) === String(rowId)) || currentRows.find(row => String(row.id) === String(rowId));
 
-      // Look in filteredRowsClient first (what's visible), then fall back to rowsClient
-      const recordToDuplicate = currentFilteredRowsClient.find(row => String(row.id) === String(rowId)) || currentRowsClient.find(row => String(row.id) === String(rowId));
-      if (!recordToDuplicate) {
+      if (!recordToUseAsTemplate) {
         console.error(`Record with ID ${rowId} not found in client grid`);
         return { success: false, originalRowId: rowId };
       }
 
-      const maxId = Math.max(...currentRowsClient.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
-      const newRecord = { ...recordToDuplicate, id: maxId + 1 };
-      const updatedRows = [...currentRowsClient, newRecord];
-      setRowsClient(updatedRows);
+      // Open the modal with the record as template
+      setEditingRow(recordToUseAsTemplate);
+      setEditModalMode('create-new');
+      setEditingGridType('client');
+      setEditModalOpen(true);
 
-      // Update sheet data
-      const currentSheet = clientSheetNames[activeClientTab];
-      if (currentSheet && clientSheetData[currentSheet]) {
-        const updatedSheetData = {
-          ...clientSheetData,
-          [currentSheet]: {
-            ...clientSheetData[currentSheet],
-            rows: updatedRows
-          }
-        };
-        setClientSheetData(updatedSheetData);
-      }
-
-      setHasUnsavedChanges(true);
-
-      // Start edit mode on the NEW duplicated row with HCPCS focus
-      setTimeout(() => {
-        startRowEditModeWithHcpcsFocus('client', newRecord.id);
-      }, 100);
-
-      console.log(`Record duplicated in client grid. New record ID: ${newRecord.id}`);
-      return { success: true, newRowId: newRecord.id, originalRowId: rowId };
+      console.log(`Opened create-new modal for client grid using record ID ${rowId} as template`);
+      return { success: true, originalRowId: rowId };
     } else if (gridType === 'merged') {
-      // Get current state values from refs to avoid closure issues
-      const currentMergedRows = mergedRowsRef.current;
-      const currentFilteredMergedRows = filteredMergedRowsRef.current;
+      currentRows = mergedRowsRef.current;
+      currentColumns = mergedColumns;
+      const filteredRows = filteredMergedRowsRef.current;
+      recordToUseAsTemplate = filteredRows.find(row => String(row.id) === String(rowId)) || currentRows.find(row => String(row.id) === String(rowId));
 
-      // Add debugging information
-      console.log(`[DUPLICATE DEBUG] Looking for record with ID: ${rowId} (type: ${typeof rowId})`);
-      console.log(`[DUPLICATE DEBUG] filteredMergedRows count: ${currentFilteredMergedRows.length}`);
-      console.log(`[DUPLICATE DEBUG] mergedRows count: ${currentMergedRows.length}`);
-      console.log(`[DUPLICATE DEBUG] filteredMergedRows IDs:`, currentFilteredMergedRows.map(r => `${r.id} (${typeof r.id})`).slice(0, 10));
-      console.log(`[DUPLICATE DEBUG] mergedRows IDs:`, currentMergedRows.map(r => `${r.id} (${typeof r.id})`).slice(0, 10));
-
-      // Look in filteredMergedRows first (what's visible), then fall back to mergedRows
-      let recordToDuplicate = currentFilteredMergedRows.find(row => String(row.id) === String(rowId));
-
-      if (!recordToDuplicate) {
-        console.log(`[DUPLICATE DEBUG] Record not found in filtered rows, checking unfiltered rows...`);
-        recordToDuplicate = currentMergedRows.find(row => String(row.id) === String(rowId));
-      }
-
-      if (!recordToDuplicate) {
-        console.error(`[DUPLICATE ERROR] Record with ID ${rowId} not found in merged grid`);
-        console.error(`[DUPLICATE ERROR] Available merged row IDs:`, currentMergedRows.map(r => r.id));
-        console.error(`[DUPLICATE ERROR] Available filtered row IDs:`, currentFilteredMergedRows.map(r => r.id));
+      if (!recordToUseAsTemplate) {
+        console.error(`Record with ID ${rowId} not found in merged grid`);
         return { success: false, originalRowId: rowId };
       }
 
-      const maxId = Math.max(...currentMergedRows.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
-      const newRecord = { ...recordToDuplicate, id: maxId + 1 };
-      const updatedRows = [...currentMergedRows, newRecord];
-      console.log(`[DUPLICATE] Created new record with ID: ${newRecord.id}, updating rows from ${currentMergedRows.length} to ${updatedRows.length}`);
-      setMergedRows(updatedRows);
-      setMergedForExport(updatedRows);
-      setHasUnsavedMergedChanges(true);
+      // Open the modal with the record as template
+      setEditingRow(recordToUseAsTemplate);
+      setEditModalMode('create-new');
+      setEditingGridType('merged');
+      setEditModalOpen(true);
 
-      // Start edit mode on the NEW duplicated row with HCPCS focus
-      setTimeout(() => {
-        startRowEditModeWithHcpcsFocus('merged', newRecord.id);
-      }, 100);
+      console.log(`Opened create-new modal for merged grid using record ID ${rowId} as template`);
+      return { success: true, originalRowId: rowId };
+    } else {
+      console.error(`Invalid grid type: ${gridType}`);
+      return { success: false, originalRowId: rowId };
+    }
+  };
 
-      console.log(`[DUPLICATE] Record duplicated in merged grid. New record ID: ${newRecord.id}, Original ID: ${rowId}`);
-      console.log(`[DUPLICATE] About to focus on new record ID: ${newRecord.id} in 100ms`);
-      return { success: true, newRowId: newRecord.id, originalRowId: rowId };
+  // Edit row handler
+  const handleEditRow = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
+    console.log(`[EDIT] Opening modal to edit record ID ${rowId} in ${gridType} grid`);
+
+    // Find the record to edit based on grid type
+    let recordToEdit: ExcelRow | undefined;
+
+    if (gridType === 'master') {
+      const filteredRows = filteredRowsMasterRef.current;
+      const currentRows = rowsMasterRef.current;
+      recordToEdit = filteredRows.find(row => String(row.id) === String(rowId)) || currentRows.find(row => String(row.id) === String(rowId));
+    } else if (gridType === 'client') {
+      const filteredRows = filteredRowsClientRef.current;
+      const currentRows = rowsClientRef.current;
+      recordToEdit = filteredRows.find(row => String(row.id) === String(rowId)) || currentRows.find(row => String(row.id) === String(rowId));
+    } else if (gridType === 'merged') {
+      const filteredRows = filteredMergedRowsRef.current;
+      const currentRows = mergedRowsRef.current;
+      recordToEdit = filteredRows.find(row => String(row.id) === String(rowId)) || currentRows.find(row => String(row.id) === String(rowId));
     }
 
-    return { success: false, originalRowId: rowId };
+    if (!recordToEdit) {
+      console.error(`Record with ID ${rowId} not found in ${gridType} grid`);
+      return;
+    }
+
+    // Open the modal in edit mode
+    setEditingRow(recordToEdit);
+    setEditModalMode('edit');
+    setEditingGridType(gridType);
+    setEditModalOpen(true);
+
+    console.log(`Opened edit modal for ${gridType} grid record ID ${rowId}`);
+  };
+
+  // Modal handlers
+  const handleSaveEditedRow = (updatedRow: ExcelRow) => {
+    if (editModalMode === 'create-new') {
+      // For create-new mode, create a new row with a new ID
+      const currentRows = editingGridType === 'master' ? rowsMaster :
+                         editingGridType === 'client' ? rowsClient : mergedRows;
+
+      const maxId = Math.max(...currentRows.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
+      const newRow = {
+        ...updatedRow,
+        id: maxId + 1 // Generate new ID for new record
+      };
+
+      if (editingGridType === 'master') {
+        const updatedRows = [...rowsMaster, newRow];
+        setRowsMaster(updatedRows);
+
+        // Update sheet data
+        const currentSheet = masterSheetNames[activeMasterTab];
+        if (currentSheet && masterSheetData[currentSheet]) {
+          const updatedSheetData = {
+            ...masterSheetData,
+            [currentSheet]: {
+              ...masterSheetData[currentSheet],
+              rows: updatedRows
+            }
+          };
+          setMasterSheetData(updatedSheetData);
+        }
+        setHasUnsavedMasterChanges(true);
+      } else if (editingGridType === 'client') {
+        const updatedRows = [...rowsClient, newRow];
+        setRowsClient(updatedRows);
+
+        // Update sheet data
+        const currentSheet = clientSheetNames[activeClientTab];
+        if (currentSheet && clientSheetData[currentSheet]) {
+          const updatedSheetData = {
+            ...clientSheetData,
+            [currentSheet]: {
+              ...clientSheetData[currentSheet],
+              rows: updatedRows
+            }
+          };
+          setClientSheetData(updatedSheetData);
+        }
+        setHasUnsavedChanges(true);
+      } else if (editingGridType === 'merged') {
+        const updatedRows = [...mergedRows, newRow];
+        setMergedRows(updatedRows);
+        setMergedForExport(updatedRows);
+        setHasUnsavedMergedChanges(true);
+      }
+
+      console.log(`Created new record with ID ${newRow.id} in ${editingGridType} grid`);
+    } else {
+      // For edit mode, update the existing row
+      if (editingGridType === 'master') {
+        const updatedRows = rowsMaster.map(row =>
+          row.id === updatedRow.id ? updatedRow : row
+        );
+        setRowsMaster(updatedRows);
+        setHasUnsavedMasterChanges(true);
+      } else if (editingGridType === 'client') {
+        const updatedRows = rowsClient.map(row =>
+          row.id === updatedRow.id ? updatedRow : row
+        );
+        setRowsClient(updatedRows);
+        setHasUnsavedChanges(true);
+      } else if (editingGridType === 'merged') {
+        const updatedRows = mergedRows.map(row =>
+          row.id === updatedRow.id ? updatedRow : row
+        );
+        setMergedRows(updatedRows);
+        setMergedForExport(updatedRows);
+        setHasUnsavedMergedChanges(true);
+      }
+
+      console.log(`Updated record with ID ${updatedRow.id} in ${editingGridType} grid`);
+    }
+  };
+
+  const handleCloseEditModal = () => {
+    setEditModalOpen(false);
+    setEditingRow(null);
   };
 
   const handleDeleteRecord = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
@@ -4580,6 +4630,57 @@ export default function ExcelImportPage() {
         >
           Press Ctrl+Shift+U to switch UI versions
         </Typography>
+
+        {/* Row Edit Modal */}
+        {(() => {
+          console.log('[DEBUG] Modal render function called, editModalOpen:', editModalOpen);
+          console.log('[DEBUG] editingGridType:', editingGridType);
+          console.log('[DEBUG] mergedColumns length:', mergedColumns.length);
+          console.log('[DEBUG] mergedColumns fields:', mergedColumns.map(c => c.field));
+          console.log('[DEBUG] mergedRows length:', mergedRows.length);
+
+          const hcpcsCol = editingGridType === 'master' ?
+                          columnsMaster.find(col => col.field.toLowerCase().includes('hcpcs'))?.field :
+                          editingGridType === 'client' ?
+                          columnsClient.find(col => col.field.toLowerCase().includes('hcpcs'))?.field :
+                          editingGridType === 'merged' ?
+                          mergedColumns.find(col => col.field.toLowerCase().includes('hcpcs'))?.field :
+                          undefined;
+
+          const currentColumns = editingGridType === 'master' ? columnsMaster :
+                                editingGridType === 'client' ? columnsClient :
+                                editingGridType === 'merged' ? mergedColumns : [];
+
+          const currentRows = editingGridType === 'master' ? rowsMaster :
+                             editingGridType === 'client' ? rowsClient :
+                             editingGridType === 'merged' ? mergedRows : [];
+
+          console.log(`[MODAL RENDER] editingGridType: ${editingGridType}`);
+          console.log(`[MODAL RENDER] Available columns:`, currentColumns.map(c => c.field));
+          console.log(`[MODAL RENDER] HCPCS column found: ${hcpcsCol}`);
+          console.log(`[MODAL RENDER] Existing rows count: ${currentRows.length}`);
+
+          return (
+            <ImprovedRowEditModal
+              open={editModalOpen}
+              row={editingRow}
+              columns={currentColumns}
+              mode={editModalMode}
+              title={editModalMode === 'edit' ? 'Edit Healthcare Record' : 'Create New Healthcare Record'}
+              onClose={handleCloseEditModal}
+              onSave={handleSaveEditedRow}
+              existingRows={currentRows}
+              hcpcsColumn={hcpcsCol}
+              modifierColumn={editingGridType === 'master' ?
+                             columnsMaster.find(col => col.field.toLowerCase().includes('modifier'))?.field :
+                             editingGridType === 'client' ?
+                             columnsClient.find(col => col.field.toLowerCase().includes('modifier'))?.field :
+                             editingGridType === 'merged' ?
+                             mergedColumns.find(col => col.field.toLowerCase().includes('modifier'))?.field :
+                             undefined}
+            />
+          );
+        })()}
       </Box>
     </Box>
     </NoSSR>

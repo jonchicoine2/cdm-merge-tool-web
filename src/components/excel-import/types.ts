@@ -41,7 +41,7 @@ export interface DataGridSectionProps {
   // Row operations
   enableRowActions?: boolean;
   onEditRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
-  onDuplicateRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
+  onCreateNewFromRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
   onDeleteRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
   // UI options
   hideHeader?: boolean;
@@ -59,7 +59,7 @@ export interface ComparisonResultsProps {
   // Row operations for merged grid
   enableRowActions?: boolean;
   onEditRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
-  onDuplicateRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
+  onCreateNewFromRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
   onDeleteRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
 }
 

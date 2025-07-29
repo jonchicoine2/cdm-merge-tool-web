@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,13 +13,11 @@ import {
   Fade,
   Alert
 } from '@mui/material';
-import Grid from '@mui/material/Grid';
 import {
   Close as CloseIcon,
   Edit as EditIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
-  ContentCopy as ContentCopyIcon,
   Info as InfoIcon
 } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid-pro';
@@ -31,8 +29,11 @@ interface ImprovedRowEditModalProps {
   onSave: (data: ExcelRow) => void;
   row: ExcelRow | null;
   columns: GridColDef[];
-  mode: 'edit' | 'duplicate';
+  mode: 'edit' | 'create-new';
   title?: string;
+  existingRows?: ExcelRow[]; // For duplicate validation
+  hcpcsColumn?: string; // HCPCS column name
+  modifierColumn?: string | null; // Modifier column name
 }
 
 const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
@@ -42,17 +43,28 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
   row,
   columns,
   mode,
-  title
+  title,
+  existingRows = [],
+  hcpcsColumn,
+  modifierColumn
 }) => {
+  console.log('[MODAL PROPS] Received props:', {
+    open,
+    mode,
+    hcpcsColumn,
+    existingRowsCount: existingRows?.length || 0,
+    columnsCount: columns?.length || 0
+  });
+
   const [formData, setFormData] = useState<ExcelRow>({} as ExcelRow);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (row && open) {
-      if (mode === 'duplicate') {
-        // For duplicate, copy data but remove ID to create new record
-        const { id, ...duplicateData } = row;
-        setFormData(duplicateData as ExcelRow);
+      if (mode === 'create-new') {
+        // For create-new, copy data but remove ID to create new record
+        const { id, ...newRecordData } = row;
+        setFormData(newRecordData as ExcelRow);
       } else {
         setFormData({ ...row });
       }
@@ -60,24 +72,94 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
     }
   }, [row, open, mode]);
 
-  const handleFieldChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  // Auto-focus and cursor positioning for HCPCS field in create-new mode
+  useEffect(() => {
+    if (open && mode === 'create-new' && hcpcsColumn) {
+      // Small delay to ensure the modal and fields are fully rendered
+      const timer = setTimeout(() => {
+        // Find the HCPCS field by looking for input with the HCPCS column name
+        const hcpcsInput = document.querySelector(`input[name="${hcpcsColumn}"]`) as HTMLInputElement;
+        if (hcpcsInput) {
+          hcpcsInput.focus();
+          // Position cursor at the end of the text
+          const textLength = hcpcsInput.value.length;
+          hcpcsInput.setSelectionRange(textLength, textLength);
+        } else {
+          // Fallback: try to find by label text or other attributes
+          const allInputs = document.querySelectorAll('input[type="text"]');
+          for (const input of allInputs) {
+            const inputElement = input as HTMLInputElement;
+            // Check if this input is in a container with HCPCS-related text
+            const container = inputElement.closest('.MuiFormControl-root');
+            if (container && container.textContent?.toLowerCase().includes('hcpcs')) {
+              inputElement.focus();
+              const textLength = inputElement.value.length;
+              inputElement.setSelectionRange(textLength, textLength);
+              break;
+            }
+          }
+        }
+      }, 150); // Slightly longer delay to ensure modal animation is complete
 
-    // Clear error for this field when user starts typing
-    if (errors[field]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
+      return () => clearTimeout(timer);
     }
-  };
+  }, [open, mode, hcpcsColumn]);
 
-  const validateForm = (): boolean => {
+  // Function to generate HCPCS key for duplicate checking
+  const generateHCPCSKey = useCallback((row: ExcelRow): string => {
+    if (!hcpcsColumn) return '';
+
+    const hcpcs = String(row[hcpcsColumn] || "").toUpperCase().trim();
+    const modifier = modifierColumn ? String(row[modifierColumn] || "").toUpperCase().trim() : "";
+    return modifierColumn ? `${hcpcs}-${modifier}` : hcpcs;
+  }, [hcpcsColumn, modifierColumn]);
+
+  // Function to check for HCPCS duplicates
+  const validateHCPCSUniqueness = useCallback((): string | null => {
+    console.log('[HCPCS VALIDATION] Starting validation...');
+    console.log('[HCPCS VALIDATION] Mode:', mode);
+    console.log('[HCPCS VALIDATION] HCPCS column:', hcpcsColumn);
+
+    if (mode !== 'create-new' || !hcpcsColumn) {
+      console.log('[HCPCS VALIDATION] Skipping validation - not create-new mode or no HCPCS column');
+      return null;
+    }
+
+    const currentKey = generateHCPCSKey(formData);
+    console.log('[HCPCS VALIDATION] Current HCPCS key:', currentKey);
+
+    if (!currentKey) {
+      console.log('[HCPCS VALIDATION] No HCPCS key generated, skipping');
+      return null;
+    }
+
+    // Check if this HCPCS key already exists in existing rows
+    const existingKeys = existingRows.map(row => generateHCPCSKey(row));
+    console.log('[HCPCS VALIDATION] Existing HCPCS keys:', existingKeys);
+
+    const isDuplicate = existingRows.some(existingRow => {
+      const existingKey = generateHCPCSKey(existingRow);
+      return existingKey === currentKey;
+    });
+
+    console.log('[HCPCS VALIDATION] Is duplicate?', isDuplicate);
+
+    const errorMessage = isDuplicate ? `This HCPCS code already exists. Please use a different code.` : null;
+    console.log('[HCPCS VALIDATION] Error message:', errorMessage);
+
+    return errorMessage;
+  }, [mode, hcpcsColumn, formData, existingRows, generateHCPCSKey]);
+
+  const validateForm = useCallback((): boolean => {
+    console.log('[FORM VALIDATION] Starting form validation...');
     const newErrors: Record<string, string> = {};
+
+    // Get editable columns for validation
+    const editableColumns = columns.filter(col =>
+      col.field !== 'id' &&
+      col.field !== 'actions' &&
+      col.editable !== false
+    );
 
     // Basic validation - check for required fields
     editableColumns.forEach(col => {
@@ -87,14 +169,96 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
       }
     });
 
+    console.log('[FORM VALIDATION] Basic validation errors:', newErrors);
+
+    // HCPCS uniqueness validation for create-new mode
+    if (hcpcsColumn) {
+      console.log('[FORM VALIDATION] Running HCPCS validation...');
+      const hcpcsError = validateHCPCSUniqueness();
+      if (hcpcsError) {
+        console.log('[FORM VALIDATION] HCPCS error found:', hcpcsError);
+        newErrors[hcpcsColumn] = hcpcsError;
+      } else {
+        console.log('[FORM VALIDATION] No HCPCS error');
+      }
+    } else {
+      console.log('[FORM VALIDATION] No HCPCS column, skipping HCPCS validation');
+    }
+
+    console.log('[FORM VALIDATION] Final errors:', newErrors);
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const isValid = Object.keys(newErrors).length === 0;
+    console.log('[FORM VALIDATION] Form is valid:', isValid);
+    return isValid;
+  }, [columns, formData, hcpcsColumn, validateHCPCSUniqueness]);
+
+  // Validate form when modal opens in create-new mode to check for immediate duplicates
+  useEffect(() => {
+    if (open && mode === 'create-new' && formData && Object.keys(formData).length > 0) {
+      console.log('[MODAL OPEN] Running initial validation for create-new mode');
+      console.log('[MODAL OPEN] HCPCS column received:', hcpcsColumn);
+      console.log('[MODAL OPEN] Existing rows count:', existingRows?.length || 0);
+      console.log('[MODAL OPEN] Form data:', formData);
+      // Small delay to ensure form data is fully set
+      const timer = setTimeout(() => {
+        validateForm();
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [open, mode, formData, hcpcsColumn, existingRows?.length]);
+
+  const handleFieldChange = (field: string, value: string) => {
+    const updatedFormData = {
+      ...formData,
+      [field]: value
+    };
+    setFormData(updatedFormData);
+
+    // Clear error for this field when user starts typing
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+
+    // Real-time HCPCS validation for create-new mode
+    if (field === hcpcsColumn && mode === 'create-new' && hcpcsColumn) {
+      const currentKey = generateHCPCSKey(updatedFormData);
+      if (currentKey) {
+        const isDuplicate = existingRows.some(existingRow => {
+          return generateHCPCSKey(existingRow) === currentKey;
+        });
+
+        if (isDuplicate) {
+          setErrors(prev => ({
+            ...prev,
+            [hcpcsColumn]: 'This HCPCS code already exists. Please use a different code.'
+          }));
+        }
+      }
+    }
   };
 
   const handleSave = () => {
-    if (validateForm()) {
+    console.log('[MODAL SAVE] Starting save validation...');
+    console.log('[MODAL SAVE] Current mode:', mode);
+    console.log('[MODAL SAVE] Form data:', formData);
+    console.log('[MODAL SAVE] Existing rows count:', existingRows.length);
+    console.log('[MODAL SAVE] HCPCS column:', hcpcsColumn);
+
+    const isValid = validateForm();
+    console.log('[MODAL SAVE] Validation result:', isValid);
+    console.log('[MODAL SAVE] Current errors:', errors);
+
+    if (isValid) {
+      console.log('[MODAL SAVE] Validation passed, saving...');
       onSave(formData);
       onClose();
+    } else {
+      console.log('[MODAL SAVE] Validation failed, preventing save');
     }
   };
 
@@ -125,11 +289,17 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
   );
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={handleCancel}
-      maxWidth="lg"
+      maxWidth="md"
       fullWidth
+      sx={{
+        '& .MuiDialog-paper': {
+          width: '75%',
+          maxWidth: 'none'
+        }
+      }}
       PaperProps={{
         sx: {
           borderRadius: 3,
@@ -143,9 +313,9 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
     >
       {/* Custom Header */}
       <Box sx={{
-        background: mode === 'edit' 
+        background: mode === 'edit'
           ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-          : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+          : 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)',
         color: 'white',
         p: 3,
         position: 'relative',
@@ -153,13 +323,13 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {mode === 'edit' ? <EditIcon sx={{ fontSize: 28 }} /> : <ContentCopyIcon sx={{ fontSize: 28 }} />}
+            {mode === 'edit' ? <EditIcon sx={{ fontSize: 28 }} /> : <SaveIcon sx={{ fontSize: 28 }} />}
             <Box>
               <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                {mode === 'edit' ? 'Edit Healthcare Record' : 'Duplicate Healthcare Record'}
+                {mode === 'edit' ? 'Edit Healthcare Record' : 'Create New Healthcare Record'}
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                {mode === 'edit' ? 'Modify existing record details' : 'Create a copy with new details'}
+                {mode === 'edit' ? 'Modify existing record details' : 'Create a new record based on this one'}
               </Typography>
             </Box>
           </Box>
@@ -216,11 +386,12 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
                 🏥 Primary Healthcare Codes
               </Typography>
               
-              <Grid container spacing={3}>
+              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                 {primaryFields.map((column) => (
-                  <Grid item xs={12} sm={6} key={column.field}>
+                  <Box key={column.field} sx={{ flex: '1 1 300px', minWidth: '300px' }}>
                     <TextField
                       fullWidth
+                      name={column.field}
                       label={column.headerName || column.field}
                       value={formData[column.field] || ''}
                       onChange={(e) => handleFieldChange(column.field, e.target.value)}
@@ -241,9 +412,9 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
                         }
                       }}
                     />
-                  </Grid>
+                  </Box>
                 ))}
-              </Grid>
+              </Box>
             </Box>
           )}
 
@@ -265,12 +436,13 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
                 📝 Description & Details
               </Typography>
               
-              <Grid container spacing={3}>
-                {/* Separate Description field to give it full prominence */}
+              <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start' }}>
+                {/* Description field - takes up most of the width */}
                 {descriptionFields.filter(col => col.field === 'Description').map((column) => (
-                  <Grid item xs={12} key={column.field}>
+                  <Box key={column.field} sx={{ flex: '3', minWidth: '400px' }}>
                     <TextField
                       fullWidth
+                      name={column.field}
                       label={column.headerName || column.field}
                       value={formData[column.field] || ''}
                       onChange={(e) => handleFieldChange(column.field, e.target.value)}
@@ -278,7 +450,6 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
                       helperText={errors[column.field]}
                       variant="outlined"
                       multiline
-                      rows={4}
                       minRows={4}
                       maxRows={8}
                       sx={{
@@ -299,14 +470,15 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
                         }
                       }}
                     />
-                  </Grid>
+                  </Box>
                 ))}
-                
-                {/* Other fields (QTY, etc.) in a separate row */}
+
+                {/* QTY field - takes up smaller width */}
                 {descriptionFields.filter(col => col.field !== 'Description').map((column) => (
-                  <Grid item xs={12} sm={6} md={4} key={column.field}>
+                  <Box key={column.field} sx={{ flex: '1', minWidth: '120px', maxWidth: '200px' }}>
                     <TextField
                       fullWidth
+                      name={column.field}
                       label={column.headerName || column.field}
                       value={formData[column.field] || ''}
                       onChange={(e) => handleFieldChange(column.field, e.target.value)}
@@ -327,9 +499,9 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
                         }
                       }}
                     />
-                  </Grid>
+                  </Box>
                 ))}
-              </Grid>
+              </Box>
             </Box>
           )}
 
@@ -349,11 +521,12 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
                   ⚙️ Additional Fields
                 </Typography>
                 
-                <Grid container spacing={3}>
+                <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                   {additionalFields.map((column) => (
-                    <Grid item xs={12} sm={6} key={column.field}>
+                    <Box key={column.field} sx={{ flex: '1 1 300px', minWidth: '300px' }}>
                       <TextField
                         fullWidth
+                        name={column.field}
                         label={column.headerName || column.field}
                         value={formData[column.field] || ''}
                         onChange={(e) => handleFieldChange(column.field, e.target.value)}
@@ -374,9 +547,9 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
                           }
                         }}
                       />
-                    </Grid>
+                    </Box>
                   ))}
-                </Grid>
+                </Box>
               </Box>
             </>
           )}
@@ -451,7 +624,7 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
             transition: 'all 0.2s ease'
           }}
         >
-          {mode === 'edit' ? 'Save Changes' : 'Create Duplicate'}
+          {mode === 'edit' ? 'Save Changes' : 'Create New Record'}
         </Button>
       </Box>
     </Dialog>

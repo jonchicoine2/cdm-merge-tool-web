@@ -2,20 +2,20 @@ import React from 'react';
 import { Box, IconButton, Tooltip } from '@mui/material';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid-pro';
 import EditIcon from '@mui/icons-material/Edit';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 interface ActionsColumnProps {
   gridType: 'master' | 'client' | 'merged';
   onEditRow: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
-  onDuplicateRow: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
+  onCreateNewFromRow: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
   onDeleteRow: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
 }
 
 export const createActionsColumn = ({
   gridType,
   onEditRow,
-  onDuplicateRow,
+  onCreateNewFromRow,
   onDeleteRow
 }: ActionsColumnProps): GridColDef => {
   return {
@@ -40,13 +40,13 @@ export const createActionsColumn = ({
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Duplicate Row">
+          <Tooltip title="Create New From This">
             <IconButton
               size="small"
-              onClick={() => onDuplicateRow(params.row.id, gridType)}
-              sx={{ color: '#ed6c02' }}
+              onClick={() => onCreateNewFromRow(params.row.id, gridType)}
+              sx={{ color: '#4caf50' }}
             >
-              <ContentCopyIcon fontSize="small" />
+              <AddIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete Row">
