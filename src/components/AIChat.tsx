@@ -453,7 +453,7 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
                       },
                     }}
                   >
-                    {Object.entries(gridContext.availableGrids).filter(([_, data]) => data.hasData).length === 0 && (
+                    {Object.entries(gridContext.availableGrids).filter(([, data]) => data.hasData).length === 0 && (
                       <MenuItem value="" disabled>
                         No data loaded
                       </MenuItem>

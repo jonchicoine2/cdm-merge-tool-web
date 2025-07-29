@@ -1,5 +1,6 @@
-import { GridColDef } from "@mui/x-data-grid-pro";
+import { GridColDef, GridApiPro } from "@mui/x-data-grid-pro";
 import { ExcelRow, FileMetadata, ComparisonStats, ModifierCriteria } from "../../utils/excelOperations";
+import { RefObject } from "react";
 
 export interface SheetData {
   rows: ExcelRow[];
@@ -28,7 +29,7 @@ export interface DataGridSectionProps {
   columns: GridColDef[];
   gridType: 'master' | 'client' | 'merged';
   fileMetadata?: FileMetadata | null;
-  apiRef?: any;
+  apiRef?: RefObject<GridApiPro | null>;
   headerColor?: string;
   backgroundColor?: string;
   onRowUpdate?: (updatedRow: ExcelRow) => void;

@@ -1,5 +1,6 @@
 import { GridColDef } from '@mui/x-data-grid-pro';
-import { ExcelRow, ComparisonStats, ModifierCriteria, FileMetadata, SheetData } from './excelOperations';
+import { ExcelRow, ComparisonStats, ModifierCriteria, FileMetadata } from './excelOperations';
+import { SheetData } from '../components/excel-import/types';
 
 // Shared data structure for cross-page persistence
 export interface SharedAppData {

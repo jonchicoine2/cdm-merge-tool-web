@@ -10,6 +10,7 @@ import {
   getCompareKey,
   validateForDuplicates
 } from '../utils/excelOperations';
+import { SharedAppData } from '../utils/sharedDataPersistence';
 
 export const useComparison = () => {
   const [mergedRows, setMergedRows] = useState<ExcelRow[]>([]);
@@ -155,7 +156,7 @@ export const useComparison = () => {
     setShowCompare(false);
   };
 
-  const loadSharedData = (sharedData: any) => {
+  const loadSharedData = (sharedData: SharedAppData) => {
     setMergedRows(sharedData.mergedRows || []);
     setMergedColumns(sharedData.mergedColumns || []);
     setUnmatchedClient(sharedData.unmatchedClient || []);

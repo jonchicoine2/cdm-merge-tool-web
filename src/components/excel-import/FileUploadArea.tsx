@@ -5,11 +5,8 @@ import { FileUploadProps } from './types';
 const FileUploadArea: React.FC<FileUploadProps> = ({
   fileType,
   rows,
-  columns,
-  fileMetadata,
   sheetNames,
   activeTab,
-  sheetData,
   dragOver,
   onFileUpload,
   onTabChange,

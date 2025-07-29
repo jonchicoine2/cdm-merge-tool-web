@@ -7,10 +7,10 @@ import {
   createFileMetadata,
   duplicateRecord,
   deleteRecords,
-  exportToExcel,
   filterAndSearchRows
 } from '../utils/excelOperations';
 import { SheetData } from '../components/excel-import/types';
+import { SharedAppData } from '../utils/sharedDataPersistence';
 
 export const useFileOperations = () => {
   // Core data state
@@ -306,7 +306,7 @@ export const useFileOperations = () => {
   };
 
   // Load shared data function
-  const loadSharedData = (sharedData: any) => {
+  const loadSharedData = (sharedData: SharedAppData) => {
     // Load master data
     setRowsMaster(sharedData.rowsMaster || []);
     setColumnsMaster(sharedData.columnsMaster || []);

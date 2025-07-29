@@ -7,7 +7,6 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
   title,
   rows,
   columns,
-  gridType,
   fileMetadata,
   apiRef,
   headerColor = '#1976d2',
@@ -18,6 +17,15 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
   // State for hover-based activation
   const [isGridActive, setIsGridActive] = useState(false);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Only hide if both rows and columns are empty (no file loaded)
   if (rows.length === 0 && columns.length === 0) return null;
@@ -53,15 +61,6 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
     // Deactivate the grid
     setIsGridActive(false);
   };
-
-  // Cleanup timeout on unmount
-  React.useEffect(() => {
-    return () => {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-      }
-    };
-  }, []);
 
   return (
     <Box

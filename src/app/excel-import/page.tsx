@@ -793,7 +793,7 @@ export default function ExcelImportPage() {
     } else {
       console.error(`[FOCUS] No apiRef found for ${gridType} grid`);
     }
-  }, [mergedColumns, columnsMaster, columnsClient]); // Add dependencies
+  }, [mergedColumns, columnsMaster, columnsClient, clientApiRef, masterApiRef, mergedApiRef]); // Add dependencies
 
   // Function to create actions column for row operations
   const createActionsColumn = useCallback((gridType: 'master' | 'client' | 'merged'): GridColDef => {
@@ -951,7 +951,7 @@ export default function ExcelImportPage() {
         );
       },
     };
-  }, []);
+  }, [startRowEditModeWithHcpcsFocus]);
 
   // Function to save current state to shared data
   const saveCurrentStateToShared = useCallback(() => {
