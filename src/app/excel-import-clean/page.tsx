@@ -15,6 +15,8 @@ import {
   ComparisonResults,
   ModifierCriteriaDialog
 } from "../../components/excel-import";
+import RowEditModal from "../../components/excel-import/RowEditModal";
+import { ExcelRow } from "../../utils/excelOperations";
 
 // Create a NoSSR wrapper component to disable server-side rendering
 const NoSSR = dynamic(() => Promise.resolve(({ children }: { children: React.ReactNode }) => <>{children}</>), {
@@ -54,6 +56,12 @@ export default function ExcelImportCleanPage() {
     rootXU: false,
     root76: false,
   });
+
+  // Row edit modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingRow, setEditingRow] = useState<ExcelRow | null>(null);
+  const [editingGridType, setEditingGridType] = useState<'master' | 'client'>('master');
+  const [editModalTitle, setEditModalTitle] = useState('');
 
   // Function to save current state to shared data
   const saveCurrentStateToShared = useCallback(() => {
@@ -193,6 +201,74 @@ export default function ExcelImportCleanPage() {
       comparison.unmatchedClient,
       comparison.dupsClient
     );
+  };
+
+  // Row operation handlers for merged grid
+  const handleEditRow = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
+    if (gridType !== 'merged') return; // Only allow editing merged rows
+
+    const rowToEdit = comparison.mergedRows.find(row => row.id === rowId);
+
+    if (rowToEdit) {
+      setEditingRow(rowToEdit);
+      setEditingGridType('master'); // Use master columns for editing merged data
+      setEditModalTitle('Edit Merged Row');
+      setEditModalOpen(true);
+    }
+  };
+
+  const handleDuplicateRow = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
+    if (gridType !== 'merged') return; // Only allow duplicating merged rows
+
+    const rowToDuplicate = comparison.mergedRows.find(row => row.id === rowId);
+    if (rowToDuplicate) {
+      // Create a duplicate with a new ID
+      const duplicatedRow = {
+        ...rowToDuplicate,
+        id: Date.now() // Simple ID generation
+      };
+
+      // Open edit modal for the duplicated row
+      setEditingRow(duplicatedRow);
+      setEditingGridType('master'); // Use master columns for editing
+      setEditModalTitle('Edit Duplicated Merged Row');
+      setEditModalOpen(true);
+    }
+  };
+
+  const handleDeleteRow = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
+    if (gridType !== 'merged') return; // Only allow deleting merged rows
+
+    // Remove the row from merged data
+    const updatedMergedRows = comparison.mergedRows.filter(row => row.id !== rowId);
+
+    // Update the comparison state (we'll need to add this method to useComparison)
+    // For now, we can manually update the merged rows
+    comparison.setMergedRows(updatedMergedRows);
+  };
+
+  const handleSaveEditedRow = (updatedRow: ExcelRow) => {
+    if (editingGridType === 'master') {
+      // For merged data editing, update the merged rows directly
+      const updatedMergedRows = comparison.mergedRows.map(row =>
+        row.id === updatedRow.id ? updatedRow : row
+      );
+
+      // Check if this is a new row (from duplication)
+      const existingRow = comparison.mergedRows.find(row => row.id === updatedRow.id);
+      if (!existingRow) {
+        // Add the new row to merged data
+        updatedMergedRows.push(updatedRow);
+      }
+
+      comparison.setMergedRows(updatedMergedRows);
+    }
+  };
+
+  const handleCloseEditModal = () => {
+    setEditModalOpen(false);
+    setEditingRow(null);
+    setEditModalTitle('');
   };
 
   return (
@@ -352,6 +428,10 @@ export default function ExcelImportCleanPage() {
               columnsClient={fileOps.columnsClient}
               comparisonStats={comparison.comparisonStats}
               onExport={handleExportData}
+              enableRowActions={true}
+              onEditRow={handleEditRow}
+              onDuplicateRow={handleDuplicateRow}
+              onDeleteRow={handleDeleteRow}
             />
           </Box>
         )}
@@ -363,6 +443,16 @@ export default function ExcelImportCleanPage() {
           onClose={() => setModifierDialogOpen(false)}
           onCriteriaChange={setModifierCriteria}
           onStartComparison={handleStartComparison}
+        />
+
+        {/* Row Edit Modal */}
+        <RowEditModal
+          open={editModalOpen}
+          row={editingRow}
+          columns={comparison.mergedColumns.length > 0 ? comparison.mergedColumns : fileOps.columnsMaster}
+          title={editModalTitle}
+          onClose={handleCloseEditModal}
+          onSave={handleSaveEditedRow}
         />
 
         {/* Footer */}

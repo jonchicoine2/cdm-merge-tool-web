@@ -240,6 +240,47 @@ export const useFileOperations = () => {
     setRows(updatedRows);
   };
 
+  // Modal-based row operations for clean UI
+  const updateRowInGrid = (updatedRow: ExcelRow, gridType: 'master' | 'client') => {
+    if (gridType === 'master') {
+      const updatedRows = rowsMaster.map(row =>
+        row.id === updatedRow.id ? updatedRow : row
+      );
+      setRowsMaster(updatedRows);
+    } else if (gridType === 'client') {
+      const updatedRows = rowsClient.map(row =>
+        row.id === updatedRow.id ? updatedRow : row
+      );
+      setRowsClient(updatedRows);
+    }
+  };
+
+  const duplicateRowInGrid = (rowId: number | string, gridType: 'master' | 'client') => {
+    const sourceRows = gridType === 'master' ? rowsMaster : rowsClient;
+    const rowToDuplicate = sourceRows.find(row => row.id === rowId);
+
+    if (rowToDuplicate) {
+      const duplicatedRow = duplicateRecord(rowToDuplicate);
+      if (gridType === 'master') {
+        setRowsMaster([...rowsMaster, duplicatedRow]);
+      } else {
+        setRowsClient([...rowsClient, duplicatedRow]);
+      }
+      return duplicatedRow;
+    }
+    return null;
+  };
+
+  const deleteRowFromGrid = (rowId: number | string, gridType: 'master' | 'client') => {
+    if (gridType === 'master') {
+      const updatedRows = rowsMaster.filter(row => row.id !== rowId);
+      setRowsMaster(updatedRows);
+    } else if (gridType === 'client') {
+      const updatedRows = rowsClient.filter(row => row.id !== rowId);
+      setRowsClient(updatedRows);
+    }
+  };
+
   // Row update handlers for cell edits
   const handleMasterRowUpdate = (updatedRow: ExcelRow) => {
     const updatedRows = rowsMaster.map(row =>
@@ -419,6 +460,11 @@ export const useFileOperations = () => {
     resetMaster,
     resetClient,
     resetBoth,
-    loadSharedData
+    loadSharedData,
+
+    // Modal-based row operations for clean UI
+    updateRowInGrid,
+    duplicateRowInGrid,
+    deleteRowFromGrid
   };
 };

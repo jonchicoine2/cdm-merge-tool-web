@@ -1,19 +1,25 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Box, Typography, Chip } from '@mui/material';
-import { DataGridPro, GridToolbar } from '@mui/x-data-grid-pro';
+import { DataGridPro, GridToolbar, GridColDef } from '@mui/x-data-grid-pro';
 import { DataGridSectionProps } from './types';
+import { createRowActionsColumn } from './RowActionsColumn';
 
 const DataGridSection: React.FC<DataGridSectionProps> = ({
   title,
   rows,
   columns,
-  gridType, // eslint-disable-line @typescript-eslint/no-unused-vars
+  gridType,
   fileMetadata,
   apiRef,
   headerColor = '#1976d2',
   backgroundColor = '#f8fbff',
   onRowUpdate,
-  comparisonStats
+  comparisonStats,
+  // Row operations props
+  onEditRow,
+  onDuplicateRow,
+  onDeleteRow,
+  enableRowActions = false
 }) => {
   // State for hover-based activation
   const [isGridActive, setIsGridActive] = useState(false);
@@ -30,6 +36,22 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
 
   // Only hide if both rows and columns are empty (no file loaded)
   if (rows.length === 0 && columns.length === 0) return null;
+
+  // Create columns with actions column if enabled
+  const displayColumns = useMemo(() => {
+    if (!enableRowActions || !onEditRow || !onDuplicateRow || !onDeleteRow) {
+      return columns;
+    }
+
+    const actionsColumn = createRowActionsColumn({
+      gridType,
+      onEditRow,
+      onDuplicateRow,
+      onDeleteRow
+    });
+
+    return [...columns, actionsColumn];
+  }, [columns, enableRowActions, gridType, onEditRow, onDuplicateRow, onDeleteRow]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -159,7 +181,7 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
         <DataGridPro
           apiRef={apiRef}
           rows={rows}
-          columns={columns}
+          columns={displayColumns}
           checkboxSelection
           disableRowSelectionOnClick
           editMode="row"

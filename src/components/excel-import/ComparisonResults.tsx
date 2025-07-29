@@ -11,7 +11,11 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
   dupsClient,
   columnsClient,
   comparisonStats,
-  onExport
+  onExport,
+  enableRowActions,
+  onEditRow,
+  onDuplicateRow,
+  onDeleteRow
 }) => {
   const mergedApiRef = useGridApiRef();
 
@@ -66,6 +70,10 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
             headerColor="#2e7d32"
             backgroundColor="#e8f5e8"
             comparisonStats={comparisonStats}
+            enableRowActions={enableRowActions}
+            onEditRow={onEditRow}
+            onDuplicateRow={onDuplicateRow}
+            onDeleteRow={onDeleteRow}
           />
         </Box>
       )}

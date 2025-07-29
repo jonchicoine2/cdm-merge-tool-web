@@ -34,6 +34,11 @@ export interface DataGridSectionProps {
   backgroundColor?: string;
   onRowUpdate?: (updatedRow: ExcelRow) => void;
   comparisonStats?: ComparisonStats | null;
+  // Row operations
+  enableRowActions?: boolean;
+  onEditRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
+  onDuplicateRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
+  onDeleteRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
 }
 
 export interface ComparisonResultsProps {
@@ -44,6 +49,11 @@ export interface ComparisonResultsProps {
   columnsClient: GridColDef[];
   comparisonStats: ComparisonStats | null;
   onExport: () => void;
+  // Row operations for merged grid
+  enableRowActions?: boolean;
+  onEditRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
+  onDuplicateRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
+  onDeleteRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
 }
 
 export interface ModifierCriteriaDialogProps {
