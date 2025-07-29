@@ -6,7 +6,6 @@ import {
   TextField,
   Box,
   Typography,
-  Grid,
   Paper,
   Chip,
   Divider,
@@ -14,6 +13,7 @@ import {
   Fade,
   Alert
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import {
   Close as CloseIcon,
   Edit as EditIcon,
@@ -266,11 +266,9 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
               </Typography>
               
               <Grid container spacing={3}>
-                {descriptionFields.map((column) => (
-                  <Grid item xs={12} sm={
-                    column.field === 'Description' ? 12 :
-                    (column.field.includes('QTY') || column.field.includes('Qty')) ? 8 : 6
-                  } key={column.field}>
+                {/* Separate Description field to give it full prominence */}
+                {descriptionFields.filter(col => col.field === 'Description').map((column) => (
+                  <Grid item xs={12} key={column.field}>
                     <TextField
                       fullWidth
                       label={column.headerName || column.field}
@@ -279,10 +277,42 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
                       error={!!errors[column.field]}
                       helperText={errors[column.field]}
                       variant="outlined"
-                      multiline={column.field === 'Description'}
-                      rows={column.field === 'Description' ? 6 : 1}
-                      minRows={column.field === 'Description' ? 6 : 1}
-                      maxRows={column.field === 'Description' ? 12 : 1}
+                      multiline
+                      rows={4}
+                      minRows={4}
+                      maxRows={8}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                          backgroundColor: 'rgba(255,255,255,0.8)',
+                          '&:hover': {
+                            backgroundColor: 'rgba(255,255,255,0.9)',
+                          },
+                          '&.Mui-focused': {
+                            backgroundColor: 'white',
+                            boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)'
+                          }
+                        },
+                        '& .MuiInputBase-input': {
+                          fontSize: '16px',
+                          lineHeight: 1.6
+                        }
+                      }}
+                    />
+                  </Grid>
+                ))}
+                
+                {/* Other fields (QTY, etc.) in a separate row */}
+                {descriptionFields.filter(col => col.field !== 'Description').map((column) => (
+                  <Grid item xs={12} sm={6} md={4} key={column.field}>
+                    <TextField
+                      fullWidth
+                      label={column.headerName || column.field}
+                      value={formData[column.field] || ''}
+                      onChange={(e) => handleFieldChange(column.field, e.target.value)}
+                      error={!!errors[column.field]}
+                      helperText={errors[column.field]}
+                      variant="outlined"
                       sx={{
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2,
