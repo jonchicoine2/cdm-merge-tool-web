@@ -1,8 +1,7 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
 import { useGridApiRef } from '@mui/x-data-grid-pro';
 import { ComparisonResultsProps } from './types';
-import ExportButtons from './ExportButtons';
 import DataGridSection from './DataGridSection';
 
 const ComparisonResults: React.FC<ComparisonResultsProps> = ({
@@ -17,25 +16,47 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
   const mergedApiRef = useGridApiRef();
 
   return (
-    <Box sx={{ mb: 4 }}>
-      <Typography variant="h4" sx={{ 
-        mb: 3, 
-        color: '#1976d2', 
-        fontWeight: 'bold',
-        textAlign: 'center'
+    <Box sx={{ mb: 2 }}>
+      {/* Compact Header with Export Button */}
+      <Box sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        mb: 1.5,
+        flexWrap: 'wrap',
+        gap: 2
       }}>
-        🔄 Comparison Results
-      </Typography>
-      
-      {/* Export Button */}
-      <ExportButtons
-        mergedRows={mergedRows}
-        onExport={onExport}
-      />
+        <Typography variant="h6" sx={{
+          color: '#1976d2',
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          🔄 Comparison Results
+        </Typography>
+
+        <Button
+          variant="contained"
+          onClick={onExport}
+          disabled={mergedRows.length === 0}
+          size="small"
+          sx={{
+            background: 'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)',
+            color: 'white',
+            fontWeight: 'bold',
+            fontSize: '0.8rem',
+            px: 2,
+            py: 0.5
+          }}
+        >
+          📁 Export Merged Data
+        </Button>
+      </Box>
 
       {/* Merged Data Grid */}
       {mergedRows.length > 0 && (
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: 2 }}>
           <DataGridSection
             title="✅ Merged Data"
             rows={mergedRows}
@@ -53,7 +74,7 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
       <Box sx={{
         display: 'flex',
         flexDirection: { xs: 'column', lg: 'row' },
-        gap: 3,
+        gap: 2,
         width: '100%'
       }}>
         {/* Unmatched Records */}

@@ -276,22 +276,26 @@ export default function ExcelImportCleanPage() {
           </Box>
         </Box>
 
-        {/* Reset and Compare Buttons */}
-        <Box sx={{ textAlign: 'center', mb: 2 }}>
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap', mb: 2 }}>
+        {/* Reset and Compare Buttons - Compact Layout */}
+        {(fileOps.rowsMaster.length > 0 || fileOps.rowsClient.length > 0) && (
+          <Box sx={{
+            display: 'flex',
+            gap: 1,
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            mb: 1.5,
+            alignItems: 'center'
+          }}>
             {fileOps.rowsMaster.length > 0 && (
               <Button
                 variant="outlined"
                 color="error"
+                size="small"
                 onClick={() => {
                   fileOps.resetMaster();
                   comparison.resetComparison();
                 }}
-                sx={{
-                  fontSize: '1rem',
-                  py: 1,
-                  px: 3,
-                }}
+                sx={{ fontSize: '0.8rem', py: 0.5, px: 1.5 }}
               >
                 🗑️ Reset Master
               </Button>
@@ -300,53 +304,40 @@ export default function ExcelImportCleanPage() {
               <Button
                 variant="outlined"
                 color="error"
+                size="small"
                 onClick={() => {
                   fileOps.resetClient();
                   comparison.resetComparison();
                 }}
-                sx={{
-                  fontSize: '1rem',
-                  py: 1,
-                  px: 3,
-                }}
+                sx={{ fontSize: '0.8rem', py: 0.5, px: 1.5 }}
               >
                 🗑️ Reset Client
               </Button>
             )}
-            {(fileOps.rowsMaster.length > 0 || fileOps.rowsClient.length > 0) && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              size="small"
+              onClick={() => {
+                fileOps.resetBoth();
+                comparison.resetComparison();
+              }}
+              sx={{ fontSize: '0.8rem', py: 0.5, px: 1.5 }}
+            >
+              🔄 Reset Both
+            </Button>
+            {fileOps.rowsMaster.length > 0 && fileOps.rowsClient.length > 0 && (
               <Button
                 variant="outlined"
-                color="secondary"
-                onClick={() => {
-                  fileOps.resetBoth();
-                  comparison.resetComparison();
-                }}
-                sx={{
-                  fontSize: '1rem',
-                  py: 1,
-                  px: 3,
-                }}
+                size="small"
+                onClick={() => setModifierDialogOpen(true)}
+                sx={{ fontSize: '0.8rem', py: 0.5, px: 1.5 }}
               >
-                🔄 Reset Both
+                ⚙️ Adjust Modifier Criteria
               </Button>
             )}
           </Box>
-          
-          {fileOps.rowsMaster.length > 0 && fileOps.rowsClient.length > 0 && (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => setModifierDialogOpen(true)}
-              sx={{
-                fontSize: '0.875rem',
-                py: 0.5,
-                px: 2,
-              }}
-            >
-              ⚙️ Adjust Modifier Criteria
-            </Button>
-          )}
-        </Box>
+        )}
 
 
 

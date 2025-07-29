@@ -335,8 +335,8 @@ export default function ExcelImportPage() {
   // Modifier criteria state
   const [modifierDialogOpen, setModifierDialogOpen] = useState(false);
   const [modifierCriteria, setModifierCriteria] = useState({
-    root00: true,
-    root25: true,
+    root00: false,
+    root25: false,
     ignoreTrauma: false,
     root50: false,
     root59: false,
