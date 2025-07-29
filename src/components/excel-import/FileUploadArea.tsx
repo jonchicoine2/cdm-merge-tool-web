@@ -5,8 +5,11 @@ import { FileUploadProps } from './types';
 const FileUploadArea: React.FC<FileUploadProps> = ({
   fileType,
   rows,
+  columns, // eslint-disable-line @typescript-eslint/no-unused-vars
+  fileMetadata, // eslint-disable-line @typescript-eslint/no-unused-vars
   sheetNames,
   activeTab,
+  sheetData, // eslint-disable-line @typescript-eslint/no-unused-vars
   dragOver,
   onFileUpload,
   onTabChange,

@@ -951,7 +951,7 @@ export default function ExcelImportPage() {
         );
       },
     };
-  }, [startRowEditModeWithHcpcsFocus]);
+  }, [startRowEditModeWithHcpcsFocus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Function to save current state to shared data
   const saveCurrentStateToShared = useCallback(() => {

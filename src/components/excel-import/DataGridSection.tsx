@@ -7,6 +7,7 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
   title,
   rows,
   columns,
+  gridType, // eslint-disable-line @typescript-eslint/no-unused-vars
   fileMetadata,
   apiRef,
   headerColor = '#1976d2',
