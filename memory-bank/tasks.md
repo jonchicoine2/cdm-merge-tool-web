@@ -4,3 +4,5 @@
 - [x] DONE - Fix TypeScript errors in excel-import page (GridValidRowModel vs ExcelRow type mismatch)
 - [x] DONE - Fix TypeScript build errors (unused variables and React hooks dependencies)
 - [x] DONE - Build and run the CDM Merge Tool application
+- [x] DONE - Sync latest changes with GitHub repository
+- [x] DONE - Document Windows-specific commands (use 'start' instead of 'open')
