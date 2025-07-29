@@ -14,6 +14,7 @@ import AIChat, { AIChatHandle } from "../../components/AIChat";
 import dynamic from 'next/dynamic';
 import { useRouter } from "next/navigation";
 import { filterAndSearchRows } from "../../utils/excelOperations";
+import { saveSharedData, loadSharedData, SharedAppData } from "../../utils/sharedDataPersistence";
 // Removed cptCacheService import - no longer used
 
 // Create a NoSSR wrapper component to disable server-side rendering
@@ -119,59 +120,95 @@ export default function ExcelImportPage() {
 
 
   
-  useEffect(() => {
-    const lastMaster = localStorage.getItem("lastMasterFile");
-    const lastMasterData = localStorage.getItem("lastMasterData");
-    const lastMasterMetadata = localStorage.getItem("lastMasterMetadata");
-    if (lastMaster) {
-      setLastMasterFile(lastMaster);
+  // Function to load shared data from other UI
+  const loadSharedDataToState = useCallback(() => {
+    const sharedData = loadSharedData();
+    if (sharedData && sharedData.sourceUI === 'clean') {
+      console.log('[SHARED DATA] Loading data from clean UI...');
+
+      // Load master data
+      setRowsMaster(sharedData.rowsMaster);
+      setColumnsMaster(sharedData.columnsMaster);
+      setMasterSheetData(sharedData.masterSheetData);
+      setMasterSheetNames(sharedData.masterSheetNames);
+      setActiveMasterTab(sharedData.activeMasterTab);
+      setMasterFileMetadata(sharedData.masterFileMetadata);
+
+      // Load client data
+      setRowsClient(sharedData.rowsClient);
+      setColumnsClient(sharedData.columnsClient);
+      setClientSheetData(sharedData.clientSheetData);
+      setClientSheetNames(sharedData.clientSheetNames);
+      setActiveClientTab(sharedData.activeClientTab);
+      setClientFileMetadata(sharedData.clientFileMetadata);
+
+      // Load comparison results
+      setMergedRows(sharedData.mergedRows);
+      setMergedColumns(sharedData.mergedColumns);
+      setUnmatchedClient(sharedData.unmatchedClient);
+      setDupsClient(sharedData.dupsClient);
+      setShowCompare(sharedData.showCompare);
+      setComparisonStats(sharedData.comparisonStats);
+
+      // Load settings
+      setModifierCriteria(sharedData.modifierCriteria);
+
+      console.log('[SHARED DATA] Successfully loaded shared data');
+      return true;
     }
-    if (lastMasterData) {
-      setLastMasterData(lastMasterData);
-    }
-    if (lastMasterMetadata) {
-      try {
-        const metadata = JSON.parse(lastMasterMetadata);
-        // Convert uploadTime back to Date object
-        metadata.uploadTime = new Date(metadata.uploadTime);
-        setMasterFileMetadata(metadata);
-      } catch (e) {
-        console.error('Failed to parse master metadata:', e);
-      }
-    }
-    const lastClient = localStorage.getItem("lastClientFile");
-    const lastClientData = localStorage.getItem("lastClientData");
-    const lastClientMetadata = localStorage.getItem("lastClientMetadata");
-    if (lastClient) {
-      setLastClientFile(lastClient);
-    }
-    if (lastClientData) {
-      setLastClientData(lastClientData);
-    }
-    if (lastClientMetadata) {
-      try {
-        const metadata = JSON.parse(lastClientMetadata);
-        // Convert uploadTime back to Date object
-        metadata.uploadTime = new Date(metadata.uploadTime);
-        setClientFileMetadata(metadata);
-      } catch (e) {
-        console.error('Failed to parse client metadata:', e);
-      }
-    }
+    return false;
   }, []);
 
-  // Hidden keyboard shortcut to toggle UI (Ctrl+Shift+U)
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey && event.shiftKey && event.key === 'U') {
-        event.preventDefault();
-        router.push('/excel-import-clean');
-      }
-    };
+    // First try to load shared data from other UI
+    const loadedShared = loadSharedDataToState();
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [router]);
+    if (!loadedShared) {
+      // Fall back to loading individual localStorage items (legacy behavior)
+      const lastMaster = localStorage.getItem("lastMasterFile");
+      const lastMasterData = localStorage.getItem("lastMasterData");
+      const lastMasterMetadata = localStorage.getItem("lastMasterMetadata");
+      if (lastMaster) {
+        setLastMasterFile(lastMaster);
+      }
+      if (lastMasterData) {
+        setLastMasterData(lastMasterData);
+      }
+      if (lastMasterMetadata) {
+        try {
+          const metadata = JSON.parse(lastMasterMetadata);
+          // Convert uploadTime back to Date object
+          metadata.uploadTime = new Date(metadata.uploadTime);
+          setMasterFileMetadata(metadata);
+        } catch (e) {
+          console.error('Failed to parse master metadata:', e);
+        }
+      }
+      const lastClient = localStorage.getItem("lastClientFile");
+      const lastClientData = localStorage.getItem("lastClientData");
+      const lastClientMetadata = localStorage.getItem("lastClientMetadata");
+      if (lastClient) {
+        setLastClientFile(lastClient);
+      }
+      if (lastClientData) {
+        setLastClientData(lastClientData);
+      }
+      if (lastClientMetadata) {
+        try {
+          const metadata = JSON.parse(lastClientMetadata);
+          // Convert uploadTime back to Date object
+          metadata.uploadTime = new Date(metadata.uploadTime);
+          setClientFileMetadata(metadata);
+        } catch (e) {
+          console.error('Failed to parse client metadata:', e);
+        }
+      }
+    }
+  }, [loadSharedDataToState]);
+
+
+
+
 
   // Debug tab state
   useEffect(() => {
@@ -915,6 +952,63 @@ export default function ExcelImportPage() {
       },
     };
   }, []);
+
+  // Function to save current state to shared data
+  const saveCurrentStateToShared = useCallback(() => {
+    const sharedData: SharedAppData = {
+      // Master data
+      rowsMaster,
+      columnsMaster,
+      masterSheetData,
+      masterSheetNames,
+      activeMasterTab,
+      masterFileMetadata,
+
+      // Client data
+      rowsClient,
+      columnsClient,
+      clientSheetData,
+      clientSheetNames,
+      activeClientTab,
+      clientFileMetadata,
+
+      // Comparison results
+      mergedRows,
+      mergedColumns,
+      unmatchedClient,
+      dupsClient,
+      showCompare,
+      comparisonStats,
+
+      // Settings
+      modifierCriteria,
+
+      // Metadata
+      lastSaved: new Date().toISOString(),
+      sourceUI: 'main'
+    };
+
+    saveSharedData(sharedData);
+  }, [
+    rowsMaster, columnsMaster, masterSheetData, masterSheetNames, activeMasterTab, masterFileMetadata,
+    rowsClient, columnsClient, clientSheetData, clientSheetNames, activeClientTab, clientFileMetadata,
+    mergedRows, mergedColumns, unmatchedClient, dupsClient, showCompare, comparisonStats,
+    modifierCriteria
+  ]);
+
+  // Hidden keyboard shortcut to toggle UI (Ctrl+Shift+U)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.key === 'U') {
+        event.preventDefault();
+        saveCurrentStateToShared();
+        router.push('/excel-import-clean');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [router, saveCurrentStateToShared]);
 
   // Filtered data for each grid
   const filteredRowsMaster = filterAndSearchRowsLocal(rowsMaster, searchMaster, masterFilters);
@@ -2284,12 +2378,21 @@ export default function ExcelImportPage() {
     const columns: GridColDef[] = headers.map((header, idx) => {
       const field = header || `col${idx}`;
       const headerName = header || `Column ${idx + 1}`;
-
-      // Set width based on column type - quantity columns are half width
-      let width = 150; // default width
       const fieldLower = field.toLowerCase();
-      if (['quantity', 'qty', 'units', 'unit', 'count'].some(term => fieldLower.includes(term))) {
-        width = 75; // half width for quantity columns
+
+      // Optimize column widths based on content type
+      let width = 150; // default width
+
+      if (fieldLower.includes('hcpcs') || fieldLower.includes('hcpc')) {
+        width = 100; // HCPCS codes are typically 5 characters
+      } else if (fieldLower.includes('cdm') || fieldLower.includes('code')) {
+        width = 90; // CDM codes are numeric, more compact
+      } else if (fieldLower.includes('description') || fieldLower.includes('desc')) {
+        width = 400; // Descriptions need much more space
+      } else if (['quantity', 'qty', 'units', 'unit', 'count'].some(term => fieldLower.includes(term))) {
+        width = 80; // Quantity columns are narrow
+      } else if (fieldLower.includes('modifier') || fieldLower.includes('mod')) {
+        width = 90; // Modifiers are short codes
       }
 
       return {
@@ -3119,7 +3222,7 @@ export default function ExcelImportPage() {
   return (
     <NoSSR>
     <Box sx={{
-      p: 4,
+      p: 2,
       background: 'linear-gradient(135deg, #f8fbff 0%, #e3f2fd 50%, #f0f8ff 100%)',
       minHeight: '100vh',
       marginRight: isChatOpen ? { xs: '90vw', sm: `${chatWidth}px` } : 0,
@@ -3127,24 +3230,24 @@ export default function ExcelImportPage() {
     }}>
 
 
-      <Typography variant="h3" gutterBottom sx={{
+      <Typography variant="h4" gutterBottom sx={{
         color: '#1976d2',
         fontWeight: 'bold',
         textAlign: 'center',
-        mb: 4,
+        mb: 1,
         textShadow: '0 2px 4px rgba(25, 118, 210, 0.2)'
       }}>
        🔧 VIC CDM MERGE TOOL
       </Typography>
       
       {/* Upload/Grid Areas */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ 
-          display: "flex", 
+      <Box sx={{ mb: 2 }}>
+        <Box sx={{
+          display: "flex",
           gap: 2,
           flexDirection: { xs: 'column', md: 'row' },
           width: '100%',
-          mb: 4
+          mb: 2
         }}>
         {/* Master File Area */}
         <Box 
@@ -4449,7 +4552,10 @@ export default function ExcelImportPage() {
       }}>
         <Typography
           variant="caption"
-          onClick={() => router.push('/excel-import-clean')}
+          onClick={() => {
+            saveCurrentStateToShared();
+            router.push('/excel-import-clean');
+          }}
           sx={{
             color: 'rgba(0,0,0,0.5)',
             fontSize: '0.7rem',

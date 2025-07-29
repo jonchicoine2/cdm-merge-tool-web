@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button, Box, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
 
@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { ModifierCriteria } from "../../utils/excelOperations";
 import { useFileOperations } from "../../hooks/useFileOperations";
 import { useComparison } from "../../hooks/useComparison";
+import { saveSharedData, loadSharedData, SharedAppData } from "../../utils/sharedDataPersistence";
 import {
   WelcomeSection,
   FileUploadArea,
@@ -43,9 +44,10 @@ export default function ExcelImportCleanPage() {
 
   // UI state
   const [modifierDialogOpen, setModifierDialogOpen] = useState(false);
+  const [isLoadingSharedData, setIsLoadingSharedData] = useState(false);
   const [modifierCriteria, setModifierCriteria] = useState<ModifierCriteria>({
-    root00: true,
-    root25: true,
+    root00: false,
+    root25: false,
     ignoreTrauma: false,
     root50: false,
     root59: false,
@@ -53,18 +55,110 @@ export default function ExcelImportCleanPage() {
     root76: false,
   });
 
+  // Function to save current state to shared data
+  const saveCurrentStateToShared = useCallback(() => {
+    const sharedData: SharedAppData = {
+      // Master data
+      rowsMaster: fileOps.rowsMaster,
+      columnsMaster: fileOps.columnsMaster,
+      masterSheetData: fileOps.masterSheetData,
+      masterSheetNames: fileOps.masterSheetNames,
+      activeMasterTab: fileOps.activeMasterTab,
+      masterFileMetadata: fileOps.masterFileMetadata,
+
+      // Client data
+      rowsClient: fileOps.rowsClient,
+      columnsClient: fileOps.columnsClient,
+      clientSheetData: fileOps.clientSheetData,
+      clientSheetNames: fileOps.clientSheetNames,
+      activeClientTab: fileOps.activeClientTab,
+      clientFileMetadata: fileOps.clientFileMetadata,
+
+      // Comparison results
+      mergedRows: comparison.mergedRows,
+      mergedColumns: comparison.mergedColumns,
+      unmatchedClient: comparison.unmatchedClient,
+      dupsClient: comparison.dupsClient,
+      showCompare: comparison.showCompare,
+      comparisonStats: comparison.comparisonStats,
+
+      // Settings
+      modifierCriteria,
+
+      // Metadata
+      lastSaved: new Date().toISOString(),
+      sourceUI: 'clean'
+    };
+
+    saveSharedData(sharedData);
+  }, [fileOps, comparison, modifierCriteria]);
+
+  // Function to load shared data from main UI
+  const loadSharedDataToState = useCallback(() => {
+    const sharedData = loadSharedData();
+    if (sharedData && sharedData.sourceUI === 'main') {
+      console.log('[SHARED DATA] Loading data from main UI...');
+      setIsLoadingSharedData(true);
+
+      // Load file operations data (master/client data)
+      fileOps.loadSharedData(sharedData);
+
+      // Load comparison results
+      comparison.loadSharedData(sharedData);
+
+      // Load settings
+      setModifierCriteria(sharedData.modifierCriteria);
+
+      console.log('[SHARED DATA] Successfully loaded shared data');
+      setIsLoadingSharedData(false);
+      return true;
+    }
+    return false;
+  }, [fileOps, comparison]);
+
+  // Load shared data on component mount (only once)
+  useEffect(() => {
+    loadSharedDataToState();
+  }, []); // Empty dependency array to run only once on mount
+
   // Hidden keyboard shortcut to toggle UI (Ctrl+Shift+U)
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.shiftKey && event.key === 'U') {
         event.preventDefault();
+        saveCurrentStateToShared();
         router.push('/excel-import');
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [router]);
+  }, [router, saveCurrentStateToShared]);
+
+  // Auto-compare when both tables have data (but not during shared data loading)
+  useEffect(() => {
+    if (!isLoadingSharedData && fileOps.rowsMaster.length > 0 && fileOps.rowsClient.length > 0) {
+      // Perform comparison automatically
+      comparison.performComparison(
+        fileOps.rowsMaster,
+        fileOps.columnsMaster,
+        fileOps.rowsClient,
+        fileOps.columnsClient,
+        modifierCriteria
+      );
+
+      // Scroll to comparison results after a short delay to allow rendering
+      setTimeout(() => {
+        const comparisonElement = document.getElementById('comparison-results');
+        if (comparisonElement) {
+          comparisonElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          });
+        }
+      }, 300);
+    }
+  }, [isLoadingSharedData, fileOps.rowsMaster, fileOps.rowsClient, fileOps.columnsMaster, fileOps.columnsClient, modifierCriteria, comparison.performComparison]);
 
   // Drag and drop handlers
   const handleDragEnter = (fileType: "Master" | "Client") => () => {
@@ -87,15 +181,9 @@ export default function ExcelImportCleanPage() {
     }
   };
 
-  // Comparison handler
+  // Close dialog handler (comparison happens automatically)
   const handleStartComparison = () => {
-    comparison.performComparison(
-      fileOps.rowsMaster,
-      fileOps.columnsMaster,
-      fileOps.rowsClient,
-      fileOps.columnsClient,
-      modifierCriteria
-    );
+    setModifierDialogOpen(false);
   };
 
   // Export handler (unified like original implementation)
@@ -110,7 +198,7 @@ export default function ExcelImportCleanPage() {
   return (
     <NoSSR>
       <Box sx={{
-        p: 4,
+        p: 2,
         background: 'linear-gradient(135deg, #f8fbff 0%, #e3f2fd 50%, #f0f8ff 100%)',
         minHeight: '100vh'
       }}>
@@ -125,7 +213,7 @@ export default function ExcelImportCleanPage() {
           gap: 2,
           flexDirection: { xs: 'column', md: 'row' },
           width: '100%',
-          mb: 4
+          mb: 2
         }}>
           {/* Master Section */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -188,39 +276,93 @@ export default function ExcelImportCleanPage() {
           </Box>
         </Box>
 
-        {/* Compare Button */}
-        {fileOps.rowsMaster.length > 0 && fileOps.rowsClient.length > 0 && (
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
+        {/* Reset and Compare Buttons */}
+        <Box sx={{ textAlign: 'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap', mb: 2 }}>
+            {fileOps.rowsMaster.length > 0 && (
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => {
+                  fileOps.resetMaster();
+                  comparison.resetComparison();
+                }}
+                sx={{
+                  fontSize: '1rem',
+                  py: 1,
+                  px: 3,
+                }}
+              >
+                🗑️ Reset Master
+              </Button>
+            )}
+            {fileOps.rowsClient.length > 0 && (
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => {
+                  fileOps.resetClient();
+                  comparison.resetComparison();
+                }}
+                sx={{
+                  fontSize: '1rem',
+                  py: 1,
+                  px: 3,
+                }}
+              >
+                🗑️ Reset Client
+              </Button>
+            )}
+            {(fileOps.rowsMaster.length > 0 || fileOps.rowsClient.length > 0) && (
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={() => {
+                  fileOps.resetBoth();
+                  comparison.resetComparison();
+                }}
+                sx={{
+                  fontSize: '1rem',
+                  py: 1,
+                  px: 3,
+                }}
+              >
+                🔄 Reset Both
+              </Button>
+            )}
+          </Box>
+          
+          {fileOps.rowsMaster.length > 0 && fileOps.rowsClient.length > 0 && (
             <Button
-              variant="contained"
-              size="large"
+              variant="outlined"
+              size="small"
               onClick={() => setModifierDialogOpen(true)}
               sx={{
-                fontSize: '1.2rem',
-                py: 2,
-                px: 4,
-                background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-                boxShadow: '0 3px 5px 2px rgba(25, 118, 210, .3)',
+                fontSize: '0.875rem',
+                py: 0.5,
+                px: 2,
               }}
             >
-              🔄 Compare & Merge Data
+              ⚙️ Adjust Modifier Criteria
             </Button>
-          </Box>
-        )}
+          )}
+        </Box>
 
 
 
         {/* Comparison Results */}
         {comparison.showCompare && (
-          <ComparisonResults
-            mergedRows={comparison.mergedRows}
-            mergedColumns={comparison.mergedColumns}
-            unmatchedClient={comparison.unmatchedClient}
-            dupsClient={comparison.dupsClient}
-            columnsClient={fileOps.columnsClient}
-            comparisonStats={comparison.comparisonStats}
-            onExport={handleExportData}
-          />
+          <Box id="comparison-results">
+            <ComparisonResults
+              mergedRows={comparison.mergedRows}
+              mergedColumns={comparison.mergedColumns}
+              unmatchedClient={comparison.unmatchedClient}
+              dupsClient={comparison.dupsClient}
+              columnsClient={fileOps.columnsClient}
+              comparisonStats={comparison.comparisonStats}
+              onExport={handleExportData}
+            />
+          </Box>
         )}
 
         {/* Modifier Criteria Dialog */}
@@ -234,8 +376,8 @@ export default function ExcelImportCleanPage() {
 
         {/* Footer */}
         <Box sx={{
-          mt: 6,
-          pt: 4,
+          mt: 3,
+          pt: 2,
           borderTop: '1px solid #e0e0e0',
           textAlign: 'center',
           color: '#666'
@@ -248,7 +390,10 @@ export default function ExcelImportCleanPage() {
           </Typography>
           <Typography
             variant="caption"
-            onClick={() => router.push('/excel-import')}
+            onClick={() => {
+              saveCurrentStateToShared();
+              router.push('/excel-import');
+            }}
             sx={{
               color: 'rgba(0,0,0,0.4)',
               fontSize: '0.7rem',

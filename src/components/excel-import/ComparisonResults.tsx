@@ -2,7 +2,6 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useGridApiRef } from '@mui/x-data-grid-pro';
 import { ComparisonResultsProps } from './types';
-import ComparisonStatsPanel from './ComparisonStatsPanel';
 import ExportButtons from './ExportButtons';
 import DataGridSection from './DataGridSection';
 
@@ -28,15 +27,12 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
         🔄 Comparison Results
       </Typography>
       
-      {/* Comparison Statistics */}
-      <ComparisonStatsPanel stats={comparisonStats} />
-      
       {/* Export Button */}
       <ExportButtons
         mergedRows={mergedRows}
         onExport={onExport}
       />
-      
+
       {/* Merged Data Grid */}
       {mergedRows.length > 0 && (
         <Box sx={{ mb: 4 }}>
@@ -48,6 +44,7 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
             apiRef={mergedApiRef}
             headerColor="#2e7d32"
             backgroundColor="#e8f5e8"
+            comparisonStats={comparisonStats}
           />
         </Box>
       )}

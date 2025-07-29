@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { GridColDef } from '@mui/x-data-grid-pro';
 import {
   ExcelRow,
@@ -19,7 +19,7 @@ export const useComparison = () => {
   const [showCompare, setShowCompare] = useState(false);
   const [comparisonStats, setComparisonStats] = useState<ComparisonStats | null>(null);
 
-  const performComparison = (
+  const performComparison = useCallback((
     rowsMaster: ExcelRow[],
     columnsMaster: GridColDef[],
     rowsClient: ExcelRow[],
@@ -144,7 +144,7 @@ export const useComparison = () => {
     setDupsClient(duplicates);
     setComparisonStats(stats);
     setShowCompare(true);
-  };
+  }, []); // Empty dependency array since this function doesn't depend on any external values
 
   const resetComparison = () => {
     setMergedRows([]);
@@ -153,6 +153,15 @@ export const useComparison = () => {
     setDupsClient([]);
     setComparisonStats(null);
     setShowCompare(false);
+  };
+
+  const loadSharedData = (sharedData: any) => {
+    setMergedRows(sharedData.mergedRows || []);
+    setMergedColumns(sharedData.mergedColumns || []);
+    setUnmatchedClient(sharedData.unmatchedClient || []);
+    setDupsClient(sharedData.dupsClient || []);
+    setComparisonStats(sharedData.comparisonStats);
+    setShowCompare(sharedData.showCompare || false);
   };
 
   return {
@@ -166,6 +175,7 @@ export const useComparison = () => {
     resetComparison,
     setMergedRows,
     setUnmatchedClient,
-    setDupsClient
+    setDupsClient,
+    loadSharedData
   };
 };

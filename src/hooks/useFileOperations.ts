@@ -59,12 +59,33 @@ export const useFileOperations = () => {
     const headers = json[0] as string[];
     const dataRows = json.slice(1) as (string | number)[][];
 
-    const columns: GridColDef[] = headers.map((header, index) => ({
-      field: header || `Column${index + 1}`,
-      headerName: header || `Column ${index + 1}`,
-      width: 150,
-      editable: isEditable,
-    }));
+    const columns: GridColDef[] = headers.map((header, index) => {
+      const field = header || `Column${index + 1}`;
+      const headerName = header || `Column ${index + 1}`;
+      const fieldLower = field.toLowerCase();
+
+      // Optimize column widths based on content type
+      let width = 150; // default width
+
+      if (fieldLower.includes('hcpcs') || fieldLower.includes('hcpc')) {
+        width = 100; // HCPCS codes are typically 5 characters
+      } else if (fieldLower.includes('cdm') || fieldLower.includes('code')) {
+        width = 90; // CDM codes are numeric, more compact
+      } else if (fieldLower.includes('description') || fieldLower.includes('desc')) {
+        width = 800; // Descriptions need much more space - significantly wider
+      } else if (['quantity', 'qty', 'units', 'unit', 'count'].some(term => fieldLower.includes(term))) {
+        width = 80; // Quantity columns are narrow
+      } else if (fieldLower.includes('modifier') || fieldLower.includes('mod')) {
+        width = 90; // Modifiers are short codes
+      }
+
+      return {
+        field,
+        headerName,
+        width,
+        editable: isEditable,
+      };
+    });
 
     const rows: ExcelRow[] = dataRows.map((row, index) => {
       const rowData: ExcelRow = { id: index + 1 };
@@ -260,6 +281,50 @@ export const useFileOperations = () => {
     }
   };
 
+  // Reset functions
+  const resetMaster = () => {
+    setRowsMaster([]);
+    setColumnsMaster([]);
+    setMasterFileMetadata(null);
+    setMasterSheetData({});
+    setMasterSheetNames([]);
+    setActiveMasterTab(0);
+  };
+
+  const resetClient = () => {
+    setRowsClient([]);
+    setColumnsClient([]);
+    setClientFileMetadata(null);
+    setClientSheetData({});
+    setClientSheetNames([]);
+    setActiveClientTab(0);
+  };
+
+  const resetBoth = () => {
+    resetMaster();
+    resetClient();
+  };
+
+  // Load shared data function
+  const loadSharedData = (sharedData: any) => {
+    // Load master data
+    setRowsMaster(sharedData.rowsMaster || []);
+    setColumnsMaster(sharedData.columnsMaster || []);
+    setMasterSheetData(sharedData.masterSheetData || {});
+    setMasterSheetNames(sharedData.masterSheetNames || []);
+    setActiveMasterTab(sharedData.activeMasterTab || 0);
+    setMasterFileMetadata(sharedData.masterFileMetadata);
+
+    // Load client data
+    setRowsClient(sharedData.rowsClient || []);
+    setColumnsClient(sharedData.columnsClient || []);
+    setClientSheetData(sharedData.clientSheetData || {});
+    setClientSheetNames(sharedData.clientSheetNames || []);
+    setActiveClientTab(sharedData.activeClientTab || 0);
+    setClientFileMetadata(sharedData.clientFileMetadata);
+    setLastClientFile(sharedData.clientFileMetadata?.name || '');
+  };
+
   // Export functions
   // Export function matching original implementation
   const handleExport = (mergedRows: ExcelRow[], unmatchedClient: ExcelRow[], dupsClient: ExcelRow[]) => {
@@ -350,6 +415,10 @@ export const useFileOperations = () => {
     handleDeleteRow,
     handleMasterRowUpdate,
     handleClientRowUpdate,
-    handleExport
+    handleExport,
+    resetMaster,
+    resetClient,
+    resetBoth,
+    loadSharedData
   };
 };
