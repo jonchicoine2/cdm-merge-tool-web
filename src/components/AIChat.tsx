@@ -434,8 +434,13 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
                 </Typography>
                 <FormControl size="small" sx={{ minWidth: 100 }}>
                   <Select
-                    value={selectedGrid}
+                    value={
+                      Object.entries(gridContext.availableGrids).some(
+                        ([grid, data]) => grid === selectedGrid && data.hasData
+                      ) ? selectedGrid : ''
+                    }
                     onChange={(e) => onGridChange(e.target.value as typeof selectedGrid)}
+                    displayEmpty
                     sx={{
                       color: 'white',
                       fontSize: '0.75rem',
@@ -448,6 +453,11 @@ const AIChat = forwardRef<AIChatHandle, AIChatProps>(({ gridContext, onAction, i
                       },
                     }}
                   >
+                    {Object.entries(gridContext.availableGrids).filter(([, data]) => data.hasData).length === 0 && (
+                      <MenuItem value="" disabled>
+                        No data loaded
+                      </MenuItem>
+                    )}
                     {Object.entries(gridContext.availableGrids).map(([grid, data]) => (
                       data.hasData && (
                         <MenuItem key={grid} value={grid}>

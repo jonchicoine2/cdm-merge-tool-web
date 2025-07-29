@@ -17,7 +17,12 @@
       "Bash(npm run lint)",
       "Bash(ls:*)",
       "Bash(echo:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run:*)",
+      "Bash(npx eslint:*)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   }

@@ -1,0 +1,17 @@
+{
+  "entry": [
+    "src/app/layout.tsx",
+    "src/app/page.tsx",
+    "src/app/api/**/*.ts"
+  ],
+  "ignoreUnused": [
+    "@types/node",
+    "@types/react",
+    "@types/react-dom",
+    "eslint",
+    "eslint-config-next",
+    "typescript",
+    "ts-prune",
+    "unimported"
+  ]
+}

@@ -217,112 +217,33 @@ export function getDescriptionColumn(columns: GridColDef[]): string | null {
 }
 
 export function validateForDuplicates(data: ExcelRow[], hcpcsCol: string, modifierCol: string | null): ExcelRow[] {
-  const seen = new Set<string>();
-  const duplicates: ExcelRow[] = [];
-  
+  // Use raw key logic like the original implementation (not parsed comparison key)
+  const getRawKey = (row: ExcelRow): string => {
+    const hcpcs = String(row[hcpcsCol] || "").toUpperCase().trim();
+    const modifier = modifierCol ? String(row[modifierCol] || "").toUpperCase().trim() : "";
+    // If there's a modifier column, use both; otherwise, use the full HCPCS field as-is
+    return modifierCol ? `${hcpcs}-${modifier}` : hcpcs;
+  };
+
+  // Count occurrences of each key (like original implementation)
+  const rawKeyCount: Record<string, number> = {};
   data.forEach(row => {
-    const key = getCompareKey(row, hcpcsCol, modifierCol, {
-      root00: true,
-      root25: true,
-      ignoreTrauma: false,
-      root50: false,
-      root59: false,
-      rootXU: false,
-      root76: false
-    });
-    
-    if (seen.has(key)) {
-      duplicates.push(row);
-    } else {
-      seen.add(key);
+    const key = getRawKey(row);
+    if (key) {
+      rawKeyCount[key] = (rawKeyCount[key] || 0) + 1;
     }
   });
-  
+
+  // Find duplicate keys (keys that appear more than once)
+  const duplicateKeys = Object.keys(rawKeyCount).filter(key => rawKeyCount[key] > 1);
+
+  // Return ALL rows that have duplicate keys (not just subsequent occurrences)
+  const duplicates = data.filter(row => duplicateKeys.includes(getRawKey(row)));
+
   return duplicates;
 }
 
-export function mergeData(
-  masterData: ExcelRow[],
-  clientData: ExcelRow[],
-  masterColumns: GridColDef[],
-  clientColumns: GridColDef[],
-  modifierCriteria: ModifierCriteria
-): {
-  merged: ExcelRow[],
-  unmatched: ExcelRow[],
-  duplicates: ExcelRow[],
-  stats: ComparisonStats
-} {
-  const startTime = performance.now();
-  
-  const masterHcpcsCol = getHCPCSColumn(masterColumns);
-  const clientHcpcsCol = getHCPCSColumn(clientColumns);
-  const masterModifierCol = getModifierColumn(masterColumns);
-  const clientModifierCol = getModifierColumn(clientColumns);
-  
-  if (!masterHcpcsCol || !clientHcpcsCol) {
-    throw new Error('HCPCS columns not found in both datasets');
-  }
-  
-  // Create client lookup map
-  const clientMap = new Map<string, ExcelRow>();
-  clientData.forEach(row => {
-    const key = getCompareKey(row, clientHcpcsCol, clientModifierCol, modifierCriteria);
-    clientMap.set(key, row);
-  });
-  
-  // Create column mapping
-  const columnMapping = createColumnMapping(masterColumns, clientColumns);
-  
-  const merged: ExcelRow[] = [];
-  const unmatched: ExcelRow[] = [];
-  const duplicates: ExcelRow[] = [];
-  let matchedCount = 0;
-  
-  masterData.forEach(masterRow => {
-    const masterKey = getCompareKey(masterRow, masterHcpcsCol, masterModifierCol, modifierCriteria);
-    const clientRow = clientMap.get(masterKey);
-    
-    if (clientRow) {
-      // Merge the rows
-      const mergedRow: ExcelRow = { ...masterRow };
-      
-      // Add client data using column mapping
-      Object.entries(columnMapping).forEach(([masterField, clientField]) => {
-        if (clientRow[clientField] !== undefined) {
-          mergedRow[`client_${masterField}`] = clientRow[clientField];
-        }
-      });
-      
-      merged.push(mergedRow);
-      matchedCount++;
-    } else {
-      unmatched.push(masterRow);
-    }
-  });
-  
-  // Find duplicates in client data
-  const clientDuplicates = validateForDuplicates(clientData, clientHcpcsCol, clientModifierCol);
-  duplicates.push(...clientDuplicates);
-  
-  const endTime = performance.now();
-  const processingTime = Math.round(endTime - startTime);
-  
-  const stats: ComparisonStats = {
-    totalMasterRecords: masterData.length,
-    totalClientRecords: clientData.length,
-    matchedRecords: matchedCount,
-    unmatchedRecords: unmatched.length,
-    duplicateRecords: duplicates.length,
-    matchRate: Math.round((matchedCount / masterData.length) * 100),
-    processingTime,
-    columnsMatched: Object.keys(columnMapping).length,
-    totalMasterColumns: masterColumns.length,
-    totalClientColumns: clientColumns.length
-  };
-  
-  return { merged, unmatched, duplicates, stats };
-}
+
 
 export function exportToExcel(data: ExcelRow[], filename: string): void {
   const worksheet = XLSX.utils.json_to_sheet(data);

@@ -1,14 +1,21 @@
 "use client";
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Button, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, TextField, InputAdornment, Tabs, Tab, Chip, Fab, Tooltip, IconButton } from "@mui/material";
-import { DataGrid, GridColDef, GridSortModel, GridRenderCellParams } from "@mui/x-data-grid";
+import { DataGridPro, GridColDef, GridSortModel, GridRenderCellParams, useGridApiRef, GridRowSelectionModel, GridRowEditStopParams } from "@mui/x-data-grid-pro";
 import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import EditIcon from "@mui/icons-material/Edit";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DeleteIcon from "@mui/icons-material/Delete";
 import * as XLSX from "xlsx";
 import AIChat, { AIChatHandle } from "../../components/AIChat";
 import dynamic from 'next/dynamic';
+import { useRouter } from "next/navigation";
 import { filterAndSearchRows } from "../../utils/excelOperations";
+import { saveSharedData, loadSharedData, SharedAppData } from "../../utils/sharedDataPersistence";
+// Removed cptCacheService import - no longer used
 
 // Create a NoSSR wrapper component to disable server-side rendering
 const NoSSR = dynamic(() => Promise.resolve(({ children }: { children: React.ReactNode }) => <>{children}</>), {
@@ -73,7 +80,10 @@ interface AIIntent {
   response?: string;
 }
 
+
 export default function ExcelImportPage() {
+  const router = useRouter();
+
   const [rowsMaster, setRowsMaster] = useState<ExcelRow[]>([]);
   const [columnsMaster, setColumnsMaster] = useState<GridColDef[]>([]);
   const [rowsClient, setRowsClient] = useState<ExcelRow[]>([]);
@@ -81,6 +91,7 @@ export default function ExcelImportPage() {
   const [mergedRows, setMergedRows] = useState<ExcelRow[]>([]);
   const [mergedColumns, setMergedColumns] = useState<GridColDef[]>([]);
   const [showCompare, setShowCompare] = useState(false);
+  const [hasInitialSort, setHasInitialSort] = useState(false);
   const fileMasterInputRef = useRef<HTMLInputElement>(null);
   const fileClientInputRef = useRef<HTMLInputElement>(null);
   const [dragOverMaster, setDragOverMaster] = useState(false);
@@ -106,61 +117,103 @@ export default function ExcelImportPage() {
   // Comparison statistics state
   const [comparisonStats, setComparisonStats] = useState<ComparisonStats | null>(null);
   
-  // HCPCS validation state
-  const [invalidHcpcsCodes, setInvalidHcpcsCodes] = useState<Set<string>>(new Set());
-  const [validationDetails, setValidationDetails] = useState<{[code: string]: {reason: string}} | null>(null);
-  const [isValidating, setIsValidating] = useState(false);
-  const [validationProgress, setValidationProgress] = useState<{current: number, total: number} | null>(null);
-  const [hasValidationFilter, setHasValidationFilter] = useState(false);
+
+
   
-  // Client-side hydration state (no longer needed with NoSSR)
-  // const [isClient, setIsClient] = useState(false);
-  
-  useEffect(() => {
-    const lastMaster = localStorage.getItem("lastMasterFile");
-    const lastMasterData = localStorage.getItem("lastMasterData");
-    const lastMasterMetadata = localStorage.getItem("lastMasterMetadata");
-    if (lastMaster) {
-      setLastMasterFile(lastMaster);
+  // Function to load shared data from other UI
+  const loadSharedDataToState = useCallback(() => {
+    const sharedData = loadSharedData();
+    if (sharedData && sharedData.sourceUI === 'clean') {
+      console.log('[SHARED DATA] Loading data from clean UI...');
+
+      // Load master data
+      setRowsMaster(sharedData.rowsMaster);
+      setColumnsMaster(sharedData.columnsMaster);
+      setMasterSheetData(sharedData.masterSheetData);
+      setMasterSheetNames(sharedData.masterSheetNames);
+      setActiveMasterTab(sharedData.activeMasterTab);
+      setMasterFileMetadata(sharedData.masterFileMetadata);
+
+      // Load client data
+      setRowsClient(sharedData.rowsClient);
+      setColumnsClient(sharedData.columnsClient);
+      setClientSheetData(sharedData.clientSheetData);
+      setClientSheetNames(sharedData.clientSheetNames);
+      setActiveClientTab(sharedData.activeClientTab);
+      setClientFileMetadata(sharedData.clientFileMetadata);
+
+      // Load comparison results
+      setMergedRows(sharedData.mergedRows);
+      setMergedColumns(sharedData.mergedColumns);
+      setUnmatchedClient(sharedData.unmatchedClient);
+      setDupsClient(sharedData.dupsClient);
+      setShowCompare(sharedData.showCompare);
+      setComparisonStats(sharedData.comparisonStats);
+
+      // Load settings
+      setModifierCriteria(sharedData.modifierCriteria);
+
+      console.log('[SHARED DATA] Successfully loaded shared data');
+      return true;
     }
-    if (lastMasterData) {
-      setLastMasterData(lastMasterData);
-    }
-    if (lastMasterMetadata) {
-      try {
-        const metadata = JSON.parse(lastMasterMetadata);
-        // Convert uploadTime back to Date object
-        metadata.uploadTime = new Date(metadata.uploadTime);
-        setMasterFileMetadata(metadata);
-      } catch (e) {
-        console.error('Failed to parse master metadata:', e);
-      }
-    }
-    const lastClient = localStorage.getItem("lastClientFile");
-    const lastClientData = localStorage.getItem("lastClientData");
-    const lastClientMetadata = localStorage.getItem("lastClientMetadata");
-    if (lastClient) {
-      setLastClientFile(lastClient);
-    }
-    if (lastClientData) {
-      setLastClientData(lastClientData);
-    }
-    if (lastClientMetadata) {
-      try {
-        const metadata = JSON.parse(lastClientMetadata);
-        // Convert uploadTime back to Date object
-        metadata.uploadTime = new Date(metadata.uploadTime);
-        setClientFileMetadata(metadata);
-      } catch (e) {
-        console.error('Failed to parse client metadata:', e);
-      }
-    }
+    return false;
   }, []);
-  
+
+  useEffect(() => {
+    // First try to load shared data from other UI
+    const loadedShared = loadSharedDataToState();
+
+    if (!loadedShared) {
+      // Fall back to loading individual localStorage items (legacy behavior)
+      const lastMaster = localStorage.getItem("lastMasterFile");
+      const lastMasterData = localStorage.getItem("lastMasterData");
+      const lastMasterMetadata = localStorage.getItem("lastMasterMetadata");
+      if (lastMaster) {
+        setLastMasterFile(lastMaster);
+      }
+      if (lastMasterData) {
+        setLastMasterData(lastMasterData);
+      }
+      if (lastMasterMetadata) {
+        try {
+          const metadata = JSON.parse(lastMasterMetadata);
+          // Convert uploadTime back to Date object
+          metadata.uploadTime = new Date(metadata.uploadTime);
+          setMasterFileMetadata(metadata);
+        } catch (e) {
+          console.error('Failed to parse master metadata:', e);
+        }
+      }
+      const lastClient = localStorage.getItem("lastClientFile");
+      const lastClientData = localStorage.getItem("lastClientData");
+      const lastClientMetadata = localStorage.getItem("lastClientMetadata");
+      if (lastClient) {
+        setLastClientFile(lastClient);
+      }
+      if (lastClientData) {
+        setLastClientData(lastClientData);
+      }
+      if (lastClientMetadata) {
+        try {
+          const metadata = JSON.parse(lastClientMetadata);
+          // Convert uploadTime back to Date object
+          metadata.uploadTime = new Date(metadata.uploadTime);
+          setClientFileMetadata(metadata);
+        } catch (e) {
+          console.error('Failed to parse client metadata:', e);
+        }
+      }
+    }
+  }, [loadSharedDataToState]);
+
+
+
+
+
   // Debug tab state
   useEffect(() => {
-    console.log('[DEBUG] Master sheets:', masterSheetNames, 'Active tab:', activeMasterTab);
-    console.log('[DEBUG] Client sheets:', clientSheetNames, 'Active tab:', activeClientTab);
+    // console.log('[DEBUG] Master sheets:', masterSheetNames, 'Active tab:', activeMasterTab);
+    // console.log('[DEBUG] Client sheets:', clientSheetNames, 'Active tab:', activeClientTab);
   }, [masterSheetNames, clientSheetNames, activeMasterTab, activeClientTab]);
   
   // Helper function to format file size
@@ -173,15 +226,12 @@ export default function ExcelImportPage() {
   };
   
   // File information card component with consistent theming
-  const FileInfoCard = ({ metadata, type }: { metadata: FileMetadata | null, type: 'Master' | 'Client' }) => {
-    console.log(`[DEBUG] FileInfoCard render - ${type}:`, metadata);
+  const FileInfoCard = ({ metadata }: { metadata: FileMetadata | null }) => {
     
     if (!metadata) {
-      console.log(`[DEBUG] No metadata for ${type}, not rendering card`);
       return null;
     }
     
-    console.log(`[DEBUG] Rendering ${type} FileInfoCard with metadata:`, metadata);
     
     return (
       <Box sx={{ 
@@ -285,8 +335,8 @@ export default function ExcelImportPage() {
   // Modifier criteria state
   const [modifierDialogOpen, setModifierDialogOpen] = useState(false);
   const [modifierCriteria, setModifierCriteria] = useState({
-    root00: true,
-    root25: true,
+    root00: false,
+    root25: false,
     ignoreTrauma: false,
     root50: false,
     root59: false,
@@ -299,13 +349,40 @@ export default function ExcelImportPage() {
   const [dupsClient, setDupsClient] = useState<ExcelRow[]>([]);
   const [mergedForExport, setMergedForExport] = useState<ExcelRow[]>([]);
 
-  // Search state for each grid
+  // Search state for each grid - input values (immediate UI updates)
+  const [searchMasterInput, setSearchMasterInput] = useState("");
+  const [searchClientInput, setSearchClientInput] = useState("");
+  const [searchMergedInput, setSearchMergedInput] = useState("");
+
+  // Search state for filtering (debounced)
   const [searchMaster, setSearchMaster] = useState("");
   const [searchClient, setSearchClient] = useState("");
   const [searchMerged, setSearchMerged] = useState("");
   
   // Tab state for errors and duplicates
   const [errorsTabValue, setErrorsTabValue] = useState(0);
+
+  // Debounced search effects (500ms delay)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchMaster(searchMasterInput);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchMasterInput]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchClient(searchClientInput);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchClientInput]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchMerged(searchMergedInput);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchMergedInput]);
 
   // AI Chat state with localStorage persistence
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -342,6 +419,11 @@ export default function ExcelImportPage() {
   const [mergedSortModel, setMergedSortModel] = useState<GridSortModel>([]);
   const [unmatchedSortModel, setUnmatchedSortModel] = useState<GridSortModel>([]);
   const [duplicatesSortModel, setDuplicatesSortModel] = useState<GridSortModel>([]);
+
+  // API refs for programmatic control of each grid
+  const masterApiRef = useGridApiRef();
+  const clientApiRef = useGridApiRef();
+  const mergedApiRef = useGridApiRef();
 
 
   // Filter states for each grid
@@ -384,6 +466,49 @@ export default function ExcelImportPage() {
   const [selectedRowsUnmatched, setSelectedRowsUnmatched] = useState<(number | string)[]>([]);
   const [selectedRowsDuplicates, setSelectedRowsDuplicates] = useState<(number | string)[]>([]);
 
+  // Edit mode tracking states - track which rows are in edit mode for each grid
+  // REMOVED: These states are no longer needed with the simplified approach
+  // const [editingRowsMaster, setEditingRowsMaster] = useState<Set<number | string>>(new Set());
+  // const [editingRowsClient, setEditingRowsClient] = useState<Set<number | string>>(new Set());
+  // const [editingRowsMerged, setEditingRowsMerged] = useState<Set<number | string>>(new Set());
+
+  // Global focus prevention for actions columns
+  useEffect(() => {
+    const preventActionsFocus = (event: FocusEvent) => {
+      const target = event.target as HTMLElement;
+      if (target) {
+        // Check if the focused element is within an actions column
+        const actionsCell = target.closest('[data-field="actions"]');
+        const actionsButton = target.closest('.actions-cell-non-focusable');
+
+        if (actionsCell || actionsButton) {
+          event.preventDefault();
+          event.stopPropagation();
+          target.blur();
+
+          // Try to find the next focusable element (HCPCS column)
+          const row = target.closest('[role="row"]');
+          if (row) {
+            const hcpcsCell = row.querySelector('[data-field*="hcpcs"], [data-field*="HCPCS"], [data-field*="cpt"], [data-field*="code"]');
+            if (hcpcsCell) {
+              const hcpcsInput = hcpcsCell.querySelector('input, [role="textbox"]') as HTMLElement;
+              if (hcpcsInput) {
+                setTimeout(() => hcpcsInput.focus(), 10);
+              }
+            }
+          }
+        }
+      }
+    };
+
+    // Add global focus event listener
+    document.addEventListener('focusin', preventActionsFocus, true);
+
+    return () => {
+      document.removeEventListener('focusin', preventActionsFocus, true);
+    };
+  }, []);
+
 
   // Advanced filter function that applies AI filters
   const applyFilters = (rows: ExcelRow[], filters: {column: string, condition: string, value: string}[]): ExcelRow[] => {
@@ -419,22 +544,7 @@ export default function ExcelImportPage() {
             const numValue2 = parseFloat(cellValue);
             const numFilter2 = parseFloat(filterValue);
             return !isNaN(numValue2) && !isNaN(numFilter2) && numValue2 < numFilter2;
-          case 'invalid_hcpcs':
-            // Find the HCPCS column for this row
-            const hcpcsKey = Object.keys(row).find(key => 
-              key.toLowerCase().includes('hcpcs') || key.toLowerCase().includes('cpt') || key.toLowerCase().includes('code')
-            );
-            
-            if (!hcpcsKey) return false;
-            
-            const hcpcsValue = String(row[hcpcsKey] || '').toUpperCase().trim();
-            // Strip quantity suffix for validation check (x1, x01, x02, etc.)
-            const codeForValidation = hcpcsValue.replace(/X\d{1,2}$/i, '');
-            
-            // Check if the code is invalid
-            return invalidHcpcsCodes.has(codeForValidation) || 
-                   codeForValidation === '99999' || 
-                   codeForValidation === 'TEST123';
+
           default:
             return true;
         }
@@ -525,36 +635,380 @@ export default function ExcelImportPage() {
       console.log(`[GRID CLICK] Switching active grid from ${aiSelectedGrid} to ${gridType}`);
       setAiSelectedGrid(gridType);
     } else {
-      console.log(`[GRID CLICK] Grid ${gridType} already active`);
-    }
+      }
   };
 
-  // Function to get DataGrid styles with conditional scroll handling
-  const getDataGridStyles = (gridType: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') => {
+  // Function to get DataGridPro styles with conditional scroll handling
+  const getDataGridProStyles = (gridType: 'master' | 'client' | 'merged' | 'unmatched' | 'duplicates') => {
     const isActive = aiSelectedGrid === gridType;
     return {
       pointerEvents: isActive ? 'auto' : 'none',
-      '& .MuiDataGrid-virtualScroller': {
+      '& .MuiDataGridPro-virtualScroller': {
         pointerEvents: isActive ? 'auto' : 'none',
       },
-      '& .MuiDataGrid-scrollArea': {
+      '& .MuiDataGridPro-scrollArea': {
         pointerEvents: isActive ? 'auto' : 'none',
       },
-      '& .MuiDataGrid-cell': {
+      '& .MuiDataGridPro-cell': {
         pointerEvents: isActive ? 'auto' : 'none',
       },
-      '& .MuiDataGrid-row': {
+      '& .MuiDataGridPro-row': {
         pointerEvents: isActive ? 'auto' : 'none',
       },
       // Always allow checkbox selection regardless of active state
-      '& .MuiDataGrid-checkboxInput': {
+      '& .MuiDataGridPro-checkboxInput': {
         pointerEvents: 'auto',
       },
       '& .MuiCheckbox-root': {
         pointerEvents: 'auto',
       },
+      // Make actions column completely non-focusable
+      '& [data-field="actions"]': {
+        tabIndex: -1,
+        '&:focus': {
+          outline: 'none !important',
+          boxShadow: 'none !important'
+        },
+        '&.MuiDataGridPro-cell--editing': {
+          outline: 'none !important'
+        }
+      },
+      '& .actions-cell-non-focusable': {
+        tabIndex: -1,
+        '& *': {
+          tabIndex: '-1 !important',
+          outline: 'none !important',
+          '&:focus': {
+            outline: 'none !important',
+            boxShadow: 'none !important',
+            backgroundColor: 'transparent !important'
+          },
+          '&:focus-visible': {
+            outline: 'none !important',
+            boxShadow: 'none !important'
+          }
+        }
+      },
+      '& .actions-header-non-focusable': {
+        tabIndex: '-1 !important',
+        outline: 'none !important',
+        '&:focus': {
+          outline: 'none !important',
+          boxShadow: 'none !important'
+        },
+        '&:focus-visible': {
+          outline: 'none !important',
+          boxShadow: 'none !important'
+        }
+      }
     } as const;
   };
+
+  // Helper function to start row edit mode and focus on HCPCS column
+  const startRowEditModeWithHcpcsFocus = useCallback((gridType: 'master' | 'client' | 'merged', rowId: number | string) => {
+    console.log(`[FOCUS] Starting edit mode for ${gridType} grid, row ID: ${rowId}`);
+    const apiRef = gridType === 'master' ? masterApiRef :
+                  gridType === 'client' ? clientApiRef : mergedApiRef;
+
+    // Get the appropriate HCPCS column
+    let hcpcsColumn: string | null = null;
+
+    if (gridType === 'master') {
+      // Find HCPCS column directly in master columns
+      const masterHcpcsCol = columnsMaster.find(col => 
+        col.field.toLowerCase().includes('hcpcs')
+      );
+      hcpcsColumn = masterHcpcsCol?.field || null;
+    } else if (gridType === 'client') {
+      // Find HCPCS column directly in client columns  
+      const clientHcpcsCol = columnsClient.find(col =>
+        col.field.toLowerCase().includes('hcpcs')
+      );
+      hcpcsColumn = clientHcpcsCol?.field || null;
+    } else {
+      // For merged grid, look for HCPCS column (uses master column names)
+      console.log(`[FOCUS] mergedColumns.length: ${mergedColumns.length}`);
+      console.log(`[FOCUS] Available merged columns:`, mergedColumns.map(col => col.field));
+      
+      // Check what the DataGrid API actually knows about its columns
+      try {
+        const gridColumns = apiRef.current?.getAllColumns?.() || [];
+        console.log(`[FOCUS] DataGrid API knows about columns:`, gridColumns.map(col => col.field));
+        
+        // Try to get the HCPCS column directly from the grid
+        const gridHcpcsCol = gridColumns.find(col => 
+          col.field === 'HCPCs' || col.field.toLowerCase().includes('hcpcs')
+        );
+        console.log(`[FOCUS] DataGrid HCPCS column:`, gridHcpcsCol?.field || null);
+      } catch (error) {
+        console.log(`[FOCUS] Error accessing DataGrid columns:`, error);
+      }
+      
+      if (mergedColumns.length > 0) {
+        // The correct column name is "HCPCs" with lowercase 's'
+        const hcpcsCol = mergedColumns.find(col =>
+          col.field === 'HCPCs' || // Exact match for master column name
+          col.field.toLowerCase().includes('hcpcs')
+        );
+        hcpcsColumn = hcpcsCol?.field || null;
+      } else {
+        // Direct fallback - we know the merged grid uses 'HCPCs' column
+        console.log(`[FOCUS] WARNING: mergedColumns is empty, using direct fallback to 'HCPCs'`);
+        hcpcsColumn = 'HCPCs';
+      }
+      console.log(`[FOCUS] Found HCPCS column in merged grid:`, hcpcsColumn);
+    }
+
+    if (apiRef.current) {
+      try {
+        console.log(`[FOCUS] Found HCPCS column: ${hcpcsColumn}`);
+        // Start edit mode for the row
+        apiRef.current.startRowEditMode({ id: rowId });
+        console.log(`[FOCUS] Started edit mode for row ${rowId}`);
+
+        // Focus on HCPCS column if found
+        if (hcpcsColumn) {
+          setTimeout(() => {
+            console.log(`[FOCUS] About to set cell focus on row ${rowId}, column ${hcpcsColumn}`);
+            // Check if the row exists in the grid before focusing
+            try {
+              const rowExists = apiRef.current?.getRow(rowId);
+              console.log(`[FOCUS] Row ${rowId} exists in grid:`, !!rowExists);
+              if (rowExists) {
+                apiRef.current?.setCellFocus(rowId, hcpcsColumn);
+                console.log(`[FOCUS] Set cell focus completed for row ${rowId}`);
+              } else {
+                console.log(`[FOCUS] Row ${rowId} not found in grid, cannot focus`);
+              }
+            } catch (error) {
+              console.error(`[FOCUS] Error checking/focusing row ${rowId}:`, error);
+            }
+          }, 100);
+        } else {
+          console.log(`[FOCUS] No HCPCS column found, skipping cell focus`);
+        }
+      } catch (error) {
+        console.error('[EDIT MODE] Error starting row edit mode:', error);
+      }
+    } else {
+      console.error(`[FOCUS] No apiRef found for ${gridType} grid`);
+    }
+  }, [mergedColumns, columnsMaster, columnsClient, clientApiRef, masterApiRef, mergedApiRef]); // Add dependencies
+
+  // Function to create actions column for row operations
+  const createActionsColumn = useCallback((gridType: 'master' | 'client' | 'merged'): GridColDef => {
+    return {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 140,
+      editable: false,
+      sortable: false,
+      filterable: false,
+      disableColumnMenu: true,
+      disableReorder: true,
+      hideable: false,
+      // Make the column completely non-focusable
+      cellClassName: 'actions-cell-non-focusable',
+      headerClassName: 'actions-header-non-focusable',
+      // Use renderCell with custom tabIndex
+      renderCell: (params: GridRenderCellParams) => {
+        // PERFORMANCE FIX: Removed the expensive getRowMode check that was called for every row on every render
+        // Actions will always be available - the grid's built-in edit mode handling will manage conflicts
+
+        return (
+          <Box sx={{
+            display: 'flex',
+            gap: 0.5,
+            // Make the entire actions cell completely non-focusable
+            '& *': {
+              tabIndex: -1, // Remove ALL elements from tab order
+              outline: 'none !important', // Remove focus outline
+              '&:focus': {
+                outline: 'none !important',
+                boxShadow: 'none !important'
+              }
+            }
+          }}>
+            <Tooltip title="Edit Row">
+              <span>
+                <IconButton
+                  size="small"
+                  tabIndex={-1} // Remove from tab order
+                  onClick={() => {
+                    startRowEditModeWithHcpcsFocus(gridType, params.row.id);
+                  }}
+                  sx={{
+                    color: '#1976d2',
+                    // Force no focus styles
+                    '&:focus': {
+                      outline: 'none !important',
+                      boxShadow: 'none !important',
+                      backgroundColor: 'transparent !important'
+                    },
+                    '&:focus-visible': {
+                      outline: 'none !important',
+                      boxShadow: 'none !important'
+                    }
+                  }}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Duplicate Row">
+              <span>
+                <IconButton
+                  size="small"
+                  tabIndex={-1} // ALWAYS remove from tab order
+                  disableFocusRipple={true}
+                  disableRipple={true}
+                  onFocus={(e) => {
+                    // Immediately blur if somehow focused
+                    console.log('[FOCUS PREVENTION] Duplicate button focused, blurring immediately');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.blur();
+                  }}
+                  onMouseDown={(e) => {
+                    // Prevent focus on mouse down
+                    e.preventDefault();
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault(); // Prevent default focus behavior
+
+                    // Immediately blur the button that was clicked
+                    if (e.currentTarget instanceof HTMLElement) {
+                      e.currentTarget.blur();
+                    }
+
+                    const result = handleDuplicateRecord(params.row.id, gridType);
+                    if (!result.success) {
+                      // Show user-friendly error message
+                      console.error(`Failed to duplicate record with ID ${params.row.id} in ${gridType} grid`);
+                      // You could add a toast notification here if you have one available
+                    }
+                  }}
+                  sx={{
+                    color: '#ed6c02',
+                    // Force no focus styles
+                    '&:focus': {
+                      outline: 'none !important',
+                      boxShadow: 'none !important',
+                      backgroundColor: 'transparent !important'
+                    },
+                    '&:focus-visible': {
+                      outline: 'none !important',
+                      boxShadow: 'none !important'
+                    }
+                  }}
+                >
+                  <ContentCopyIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Delete Row">
+              <span>
+                <IconButton
+                  size="small"
+                  tabIndex={-1} // ALWAYS remove from tab order
+                  disableFocusRipple={true}
+                  disableRipple={true}
+                  onFocus={(e) => {
+                    // Immediately blur if somehow focused
+                    console.log('[FOCUS PREVENTION] Delete button focused, blurring immediately');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.blur();
+                  }}
+                  onMouseDown={(e) => {
+                    // Prevent focus on mouse down
+                    e.preventDefault();
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteRecord(params.row.id, gridType);
+                  }}
+                  sx={{
+                    color: '#d32f2f',
+                    // Force no focus styles
+                    '&:focus': {
+                      outline: 'none !important',
+                      boxShadow: 'none !important',
+                      backgroundColor: 'transparent !important'
+                    },
+                    '&:focus-visible': {
+                      outline: 'none !important',
+                      boxShadow: 'none !important'
+                    }
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
+        );
+      },
+    };
+  }, [startRowEditModeWithHcpcsFocus]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Function to save current state to shared data
+  const saveCurrentStateToShared = useCallback(() => {
+    const sharedData: SharedAppData = {
+      // Master data
+      rowsMaster,
+      columnsMaster,
+      masterSheetData,
+      masterSheetNames,
+      activeMasterTab,
+      masterFileMetadata,
+
+      // Client data
+      rowsClient,
+      columnsClient,
+      clientSheetData,
+      clientSheetNames,
+      activeClientTab,
+      clientFileMetadata,
+
+      // Comparison results
+      mergedRows,
+      mergedColumns,
+      unmatchedClient,
+      dupsClient,
+      showCompare,
+      comparisonStats,
+
+      // Settings
+      modifierCriteria,
+
+      // Metadata
+      lastSaved: new Date().toISOString(),
+      sourceUI: 'main'
+    };
+
+    saveSharedData(sharedData);
+  }, [
+    rowsMaster, columnsMaster, masterSheetData, masterSheetNames, activeMasterTab, masterFileMetadata,
+    rowsClient, columnsClient, clientSheetData, clientSheetNames, activeClientTab, clientFileMetadata,
+    mergedRows, mergedColumns, unmatchedClient, dupsClient, showCompare, comparisonStats,
+    modifierCriteria
+  ]);
+
+  // Hidden keyboard shortcut to toggle UI (Ctrl+Shift+U)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.key === 'U') {
+        event.preventDefault();
+        saveCurrentStateToShared();
+        router.push('/excel-import-clean');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [router, saveCurrentStateToShared]);
 
   // Filtered data for each grid
   const filteredRowsMaster = filterAndSearchRowsLocal(rowsMaster, searchMaster, masterFilters);
@@ -563,60 +1017,28 @@ export default function ExcelImportPage() {
   const filteredUnmatchedClient = filterAndSearchRowsLocal(unmatchedClient, "", unmatchedFilters);
   const filteredDupsClient = filterAndSearchRowsLocal(dupsClient, "", duplicatesFilters);
 
-  // Enhanced merged columns with "Ask AI" button
+  // Enhanced merged columns (without Ask AI button - it will be added at the end)
   const enhancedMergedColumns = useMemo(() => {
-    const hcpcsColumn = mergedColumns.find(col => 
+    return mergedColumns;
+  }, [mergedColumns]);
+
+  // Enhanced columns with actions for each grid
+  const enhancedMasterColumns = useMemo(() => {
+    return [...columnsMaster, createActionsColumn('master')];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columnsMaster]);
+
+  const enhancedClientColumns = useMemo(() => {
+    return [...columnsClient, createActionsColumn('client')];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columnsClient]);
+
+  const enhancedMergedColumnsWithActions = useMemo(() => {
+    const hcpcsColumn = mergedColumns.find(col =>
       col.field.toLowerCase().includes('hcpcs')
     );
-    
-    if (!hcpcsColumn) return mergedColumns;
-    
-    // Create enhanced columns with custom HCPCS rendering for validation
-    const enhancedColumns = mergedColumns.map(col => {
-      if (col.field === hcpcsColumn.field) {
-        return {
-          ...col,
-          renderCell: (params: GridRenderCellParams) => {
-            const hcpcsValue = params.value;
-            const hcpcsString = String(hcpcsValue).toUpperCase();
-            // Strip quantity suffix for validation check (x1, x01, x02, etc.)
-            const codeForValidation = hcpcsString.replace(/X\d{1,2}$/i, '');
-            const isInvalid = invalidHcpcsCodes.has(codeForValidation) || codeForValidation === '99999' || codeForValidation === 'TEST123';
-            
-            // Debug logging for first few renders
-            if (invalidHcpcsCodes.size > 0 && Math.random() < 0.1) {
-              console.log(`[HCPCS RENDER] Checking ${hcpcsString}, isInvalid: ${isInvalid}, invalidSet size: ${invalidHcpcsCodes.size}`);
-            }
-            
-            return (
-              <Box
-                sx={{
-                  backgroundColor: isInvalid ? '#ffebee' : 'transparent',
-                  color: isInvalid ? '#c62828' : 'inherit',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  fontWeight: isInvalid ? 'bold' : 'normal',
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  border: isInvalid ? '1px solid #ef5350' : 'none',
-                }}
-                title={isInvalid ? 
-                  validationDetails?.[codeForValidation]?.reason || 'Invalid HCPCS code detected' 
-                  : undefined}
-              >
-                {isInvalid && '⚠️ '}{String(hcpcsValue)}
-              </Box>
-            );
-          }
-        };
-      }
-      return col;
-    });
-    
-    // Add "Ask AI" column after HCPCS column
-    const hcpcsIndex = enhancedColumns.findIndex(col => col.field === hcpcsColumn.field);
+
+    // Create Ask AI column
     const askAIColumn: GridColDef = {
       field: 'askAI',
       headerName: 'Ask AI',
@@ -625,9 +1047,10 @@ export default function ExcelImportPage() {
       filterable: false,
       disableColumnMenu: true,
       renderCell: (params) => {
+        if (!hcpcsColumn) return null;
         const hcpcsValue = params.row[hcpcsColumn.field];
         if (!hcpcsValue) return null;
-        
+
         return (
           <Tooltip title={`Ask AI: What is ${hcpcsValue} for?`}>
             <IconButton
@@ -644,12 +1067,11 @@ export default function ExcelImportPage() {
         );
       }
     };
-    
-    // Insert Ask AI column after HCPCS column
-    const newColumns = [...enhancedColumns];
-    newColumns.splice(hcpcsIndex + 1, 0, askAIColumn);
-    return newColumns;
-  }, [mergedColumns, invalidHcpcsCodes, validationDetails]);
+
+    // Add Actions column first, then Ask AI column at the very end
+    return [...enhancedMergedColumns, createActionsColumn('merged'), askAIColumn];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enhancedMergedColumns, mergedColumns]);
 
   // AI Chat functions
   const getCurrentGridContext = useCallback(() => {
@@ -674,40 +1096,23 @@ export default function ExcelImportPage() {
     
     // Get selected row information for current grid (use checkbox selections if available, fallback to single selection)
     const getSelectedRowInfo = () => {
-      console.log('[ROW SELECTION DEBUG] Getting row info for grid:', aiSelectedGrid);
-      console.log('[ROW SELECTION DEBUG] All selection states:', {
-        master: { single: selectedRowMaster, multi: selectedRowsMaster },
-        client: { single: selectedRowClient, multi: selectedRowsClient },
-        merged: { single: selectedRowMerged, multi: selectedRowsMerged },
-        unmatched: { single: selectedRowUnmatched, multi: selectedRowsUnmatched },
-        duplicates: { single: selectedRowDuplicates, multi: selectedRowsDuplicates }
-      });
       
       switch (aiSelectedGrid) {
         case 'master':
           const masterSelectedId = selectedRowsMaster.length > 0 ? selectedRowsMaster[0] : selectedRowMaster;
-          console.log('[ROW SELECTION DEBUG] Master grid selected ID:', masterSelectedId);
           return { selectedRowId: masterSelectedId, selectedRowData: masterSelectedId ? (rows.find(row => row.id === masterSelectedId) || null) : null };
         case 'client':
           const clientSelectedId = selectedRowsClient.length > 0 ? selectedRowsClient[0] : selectedRowClient;
-          console.log('[ROW SELECTION DEBUG] Client grid selected ID:', clientSelectedId);
           return { selectedRowId: clientSelectedId, selectedRowData: clientSelectedId ? (rows.find(row => row.id === clientSelectedId) || null) : null };
         case 'merged':
           const mergedSelectedId = selectedRowsMerged.length > 0 ? selectedRowsMerged[0] : selectedRowMerged;
-          console.log('[ROW SELECTION DEBUG] Merged grid selected ID:', mergedSelectedId);
-          console.log('[ROW SELECTION DEBUG] selectedRowsMerged:', selectedRowsMerged);
-          console.log('[ROW SELECTION DEBUG] selectedRowMerged:', selectedRowMerged);
-          console.log('[ROW SELECTION DEBUG] rows length:', rows.length);
           const foundRow = mergedSelectedId ? (rows.find(row => row.id === mergedSelectedId) || null) : null;
-          console.log('[ROW SELECTION DEBUG] Found row data:', foundRow ? 'found' : 'not found');
           return { selectedRowId: mergedSelectedId, selectedRowData: foundRow };
         case 'unmatched':
           const unmatchedSelectedId = selectedRowsUnmatched.length > 0 ? selectedRowsUnmatched[0] : selectedRowUnmatched;
-          console.log('[ROW SELECTION DEBUG] Unmatched grid selected ID:', unmatchedSelectedId);
           return { selectedRowId: unmatchedSelectedId, selectedRowData: unmatchedSelectedId ? (rows.find(row => row.id === unmatchedSelectedId) || null) : null };
         case 'duplicates':
           const duplicatesSelectedId = selectedRowsDuplicates.length > 0 ? selectedRowsDuplicates[0] : selectedRowDuplicates;
-          console.log('[ROW SELECTION DEBUG] Duplicates grid selected ID:', duplicatesSelectedId);
           return { selectedRowId: duplicatesSelectedId, selectedRowData: duplicatesSelectedId ? (rows.find(row => row.id === duplicatesSelectedId) || null) : null };
         default:
           return { selectedRowId: null, selectedRowData: null };
@@ -716,7 +1121,6 @@ export default function ExcelImportPage() {
     
     const { selectedRowId, selectedRowData } = getSelectedRowInfo();
     
-    console.log('[DEBUG CONTEXT] Final selected row info:', { selectedRowId, selectedRowData: selectedRowData ? 'present' : 'null' });
     
     // Extract HCPCS information for user-friendly row identification
     const getHcpcsInfo = (rowData: Record<string, unknown> | null) => {
@@ -766,34 +1170,10 @@ export default function ExcelImportPage() {
         default:
           count = 0;
       }
-      console.log(`[GET SELECTED COUNT] Grid: ${aiSelectedGrid}, Count: ${count}, Arrays:`, {
-        selectedRowsMaster, selectedRowsClient, selectedRowsMerged, selectedRowsUnmatched, selectedRowsDuplicates
-      });
       return count;
     };
     
     const selectedRowCount = getSelectedRowCount();
-    
-    console.log('[CONTEXT CREATION] Grid context for AI:', {
-      aiSelectedGrid,
-      selectedRowId,
-      selectedHcpcs,
-      selectedRowCount,
-      hasSelectedRowData: !!selectedRowData,
-      allSelections: {
-        master: { single: selectedRowMaster, multi: selectedRowsMaster },
-        client: { single: selectedRowClient, multi: selectedRowsClient },
-        merged: { single: selectedRowMerged, multi: selectedRowsMerged }
-      }
-    });
-    
-    console.log('[CONTEXT CREATION] Raw selection arrays:', {
-      selectedRowsMaster,
-      selectedRowsClient,
-      selectedRowsMerged,
-      selectedRowsUnmatched,
-      selectedRowsDuplicates
-    });
     
     return {
       columns: columns.map(col => col.field),
@@ -973,12 +1353,15 @@ export default function ExcelImportPage() {
       
       switch (targetView) {
         case 'master':
+          setSearchMasterInput(searchValue);
           setSearchMaster(searchValue);
           break;
         case 'client':
+          setSearchClientInput(searchValue);
           setSearchClient(searchValue);
           break;
         case 'merged':
+          setSearchMergedInput(searchValue);
           setSearchMerged(searchValue);
           break;
       }
@@ -1002,7 +1385,6 @@ export default function ExcelImportPage() {
       const newFilter = { column, condition, value };
       
       console.log('[FILTER DEBUG] Applying filter:', newFilter, 'to grid:', targetView);
-      console.log('[FILTER DEBUG] Invalid HCPCS codes count:', invalidHcpcsCodes.size);
       
       // Add filter to the correct grid
       switch (targetView) {
@@ -1334,17 +1716,21 @@ export default function ExcelImportPage() {
     try {
       console.log('[SAMPLE DATA] Starting to load sample data...');
       
-      // Load the sample files
-      const masterFileResponse = await fetch('/sample%20sheets/ED%20Master%20CDM%202025.xlsx');
-      const clientFileResponse = await fetch('/sample%20sheets/Client%20ED%20w%20Hyphens.xlsx');
+      // Load the sample files in parallel
+      const [masterFileResponse, clientFileResponse] = await Promise.all([
+        fetch('/sample%20sheets/ED%20Master%20CDM%202025.xlsx'),
+        fetch('/sample%20sheets/Client%20ED%20w%20Hyphens.xlsx')
+      ]);
       
       if (!masterFileResponse.ok || !clientFileResponse.ok) {
         console.error('[SAMPLE DATA] Failed to fetch sample files');
         return;
       }
       
-      const masterBlob = await masterFileResponse.blob();
-      const clientBlob = await clientFileResponse.blob();
+      const [masterBlob, clientBlob] = await Promise.all([
+        masterFileResponse.blob(),
+        clientFileResponse.blob()
+      ]);
       
       // Create File objects
       const masterFile = new File([masterBlob], 'ED Master CDM 2025.xlsx', {
@@ -1354,25 +1740,13 @@ export default function ExcelImportPage() {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
       
-      console.log('[SAMPLE DATA] Sample files loaded, processing master file...');
+      console.log('[SAMPLE DATA] Sample files loaded, processing both files...');
       
-      // Load master file first
-      await new Promise<void>((resolve) => {
-        handleFileUpload(masterFile, "Master", false);
-        // Wait a bit for the master file to process
-        setTimeout(resolve, 1000);
-      });
+      // Process both files immediately without delays
+      handleFileUpload(masterFile, "Master", false);
+      handleFileUpload(clientFile, "Client", false);
       
-      console.log('[SAMPLE DATA] Master file processed, processing client file...');
-      
-      // Load client file second
-      await new Promise<void>((resolve) => {
-        handleFileUpload(clientFile, "Client", false);
-        // Wait a bit for the client file to process
-        setTimeout(resolve, 1000);
-      });
-      
-      console.log('[SAMPLE DATA] Both files processed, will auto-compare when ready...');
+      console.log('[SAMPLE DATA] File processing initiated...');
       
     } catch (error) {
       console.error('[SAMPLE DATA] Error loading sample data:', error);
@@ -1405,9 +1779,11 @@ export default function ExcelImportPage() {
     reader.onload = (evt) => {
       const data = evt.target?.result;
       if (!data) return;
+      const arrayBuffer = data as ArrayBuffer;
+      const base64Data = btoa(new Uint8Array(arrayBuffer).reduce((acc, byte) => acc + String.fromCharCode(byte), ''));
       
       // Process all sheets
-      const workbook = XLSX.read(data, { type: "binary" });
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
       const sheets = workbook.SheetNames;
       console.log(`[DEBUG] File ${which} has ${sheets.length} sheets:`, sheets);
       
@@ -1436,15 +1812,15 @@ export default function ExcelImportPage() {
         
         // Save file data and metadata
         if (which === "Master") {
-          localStorage.setItem("lastMasterData", data as string);
-          setLastMasterData(data as string);
+          localStorage.setItem("lastMasterData", base64Data);
+          setLastMasterData(base64Data);
           localStorage.setItem("lastMasterSheet", sheets[0]);
           localStorage.setItem("lastMasterMetadata", JSON.stringify(metadata));
           setMasterFileMetadata(metadata);
           console.log('[DEBUG] Master metadata set:', metadata);
         } else {
-          localStorage.setItem("lastClientData", data as string);
-          setLastClientData(data as string);
+          localStorage.setItem("lastClientData", base64Data);
+          setLastClientData(base64Data);
           localStorage.setItem("lastClientSheet", sheets[0]);
           localStorage.setItem("lastClientMetadata", JSON.stringify(metadata));
           setClientFileMetadata(metadata);
@@ -1453,14 +1829,14 @@ export default function ExcelImportPage() {
       } else {
         // For restore operations, only update the data and sheet info
         if (which === "Master") {
-          setLastMasterData(data as string);
+          setLastMasterData(base64Data);
         } else {
-          setLastClientData(data as string);
+          setLastClientData(base64Data);
         }
       }
       
       // Process all sheets and store them
-      processAllSheets(data as ArrayBuffer, which, sheets);
+      processAllSheets(arrayBuffer, which, sheets);
     };
     reader.readAsArrayBuffer(file);
   };
@@ -1470,9 +1846,11 @@ export default function ExcelImportPage() {
 
   // Find HCPCS and Modifier columns for each file independently
   const getHCPCSColumnMaster = useCallback(() => {
+    console.log(`[HCPCS] Looking for HCPCS in master columns:`, columnsMaster.map(col => col.field));
     const hcpcsColumn = columnsMaster.find(col => 
-      findMatchingColumn("HCPCS", [col]) === col.field
+      col.field.toLowerCase().includes('hcpcs')
     );
+    console.log(`[HCPCS] Found master HCPCS column:`, hcpcsColumn?.field || null);
     return hcpcsColumn?.field || null;
   }, [columnsMaster]);
   
@@ -1533,8 +1911,7 @@ export default function ExcelImportPage() {
     
     // Strategy 1: Exact match
     if (clientFields.includes(masterField)) {
-      console.log(`[COLUMN MATCH] Exact match: ${masterField}`);
-      return masterField;
+        return masterField;
     }
     
     // Strategy 2: Case-insensitive match
@@ -1542,7 +1919,6 @@ export default function ExcelImportPage() {
       field.toLowerCase() === masterField.toLowerCase()
     );
     if (caseInsensitiveMatch) {
-      console.log(`[COLUMN MATCH] Case-insensitive match: ${masterField} -> ${caseInsensitiveMatch}`);
       return caseInsensitiveMatch;
     }
     
@@ -1592,7 +1968,6 @@ export default function ExcelImportPage() {
       }
     }
     
-    console.log(`[COLUMN MATCH] No match found for: ${masterField}`);
     return null;
   }
   
@@ -1655,7 +2030,7 @@ export default function ExcelImportPage() {
     }
   }, [getHCPCSColumnMaster, getHCPCSColumnClient, columnsMaster, columnsClient, mergedColumns, unmatchedClient.length, dupsClient.length]);
 
-  const handleCompare = useCallback(() => {
+  const handleMerge = useCallback(() => {
     // Start timing the comparison
     const startTime = performance.now();
     
@@ -1735,6 +2110,7 @@ export default function ExcelImportPage() {
     // The merged result should ALWAYS use ALL master columns as the structure
     // This ensures no duplicate columns and maintains master sheet structure
     const mergedColumns = columnsMaster.map(col => ({ ...col, editable: true }));
+    console.log(`[MERGE] Setting mergedColumns with ${mergedColumns.length} columns:`, mergedColumns.map(col => col.field));
     setMergedColumns(mergedColumns);
     // Build merged rows: for each match, populate master columns with client data where possible
     const merged: ExcelRow[] = matchedKeys.map((key: string, idx: number) => {
@@ -1755,10 +2131,34 @@ export default function ExcelImportPage() {
       });
       return mergedRow;
     });
-    setMergedRows(merged);
-    setMergedForExport(merged);
+
+    // Format HCPCS codes in merged data to ensure proper format (XXXXX-XX)
+    const formattedMerged = merged.map(row => {
+      const formattedRow = { ...row };
+      Object.keys(formattedRow).forEach(key => {
+        // Only target specifically HCPCS/CPT columns (more restrictive)
+        if (key.toLowerCase().includes('hcpcs') || key.toLowerCase().includes('cpt')) {
+          const value = formattedRow[key];
+          if (typeof value === 'string') {
+            const trimmedValue = value.trim();
+            // Check for exactly 7 characters matching CPT+modifier pattern
+            if (trimmedValue.length === 7 &&
+                /^[A-Z0-9]{5}[A-Z0-9]{2}$/i.test(trimmedValue) &&
+                !trimmedValue.includes('-')) {
+              // Insert hyphen between base code and modifier
+              formattedRow[key] = `${trimmedValue.substring(0, 5)}-${trimmedValue.substring(5)}`;
+            }
+            // Leave everything else unchanged
+          }
+        }
+      });
+      return formattedRow;
+    });
+
+    setMergedRows(formattedMerged);
+    setMergedForExport(formattedMerged);
     // Save original merged data for cancel functionality
-    setOriginalMergedData([...merged]);
+    setOriginalMergedData([...formattedMerged]);
     setHasUnsavedMergedChanges(false);
 
     // --- New: Collect errors (Client not matched) and dups (Client with duplicate CDM numbers) ---
@@ -1819,17 +2219,21 @@ export default function ExcelImportPage() {
   useEffect(() => {
     if (rowsMaster.length > 0 && rowsClient.length > 0 && !showCompare) {
       console.log('[DEBUG] Auto-triggering comparison - rowsMaster:', rowsMaster.length, 'rowsClient:', rowsClient.length);
-      handleCompare();
+      handleMerge();
     }
-  }, [rowsMaster.length, rowsClient.length, showCompare, handleCompare]);
+  }, [rowsMaster.length, rowsClient.length, showCompare, handleMerge]);
 
-  // Apply HCPCS sorting when merged data is available
+  // Apply HCPCS sorting when merged data is initially loaded (not on row additions/deletions)
   useEffect(() => {
-    if (mergedRows.length > 0 && mergedColumns.length > 0) {
-      console.log('[DEBUG] Merged data available, applying HCPCS sorting');
-      setTimeout(() => setHcpcsDefaultSorting(), 500);
+    if (mergedRows.length > 0 && mergedColumns.length > 0 && !hasInitialSort) {
+      console.log(`[DEBUG] Initial merged data available (${mergedRows.length} rows), applying HCPCS sorting in 500ms`);
+      setTimeout(() => {
+        console.log('[DEBUG] Executing initial HCPCS sorting now');
+        setHcpcsDefaultSorting();
+        setHasInitialSort(true);
+      }, 500);
     }
-  }, [mergedRows.length, mergedColumns.length, setHcpcsDefaultSorting]);
+  }, [mergedRows.length, mergedColumns.length, setHcpcsDefaultSorting, hasInitialSort]);
 
   const handleExport = () => {
     if (mergedForExport.length === 0) return;
@@ -1921,7 +2325,7 @@ export default function ExcelImportPage() {
   };
 
   const processAllSheets = (data: string | ArrayBuffer, which: "Master" | "Client", sheetNames: string[]) => {
-    const workbook = XLSX.read(data, { type: typeof data === 'string' ? "binary" : "array" });
+    const workbook = XLSX.read(data, { type: typeof data === 'string' ? 'base64' : 'array' });
     const sheetData: {[sheetName: string]: {rows: ExcelRow[], columns: GridColDef[]}} = {};
     
     // Make both client and master data editable
@@ -1971,13 +2375,34 @@ export default function ExcelImportPage() {
     if (json.length === 0) return { rows: [], columns: [] };
     
     const headers = json[0] as string[];
-    const columns: GridColDef[] = headers.map((header, idx) => ({
-      field: header || `col${idx}`,
-      headerName: header || `Column ${idx + 1}`,
-      width: 150,
-      editable: isEditable,
-      type: 'string',
-    }));
+    const columns: GridColDef[] = headers.map((header, idx) => {
+      const field = header || `col${idx}`;
+      const headerName = header || `Column ${idx + 1}`;
+      const fieldLower = field.toLowerCase();
+
+      // Optimize column widths based on content type
+      let width = 150; // default width
+
+      if (fieldLower.includes('hcpcs') || fieldLower.includes('hcpc')) {
+        width = 100; // HCPCS codes are typically 5 characters
+      } else if (fieldLower.includes('cdm') || fieldLower.includes('code')) {
+        width = 90; // CDM codes are numeric, more compact
+      } else if (fieldLower.includes('description') || fieldLower.includes('desc')) {
+        width = 400; // Descriptions need much more space
+      } else if (['quantity', 'qty', 'units', 'unit', 'count'].some(term => fieldLower.includes(term))) {
+        width = 80; // Quantity columns are narrow
+      } else if (fieldLower.includes('modifier') || fieldLower.includes('mod')) {
+        width = 90; // Modifiers are short codes
+      }
+
+      return {
+        field,
+        headerName,
+        width,
+        editable: isEditable,
+        type: 'string',
+      };
+    });
     
     const rows: ExcelRow[] = Array.from(json.slice(1)).map((row, idx) => {
       const rowArr = row as unknown[];
@@ -1998,7 +2423,7 @@ export default function ExcelImportPage() {
   const restoreFileData = (data: string, which: "Master" | "Client", restoreMetadata = false) => {
     console.log(`[DEBUG] Starting restoreFileData for ${which}`);
     // For restore operations, process the data directly without creating a File object
-    const workbook = XLSX.read(data, { type: "binary" });
+    const workbook = XLSX.read(data, { type: 'base64' });
     const sheets = workbook.SheetNames;
     console.log(`[DEBUG] ${which} sheets found:`, sheets);
     processAllSheets(data, which, sheets);
@@ -2080,7 +2505,7 @@ export default function ExcelImportPage() {
     if (lastMasterData && lastClientData && lastMasterFile && lastClientFile) {
       console.log('[DEBUG] Starting restore session - processing sheets first, then metadata');
       
-      // Clear all selection state before restoring to prevent DataGrid errors
+      // Clear all selection state before restoring to prevent DataGridPro errors
       setSelectedRowMaster(null);
       setSelectedRowsMaster([]);
       setSelectedRowClient(null);
@@ -2112,6 +2537,7 @@ export default function ExcelImportPage() {
     setMergedRows([]);
     setMergedColumns([]);
     setShowCompare(false);
+    setHasInitialSort(false); // Reset sorting flag for new data
     setMasterSheetData({});
     setClientSheetData({});
     setMasterSheetNames([]);
@@ -2139,7 +2565,7 @@ export default function ExcelImportPage() {
     if (fileClientInputRef.current) fileClientInputRef.current.value = "";
   };
 
-  const handleClearAllData = () => {
+  const handleClearAllData = async () => {
     // First do a normal reset
     handleReset();
     
@@ -2158,6 +2584,26 @@ export default function ExcelImportPage() {
     setLastMasterData(null);
     setLastClientFile(null);
     setLastClientData(null);
+    
+    // Clear server-side validation cache
+    try {
+      console.log('[Clear All Data] Clearing server-side validation cache...');
+      const response = await fetch('/api/clear-cache', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clearStaleOnly: false })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('[Clear All Data] Server cache cleared:', result.message);
+      } else {
+        console.warn('[Clear All Data] Failed to clear server cache:', response.status);
+      }
+    } catch (error) {
+      console.error('[Clear All Data] Error clearing server cache:', error);
+      // Don't throw - clearing cache failure shouldn't prevent the UI reset
+    }
   };
 
   // Save and cancel functions for editing
@@ -2356,21 +2802,61 @@ export default function ExcelImportPage() {
     };
   };
 
+  // Create refs to store current state values to avoid closure issues
+  const mergedRowsRef = useRef(mergedRows);
+  const filteredMergedRowsRef = useRef(filteredMergedRows);
+  const rowsMasterRef = useRef(rowsMaster);
+  const filteredRowsMasterRef = useRef(filteredRowsMaster);
+  const rowsClientRef = useRef(rowsClient);
+  const filteredRowsClientRef = useRef(filteredRowsClient);
+
+  // Update refs whenever state changes
+  useEffect(() => {
+    mergedRowsRef.current = mergedRows;
+  }, [mergedRows]);
+
+  useEffect(() => {
+    filteredMergedRowsRef.current = filteredMergedRows;
+  }, [filteredMergedRows]);
+
+  useEffect(() => {
+    rowsMasterRef.current = rowsMaster;
+  }, [rowsMaster]);
+
+  useEffect(() => {
+    filteredRowsMasterRef.current = filteredRowsMaster;
+  }, [filteredRowsMaster]);
+
+  useEffect(() => {
+    rowsClientRef.current = rowsClient;
+  }, [rowsClient]);
+
+  useEffect(() => {
+    filteredRowsClientRef.current = filteredRowsClient;
+  }, [filteredRowsClient]);
+
   // Record manipulation functions
   const handleDuplicateRecord = (rowId: number | string, gridType: 'master' | 'client' | 'merged'): { success: boolean; newRowId?: number | string; originalRowId: number | string } => {
+    console.log(`[DUPLICATE] Starting duplication for ID ${rowId} in ${gridType} grid`);
+
     // Set up variables based on grid type
     if (gridType === 'master') {
-      const recordToDuplicate = rowsMaster.find(row => row.id === rowId);
+      // Get current state values from refs to avoid closure issues
+      const currentRowsMaster = rowsMasterRef.current;
+      const currentFilteredRowsMaster = filteredRowsMasterRef.current;
+
+      // Look in filteredRowsMaster first (what's visible), then fall back to rowsMaster
+      const recordToDuplicate = currentFilteredRowsMaster.find(row => String(row.id) === String(rowId)) || currentRowsMaster.find(row => String(row.id) === String(rowId));
       if (!recordToDuplicate) {
         console.error(`Record with ID ${rowId} not found in master grid`);
         return { success: false, originalRowId: rowId };
       }
-      
-      const maxId = Math.max(...rowsMaster.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
+
+      const maxId = Math.max(...currentRowsMaster.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
       const newRecord = { ...recordToDuplicate, id: maxId + 1 };
-      const updatedRows = [...rowsMaster, newRecord];
+      const updatedRows = [...currentRowsMaster, newRecord];
       setRowsMaster(updatedRows);
-      
+
       // Update sheet data
       const currentSheet = masterSheetNames[activeMasterTab];
       if (currentSheet && masterSheetData[currentSheet]) {
@@ -2383,22 +2869,33 @@ export default function ExcelImportPage() {
         };
         setMasterSheetData(updatedSheetData);
       }
-      
+
       setHasUnsavedMasterChanges(true);
+
+      // Start edit mode on the NEW duplicated row with HCPCS focus
+      setTimeout(() => {
+        startRowEditModeWithHcpcsFocus('master', newRecord.id);
+      }, 100);
+
       console.log(`Record duplicated in master grid. New record ID: ${newRecord.id}`);
       return { success: true, newRowId: newRecord.id, originalRowId: rowId };
     } else if (gridType === 'client') {
-      const recordToDuplicate = rowsClient.find(row => row.id === rowId);
+      // Get current state values from refs to avoid closure issues
+      const currentRowsClient = rowsClientRef.current;
+      const currentFilteredRowsClient = filteredRowsClientRef.current;
+
+      // Look in filteredRowsClient first (what's visible), then fall back to rowsClient
+      const recordToDuplicate = currentFilteredRowsClient.find(row => String(row.id) === String(rowId)) || currentRowsClient.find(row => String(row.id) === String(rowId));
       if (!recordToDuplicate) {
         console.error(`Record with ID ${rowId} not found in client grid`);
         return { success: false, originalRowId: rowId };
       }
-      
-      const maxId = Math.max(...rowsClient.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
+
+      const maxId = Math.max(...currentRowsClient.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
       const newRecord = { ...recordToDuplicate, id: maxId + 1 };
-      const updatedRows = [...rowsClient, newRecord];
+      const updatedRows = [...currentRowsClient, newRecord];
       setRowsClient(updatedRows);
-      
+
       // Update sheet data
       const currentSheet = clientSheetNames[activeClientTab];
       if (currentSheet && clientSheetData[currentSheet]) {
@@ -2411,27 +2908,61 @@ export default function ExcelImportPage() {
         };
         setClientSheetData(updatedSheetData);
       }
-      
+
       setHasUnsavedChanges(true);
+
+      // Start edit mode on the NEW duplicated row with HCPCS focus
+      setTimeout(() => {
+        startRowEditModeWithHcpcsFocus('client', newRecord.id);
+      }, 100);
+
       console.log(`Record duplicated in client grid. New record ID: ${newRecord.id}`);
       return { success: true, newRowId: newRecord.id, originalRowId: rowId };
     } else if (gridType === 'merged') {
-      const recordToDuplicate = mergedRows.find(row => row.id === rowId);
+      // Get current state values from refs to avoid closure issues
+      const currentMergedRows = mergedRowsRef.current;
+      const currentFilteredMergedRows = filteredMergedRowsRef.current;
+
+      // Add debugging information
+      console.log(`[DUPLICATE DEBUG] Looking for record with ID: ${rowId} (type: ${typeof rowId})`);
+      console.log(`[DUPLICATE DEBUG] filteredMergedRows count: ${currentFilteredMergedRows.length}`);
+      console.log(`[DUPLICATE DEBUG] mergedRows count: ${currentMergedRows.length}`);
+      console.log(`[DUPLICATE DEBUG] filteredMergedRows IDs:`, currentFilteredMergedRows.map(r => `${r.id} (${typeof r.id})`).slice(0, 10));
+      console.log(`[DUPLICATE DEBUG] mergedRows IDs:`, currentMergedRows.map(r => `${r.id} (${typeof r.id})`).slice(0, 10));
+
+      // Look in filteredMergedRows first (what's visible), then fall back to mergedRows
+      let recordToDuplicate = currentFilteredMergedRows.find(row => String(row.id) === String(rowId));
+
       if (!recordToDuplicate) {
-        console.error(`Record with ID ${rowId} not found in merged grid`);
+        console.log(`[DUPLICATE DEBUG] Record not found in filtered rows, checking unfiltered rows...`);
+        recordToDuplicate = currentMergedRows.find(row => String(row.id) === String(rowId));
+      }
+
+      if (!recordToDuplicate) {
+        console.error(`[DUPLICATE ERROR] Record with ID ${rowId} not found in merged grid`);
+        console.error(`[DUPLICATE ERROR] Available merged row IDs:`, currentMergedRows.map(r => r.id));
+        console.error(`[DUPLICATE ERROR] Available filtered row IDs:`, currentFilteredMergedRows.map(r => r.id));
         return { success: false, originalRowId: rowId };
       }
-      
-      const maxId = Math.max(...mergedRows.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
+
+      const maxId = Math.max(...currentMergedRows.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0));
       const newRecord = { ...recordToDuplicate, id: maxId + 1 };
-      const updatedRows = [...mergedRows, newRecord];
+      const updatedRows = [...currentMergedRows, newRecord];
+      console.log(`[DUPLICATE] Created new record with ID: ${newRecord.id}, updating rows from ${currentMergedRows.length} to ${updatedRows.length}`);
       setMergedRows(updatedRows);
       setMergedForExport(updatedRows);
       setHasUnsavedMergedChanges(true);
-      console.log(`Record duplicated in merged grid. New record ID: ${newRecord.id}`);
+
+      // Start edit mode on the NEW duplicated row with HCPCS focus
+      setTimeout(() => {
+        startRowEditModeWithHcpcsFocus('merged', newRecord.id);
+      }, 100);
+
+      console.log(`[DUPLICATE] Record duplicated in merged grid. New record ID: ${newRecord.id}, Original ID: ${rowId}`);
+      console.log(`[DUPLICATE] About to focus on new record ID: ${newRecord.id} in 100ms`);
       return { success: true, newRowId: newRecord.id, originalRowId: rowId };
     }
-    
+
     return { success: false, originalRowId: rowId };
   };
 
@@ -2611,6 +3142,12 @@ export default function ExcelImportPage() {
       }
       
       setHasUnsavedMasterChanges(true);
+
+      // Start edit mode on the new row with HCPCS focus after a brief delay to ensure the grid has updated
+      setTimeout(() => {
+        startRowEditModeWithHcpcsFocus('master', newRecord.id);
+      }, 100);
+
       console.log(`New record added to master grid. New record ID: ${newRecord.id}`);
     } else if (gridType === 'client') {
       const maxId = rowsClient.length > 0 ? Math.max(...rowsClient.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0)) : 0;
@@ -2640,6 +3177,12 @@ export default function ExcelImportPage() {
       }
       
       setHasUnsavedChanges(true);
+
+      // Start edit mode on the new row with HCPCS focus after a brief delay to ensure the grid has updated
+      setTimeout(() => {
+        startRowEditModeWithHcpcsFocus('client', newRecord.id);
+      }, 100);
+
       console.log(`New record added to client grid. New record ID: ${newRecord.id}`);
     } else if (gridType === 'merged') {
       const maxId = mergedRows.length > 0 ? Math.max(...mergedRows.map(row => typeof row.id === 'number' ? row.id : parseInt(String(row.id)) || 0)) : 0;
@@ -2656,173 +3199,55 @@ export default function ExcelImportPage() {
       setMergedRows(updatedRows);
       setMergedForExport(updatedRows);
       setHasUnsavedMergedChanges(true);
+
+      // Start edit mode on the new row with HCPCS focus after a brief delay to ensure the grid has updated
+      setTimeout(() => {
+        startRowEditModeWithHcpcsFocus('merged', newRecord.id);
+      }, 100);
+
       console.log(`New record added to merged grid. New record ID: ${newRecord.id}`);
     }
   };
 
-  // Bulk HCPCS validation function
-  const handleValidateHcpcs = async () => {
-    setIsValidating(true);
-    
-    try {
-      // Get HCPCS column from merged data
-      const hcpcsColumn = mergedColumns.find(col => 
-        col.field.toLowerCase().includes('hcpcs') || 
-        col.field.toLowerCase().includes('cpt') ||
-        col.field.toLowerCase().includes('code')
-      )?.field;
-      
-      if (!hcpcsColumn) {
-        console.error('No HCPCS column found for validation');
-        return;
-      }
-      
-      // Extract unique HCPCS codes for validation
-      const hcpcsCodes = [...new Set(
-        mergedRows
-          .map(row => {
-            let code = String(row[hcpcsColumn] || '').trim().toUpperCase();
-            // Strip quantity suffixes (x1, x01, x02, etc.)
-            code = code.replace(/X\d{1,2}$/i, '');
-            return code;
-          })
-          .filter(code => code.length > 0 && code !== 'UNDEFINED')
-      )];
-      
-      console.log(`[HCPCS VALIDATION] Validating ${hcpcsCodes.length} unique codes from merged grid`);
-      
-      if (hcpcsCodes.length === 0) {
-        console.log('No HCPCS codes found to validate');
-        return;
-      }
-      
-      // Process in batches to handle large datasets
-      const batchSize = 200;
-      const allInvalidCodes: string[] = [];
-      const allValidationDetails: {[code: string]: {reason: string}} = {};
-      const totalBatches = Math.ceil(hcpcsCodes.length / batchSize);
-      
-      console.log(`[HCPCS VALIDATION] Processing ${hcpcsCodes.length} codes in ${totalBatches} batches of ${batchSize}`);
-      setValidationProgress({ current: 0, total: totalBatches });
-      
-      for (let i = 0; i < totalBatches; i++) {
-        setValidationProgress({ current: i + 1, total: totalBatches });
-        const startIndex = i * batchSize;
-        const endIndex = Math.min(startIndex + batchSize, hcpcsCodes.length);
-        const batch = hcpcsCodes.slice(startIndex, endIndex);
-        
-        console.log(`[HCPCS VALIDATION] Processing batch ${i + 1}/${totalBatches} (${batch.length} codes):`, batch.slice(0, 10));
-        
-        try {
-          const response = await fetch('/api/validate-hcpcs', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ codes: batch }),
-          });
-          
-          if (!response.ok) {
-            console.error(`[HCPCS VALIDATION] Batch ${i + 1} failed with status: ${response.status}`);
-            continue; // Skip this batch and continue with the next
-          }
-          
-          const validationData = await response.json();
-          
-          if (validationData.error) {
-            console.error(`[HCPCS VALIDATION] Batch ${i + 1} returned error:`, validationData.error);
-            continue; // Skip this batch and continue with the next
-          }
-          
-          // Collect invalid codes from this batch
-          const batchInvalidCodes = validationData.invalidCodes || [];
-          allInvalidCodes.push(...batchInvalidCodes);
-          
-          // Collect validation details from this batch
-          if (validationData.validationResults) {
-            Object.assign(allValidationDetails, validationData.validationResults);
-          }
-          
-          console.log(`[HCPCS VALIDATION] Batch ${i + 1} completed. Found ${batchInvalidCodes.length} invalid codes:`, batchInvalidCodes);
-          
-          // Log detailed results if available
-          if (validationData.detailedResults) {
-            const invalidDetails = validationData.detailedResults.filter((r: { baseCptValid: boolean; modifierValid: boolean | null }) => !r.baseCptValid || r.modifierValid === false);
-            console.log(`[HCPCS VALIDATION] Batch ${i + 1} detailed invalid results:`, invalidDetails);
-          }
-          
-          // Small delay between batches to avoid overwhelming the API
-          if (i < totalBatches - 1) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-          
-        } catch (batchError) {
-          console.error(`[HCPCS VALIDATION] Batch ${i + 1} failed:`, batchError);
-          // Continue with next batch
-        }
-      }
-      
-      // Update invalid codes state with all results
-      const invalidCodesSet = new Set<string>(allInvalidCodes.map((code: string) => String(code)));
-      setInvalidHcpcsCodes(invalidCodesSet);
-      setValidationDetails(allValidationDetails);
-      
-      console.log(`[HCPCS VALIDATION] All batches completed. Found ${allInvalidCodes.length} total invalid codes:`, allInvalidCodes);
-      console.log(`[HCPCS VALIDATION] Invalid codes set:`, Array.from(invalidCodesSet));
-      console.log(`[HCPCS VALIDATION] Validation details:`, allValidationDetails);
-      console.log(`[HCPCS VALIDATION] Sample HCPCS values from data:`, hcpcsCodes.slice(0, 5));
-      
-      // Automatically apply filter to show only invalid codes if any were found
-      if (allInvalidCodes.length > 0) {
-        const newFilter = { column: 'hcpcs', condition: 'invalid_hcpcs', value: '' };
-        setMergedFilters([newFilter]);
-        setHasValidationFilter(true);
-        console.log('[HCPCS VALIDATION] Applied filter to show only invalid codes');
-      }
-      
-    } catch (error) {
-      console.error('[HCPCS VALIDATION] Error:', error);
-      // Could add user notification here
-    } finally {
-      setIsValidating(false);
-      setValidationProgress(null);
-    }
-  };
 
-  // Clear validation filter function
-  const handleClearValidationFilter = () => {
-    setMergedFilters([]);
-    setHasValidationFilter(false);
-    console.log('[HCPCS VALIDATION] Cleared validation filter');
-  };
+
+
+
+
+
+
+
+  // Removed handleValidateHcpcsLocal - only AI validation is supported
 
   return (
     <NoSSR>
-    <Box sx={{ 
-      p: 4, 
+    <Box sx={{
+      p: 2,
       background: 'linear-gradient(135deg, #f8fbff 0%, #e3f2fd 50%, #f0f8ff 100%)',
       minHeight: '100vh',
       marginRight: isChatOpen ? { xs: '90vw', sm: `${chatWidth}px` } : 0,
       transition: 'margin-right 0.3s ease',
     }}>
-      <Typography variant="h3" gutterBottom sx={{ 
-        color: '#1976d2', 
-        fontWeight: 'bold', 
+
+
+      <Typography variant="h4" gutterBottom sx={{
+        color: '#1976d2',
+        fontWeight: 'bold',
         textAlign: 'center',
-        mb: 4,
+        mb: 1,
         textShadow: '0 2px 4px rgba(25, 118, 210, 0.2)'
-      }}> 
+      }}>
        🔧 VIC CDM MERGE TOOL
       </Typography>
       
       {/* Upload/Grid Areas */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ 
-          display: "flex", 
+      <Box sx={{ mb: 2 }}>
+        <Box sx={{
+          display: "flex",
           gap: 2,
           flexDirection: { xs: 'column', md: 'row' },
           width: '100%',
-          mb: 4
+          mb: 2
         }}>
         {/* Master File Area */}
         <Box 
@@ -2837,7 +3262,7 @@ export default function ExcelImportPage() {
           {masterSheetNames.length > 0 ? (
             // Show tabs and grid when data is loaded
             <>
-              <FileInfoCard metadata={masterFileMetadata} type="Master" />
+              <FileInfoCard metadata={masterFileMetadata} />
               
               {masterSheetNames.length > 0 && (
                 <Tabs 
@@ -2885,12 +3310,25 @@ export default function ExcelImportPage() {
                 fullWidth
                 variant="outlined"
                 placeholder="Search master data..."
-                value={searchMaster}
-                onChange={(e) => setSearchMaster(e.target.value)}
+                value={searchMasterInput}
+                onChange={(e) => setSearchMasterInput(e.target.value)}
                 slotProps={{ input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon />
+                      {searchMasterInput ? (
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSearchMasterInput('');
+                            setSearchMaster('');
+                          }}
+                          edge="start"
+                        >
+                          <ClearIcon />
+                        </IconButton>
+                      ) : (
+                        <SearchIcon />
+                      )}
                     </InputAdornment>
                   ),
                 }}}
@@ -2994,16 +3432,20 @@ export default function ExcelImportPage() {
               )}
               
               <Box sx={{ height: 400, width: "100%" }}>
-                <DataGrid 
-                  rows={filteredRowsMaster} 
-                  columns={columnsMaster}
+                <DataGridPro
+                  apiRef={masterApiRef}
+                  rows={filteredRowsMaster}
+                  columns={enhancedMasterColumns}
+                  editMode="row"
                   density="compact"
-                  disableVirtualization={aiSelectedGrid !== 'master'}
+                  disableVirtualization={false}
                   sortModel={masterSortModel}
                   onSortModelChange={setMasterSortModel}
                   checkboxSelection
-                  onRowSelectionModelChange={(newRowSelectionModel) => {
-                    // Handle the DataGrid selection model format
+                  disableRowSelectionOnClick
+                  showToolbar
+                  onRowSelectionModelChange={(newRowSelectionModel: GridRowSelectionModel) => {
+                    // Handle the DataGridPro selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
                     
@@ -3028,7 +3470,7 @@ export default function ExcelImportPage() {
                       setSelectedRowsMaster(selectedIds);
                     }, 10);
                   }}
-                  processRowUpdate={(newRow) => {
+                  processRowUpdate={(newRow: ExcelRow) => {
                     // Basic validation for edited cells
                     const validatedRow = { ...newRow };
                     
@@ -3046,9 +3488,9 @@ export default function ExcelImportPage() {
                         
                         // Additional validation for HCPCS codes (if column contains "HCPCS")
                         if (key.toLowerCase().includes('hcpcs') && validatedRow[key]) {
-                          const hcpcsValue = String(validatedRow[key]).toUpperCase().trim();
-                          // Basic HCPCS format validation (5 characters, alphanumeric)
-                          if (hcpcsValue.length > 0 && !/^[A-Z0-9]{1,8}(-[A-Z0-9]{1,2})?$/.test(hcpcsValue)) {
+                          const hcpcsValue = String(validatedRow[key]).trim();
+                          // Basic HCPCS format validation (5 characters, alphanumeric) - case insensitive
+                          if (hcpcsValue.length > 0 && !/^[A-Za-z0-9]{1,8}(-[A-Za-z0-9]{1,2})?$/i.test(hcpcsValue)) {
                             console.warn(`Invalid HCPCS format: ${hcpcsValue}. Expected format: XXXXX or XXXXX-XX`);
                           }
                           validatedRow[key] = hcpcsValue;
@@ -3095,10 +3537,14 @@ export default function ExcelImportPage() {
                     
                     return validatedRow;
                   }}
-                  onProcessRowUpdateError={(error) => {
+                  onProcessRowUpdateError={(error: unknown) => {
                     console.error('Master row update error:', error);
                   }}
-                  sx={getDataGridStyles('master')}
+                  onRowEditStop={(params: GridRowEditStopParams) => {
+                    // Auto-exit edit mode when clicking outside or pressing Escape
+                    console.log('[EDIT MODE] Master row edit stopped:', params.id);
+                  }}
+                  sx={getDataGridProStyles('master')}
                 />
               </Box>
             </>
@@ -3157,7 +3603,7 @@ export default function ExcelImportPage() {
           {clientSheetNames.length > 0 ? (
             // Show tabs and grid when data is loaded
             <>
-              <FileInfoCard metadata={clientFileMetadata} type="Client" />
+              <FileInfoCard metadata={clientFileMetadata} />
               
               {clientSheetNames.length > 0 && (
                 <Tabs 
@@ -3205,12 +3651,25 @@ export default function ExcelImportPage() {
                 fullWidth
                 variant="outlined"
                 placeholder="Search client data..."
-                value={searchClient}
-                onChange={(e) => setSearchClient(e.target.value)}
+                value={searchClientInput}
+                onChange={(e) => setSearchClientInput(e.target.value)}
                 slotProps={{ input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon />
+                      {searchClientInput ? (
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSearchClientInput('');
+                            setSearchClient('');
+                          }}
+                          edge="start"
+                        >
+                          <ClearIcon />
+                        </IconButton>
+                      ) : (
+                        <SearchIcon />
+                      )}
                     </InputAdornment>
                   ),
                 }}}
@@ -3314,16 +3773,20 @@ export default function ExcelImportPage() {
               )}
               
               <Box sx={{ height: 400, width: "100%" }}>
-                <DataGrid 
-                  rows={filteredRowsClient} 
-                  columns={columnsClient}
+                <DataGridPro
+                  apiRef={clientApiRef}
+                  rows={filteredRowsClient}
+                  columns={enhancedClientColumns}
+                  editMode="row"
                   density="compact"
-                  disableVirtualization={aiSelectedGrid !== 'client'}
+                  disableVirtualization={false}
                   sortModel={clientSortModel}
                   onSortModelChange={setClientSortModel}
                   checkboxSelection
-                  onRowSelectionModelChange={(newRowSelectionModel) => {
-                    // Handle the DataGrid selection model format
+                  disableRowSelectionOnClick
+                  showToolbar
+                  onRowSelectionModelChange={(newRowSelectionModel: GridRowSelectionModel) => {
+                    // Handle the DataGridPro selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
                     
@@ -3346,7 +3809,7 @@ export default function ExcelImportPage() {
                       setSelectedRowsClient(selectedIds);
                     }, 10);
                   }}
-                  processRowUpdate={(newRow) => {
+                  processRowUpdate={(newRow: ExcelRow) => {
                     // Basic validation for edited cells
                     const validatedRow = { ...newRow };
                     
@@ -3364,9 +3827,9 @@ export default function ExcelImportPage() {
                         
                         // Additional validation for HCPCS codes (if column contains "HCPCS")
                         if (key.toLowerCase().includes('hcpcs') && validatedRow[key]) {
-                          const hcpcsValue = String(validatedRow[key]).toUpperCase().trim();
-                          // Basic HCPCS format validation (5 characters, alphanumeric)
-                          if (hcpcsValue.length > 0 && !/^[A-Z0-9]{1,8}(-[A-Z0-9]{1,2})?$/.test(hcpcsValue)) {
+                          const hcpcsValue = String(validatedRow[key]).trim();
+                          // Basic HCPCS format validation (5 characters, alphanumeric) - case insensitive
+                          if (hcpcsValue.length > 0 && !/^[A-Za-z0-9]{1,8}(-[A-Za-z0-9]{1,2})?$/i.test(hcpcsValue)) {
                             console.warn(`Invalid HCPCS format: ${hcpcsValue}. Expected format: XXXXX or XXXXX-XX`);
                           }
                           validatedRow[key] = hcpcsValue;
@@ -3413,10 +3876,14 @@ export default function ExcelImportPage() {
                     
                     return validatedRow;
                   }}
-                  onProcessRowUpdateError={(error) => {
+                  onProcessRowUpdateError={(error: unknown) => {
                     console.error('Row update error:', error);
                   }}
-                  sx={getDataGridStyles('client')}
+                  onRowEditStop={(params: GridRowEditStopParams) => {
+                    // Auto-exit edit mode when clicking outside or pressing Escape
+                    console.log('[EDIT MODE] Client row edit stopped:', params.id);
+                  }}
+                  sx={getDataGridProStyles('client')}
                 />
               </Box>
             </>
@@ -3534,7 +4001,7 @@ export default function ExcelImportPage() {
         </Button>
         <Button 
           variant="contained" 
-          onClick={handleCompare} 
+          onClick={handleMerge}
           disabled={rowsMaster.length === 0 || rowsClient.length === 0}
           sx={{ 
             fontWeight: 'bold', 
@@ -3543,7 +4010,7 @@ export default function ExcelImportPage() {
             '&:disabled': { backgroundColor: '#e0e0e0', color: '#9e9e9e' }
           }}
         >
-          🔍 Compare
+          🔍 Merge
         </Button>
         <Button 
           variant="contained" 
@@ -3656,12 +4123,25 @@ export default function ExcelImportPage() {
                 fullWidth
                 variant="outlined"
                 placeholder="Search merged data..."
-                value={searchMerged}
-                onChange={(e) => setSearchMerged(e.target.value)}
+                value={searchMergedInput}
+                onChange={(e) => setSearchMergedInput(e.target.value)}
                 slotProps={{ input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon />
+                      {searchMergedInput ? (
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSearchMergedInput('');
+                            setSearchMerged('');
+                          }}
+                          edge="start"
+                        >
+                          <ClearIcon />
+                        </IconButton>
+                      ) : (
+                        <SearchIcon />
+                      )}
                     </InputAdornment>
                   ),
                 }}}
@@ -3687,28 +4167,7 @@ export default function ExcelImportPage() {
                   }
                 }}
               />
-              <Button 
-                variant="contained" 
-                onClick={hasValidationFilter ? handleClearValidationFilter : handleValidateHcpcs} 
-                disabled={mergedRows.length === 0 || isValidating}
-                sx={{ 
-                  fontWeight: 'bold', 
-                  backgroundColor: hasValidationFilter ? '#2196f3' : '#ff9800', 
-                  '&:hover': { backgroundColor: hasValidationFilter ? '#1976d2' : '#f57c00' },
-                  '&:disabled': { backgroundColor: '#e0e0e0', color: '#9e9e9e' },
-                  whiteSpace: 'nowrap',
-                  minWidth: 'auto'
-                }}
-              >
-                {isValidating 
-                  ? validationProgress 
-                    ? `⏳ ${validationProgress.current}/${validationProgress.total}` 
-                    : '⏳ Validating...'
-                  : hasValidationFilter
-                    ? '🔄 Clear Filter'
-                    : '✅ Validate HCPCS'
-                }
-              </Button>
+
             </Box>
             
             {/* Save/Cancel buttons for merged editing */}
@@ -3787,14 +4246,19 @@ export default function ExcelImportPage() {
             )}
             
             <Box sx={{ height: 400, width: "100%" }}>
-              <DataGrid 
-                rows={filteredMergedRows} 
-                columns={enhancedMergedColumns}
+              <DataGridPro
+                apiRef={mergedApiRef}
+                rows={filteredMergedRows}
+                columns={enhancedMergedColumnsWithActions}
+                editMode="row"
                 density="compact"
-                disableVirtualization={aiSelectedGrid !== 'merged'}
+                disableVirtualization={false}
                 sortModel={mergedSortModel}
                 onSortModelChange={setMergedSortModel}
                 checkboxSelection
+                disableRowSelectionOnClick
+                showToolbar
+
                 onRowSelectionModelChange={(newRowSelectionModel) => {
                   console.log('[MERGED GRID] Selection change triggered! aiSelectedGrid:', aiSelectedGrid);
                   console.log('[MERGED GRID] Raw newRowSelectionModel:', newRowSelectionModel);
@@ -3802,7 +4266,7 @@ export default function ExcelImportPage() {
                   console.log('[MERGED GRID] Is Array?', Array.isArray(newRowSelectionModel));
                   console.log('[MERGED GRID] Length:', Array.isArray(newRowSelectionModel) ? newRowSelectionModel.length : 'N/A');
                   
-                  // Handle the DataGrid selection model format
+                  // Handle the DataGridPro selection model format
                   let selectedId = null;
                   let selectedIds: (number | string)[] = [];
                   
@@ -3843,9 +4307,9 @@ export default function ExcelImportPage() {
                       
                       // Additional validation for HCPCS codes (if column contains "HCPCS")
                       if (key.toLowerCase().includes('hcpcs') && validatedRow[key]) {
-                        const hcpcsValue = String(validatedRow[key]).toUpperCase().trim();
-                        // Basic HCPCS format validation (5 characters, alphanumeric)
-                        if (hcpcsValue.length > 0 && !/^[A-Z0-9]{1,8}(-[A-Z0-9]{1,2})?$/.test(hcpcsValue)) {
+                        const hcpcsValue = String(validatedRow[key]).trim();
+                        // Basic HCPCS format validation (5 characters, alphanumeric) - case insensitive
+                        if (hcpcsValue.length > 0 && !/^[A-Za-z0-9]{1,8}(-[A-Za-z0-9]{1,2})?$/i.test(hcpcsValue)) {
                           console.warn(`Invalid HCPCS format: ${hcpcsValue}. Expected format: XXXXX or XXXXX-XX`);
                         }
                         validatedRow[key] = hcpcsValue;
@@ -3883,7 +4347,10 @@ export default function ExcelImportPage() {
                 onProcessRowUpdateError={(error) => {
                   console.error('Merged row update error:', error);
                 }}
-                sx={getDataGridStyles('merged')}
+                onRowEditStop={() => {
+                  // Auto-exit edit mode when clicking outside or pressing Escape
+                }}
+                sx={getDataGridProStyles('merged')}
               />
             </Box>
           </Box>
@@ -3941,16 +4408,18 @@ export default function ExcelImportPage() {
               }}
             >
               {unmatchedClient.length > 0 ? (
-                <DataGrid 
-                  rows={filteredUnmatchedClient} 
+                <DataGridPro
+                  rows={filteredUnmatchedClient}
                   columns={columnsClient}
                   density="compact"
-                  disableVirtualization={aiSelectedGrid !== 'unmatched'}
+                  disableVirtualization={false}
                   sortModel={unmatchedSortModel}
                   onSortModelChange={setUnmatchedSortModel}
                   checkboxSelection
-                  onRowSelectionModelChange={(newRowSelectionModel) => {
-                    // Handle the DataGrid selection model format
+                  disableRowSelectionOnClick
+                  showToolbar
+                  onRowSelectionModelChange={(newRowSelectionModel: GridRowSelectionModel) => {
+                    // Handle the DataGridPro selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
                     
@@ -3973,7 +4442,7 @@ export default function ExcelImportPage() {
                       setSelectedRowsUnmatched(selectedIds);
                     }, 10);
                   }}
-                  sx={getDataGridStyles('unmatched')}
+                  sx={getDataGridProStyles('unmatched')}
                 />
               ) : (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -3997,16 +4466,18 @@ export default function ExcelImportPage() {
               }}
             >
               {dupsClient.length > 0 ? (
-                <DataGrid 
-                  rows={filteredDupsClient} 
+                <DataGridPro
+                  rows={filteredDupsClient}
                   columns={columnsClient}
                   density="compact"
-                  disableVirtualization={aiSelectedGrid !== 'duplicates'}
+                  disableVirtualization={false}
                   sortModel={duplicatesSortModel}
                   onSortModelChange={setDuplicatesSortModel}
                   checkboxSelection
-                  onRowSelectionModelChange={(newRowSelectionModel) => {
-                    // Handle the DataGrid selection model format
+                  disableRowSelectionOnClick
+                  showToolbar
+                  onRowSelectionModelChange={(newRowSelectionModel: GridRowSelectionModel) => {
+                    // Handle the DataGridPro selection model format
                     let selectedId = null;
                     let selectedIds: (number | string)[] = [];
                     
@@ -4029,7 +4500,7 @@ export default function ExcelImportPage() {
                       setSelectedRowsDuplicates(selectedIds);
                     }, 10);
                   }}
-                  sx={getDataGridStyles('duplicates')}
+                  sx={getDataGridProStyles('duplicates')}
                 />
               ) : (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -4071,6 +4542,33 @@ export default function ExcelImportPage() {
         onGridChange={setAiSelectedGrid}
         onWidthChange={handleChatWidthChange}
       />
+
+      {/* UI Toggle Reminder */}
+      <Box sx={{
+        mt: 4,
+        pt: 2,
+        borderTop: '1px solid rgba(0,0,0,0.1)',
+        textAlign: 'center'
+      }}>
+        <Typography
+          variant="caption"
+          onClick={() => {
+            saveCurrentStateToShared();
+            router.push('/excel-import-clean');
+          }}
+          sx={{
+            color: 'rgba(0,0,0,0.5)',
+            fontSize: '0.7rem',
+            cursor: 'pointer',
+            '&:hover': {
+              color: 'rgba(0,0,0,0.7)',
+              textDecoration: 'underline'
+            }
+          }}
+        >
+          Press Ctrl+Shift+U to switch UI versions
+        </Typography>
+      </Box>
     </Box>
     </NoSSR>
   );

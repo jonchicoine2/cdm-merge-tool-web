@@ -9,7 +9,7 @@ The **CDM Merge Tool** is a specialized Excel data comparison and merging applic
 ### What Problem Does It Solve?
 
 1. **Healthcare Data Reconciliation**: Compares client healthcare data against master reference datasets
-2. **HCPCS Code Validation**: Ensures healthcare procedure codes (HCPCS) are properly matched and validated
+2. **HCPCS Code Validation**: Ensures healthcare procedure codes (HCPCS) and modifiers are properly matched and validated
 3. **Duplicate Detection**: Identifies duplicate records that could cause billing or compliance issues
 4. **Data Quality Assurance**: Flags unmatched records that require manual review
 5. **Streamlined Reporting**: Generates comprehensive Excel reports with categorized results
@@ -223,6 +223,49 @@ The tool automatically maps columns using fuzzy matching:
 2. **Format Validation**: Codes follow standard healthcare formats
 3. **Duplicate Handling**: Multiple client records with same key are flagged
 4. **Data Integrity**: Preserves original data while adding analysis columns
+
+### Enhanced HCPCS Validation
+
+The tool now includes comprehensive HCPCS code and modifier validation:
+
+#### Validation Process
+1. **Base Code Validation**: Verifies HCPCS/CPT codes exist in official code sets
+   - CPT codes (Level I HCPCS): 5-digit codes (10000-99999)
+   - HCPCS Level II codes: Letter + 4 digits (A-V + 4 digits)
+   - **Early Termination**: If base code is invalid, modifier is not checked
+
+2. **Modifier Validation**: Only validates modifiers when base code is valid
+   - Common modifiers: 25, 26, 50, 51, 59, 76, 77, 78, 79, TC
+   - Anatomical modifiers: F1-F9, T1-T9, FA, LT, RT
+   - Flags obviously invalid modifiers (e.g., non-standard codes like "ZZ")
+
+3. **Efficient Processing**: Returns only invalid codes with specific issue types
+   - `base_invalid`: Base code does not exist in official code sets
+   - `modifier_invalid`: Base code is valid but modifier is invalid
+
+#### Validation Features
+- **Batch Processing**: Validates up to 200 codes per batch for efficiency
+- **Conservative Approach**: When uncertain, assumes validity to avoid false positives
+- **Detailed Reporting**: Provides specific reasons for validation failures
+- **Visual Indicators**: Invalid codes are highlighted with type-specific badges
+  - **B**: Base code issue (red badge)
+  - **M**: Modifier issue (orange badge)
+  - **!**: General validation issue (red badge)
+
+#### Validation Examples
+```
+Valid Codes:
+- "99213-25" (valid base + valid modifier)
+- "A1234RT" (valid HCPCS Level II + valid anatomical modifier)
+
+Invalid Codes:
+- "99999-ZZ" (base_invalid - invalid base code, modifier not checked)
+- "INVALID-XX" (base_invalid - invalid base code, modifier not checked)
+- "99213-ZZ" (modifier_invalid - valid base but invalid modifier)
+
+Response Format:
+{"invalidCodes": [{"code": "99999-ZZ", "issue": "base_invalid"}, {"code": "99213-ZZ", "issue": "modifier_invalid"}]}
+```
 
 ## Output & Results
 
