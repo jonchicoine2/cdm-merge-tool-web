@@ -1,13 +1,14 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
-import { Box, Typography, Snackbar, Alert } from "@mui/material";
+import { Box, Typography, Snackbar, Alert, Button, Tooltip } from "@mui/material";
 import { useRouter } from "next/navigation";
 
 import dynamic from 'next/dynamic';
 import { ModifierCriteria } from "../../utils/excelOperations";
 import { useFileOperations } from "../../hooks/useFileOperations";
 import { useComparison } from "../../hooks/useComparison";
-import { saveSharedData, loadSharedData, SharedAppData } from "../../utils/sharedDataPersistence";
+// Note: Removed shared data imports - pages are now independent
+// import { saveSharedData, loadSharedData, SharedAppData } from "../../utils/sharedDataPersistence";
 import {
   WelcomeSection,
   FileUploadArea,
@@ -49,7 +50,13 @@ export default function ExcelImportCleanPage() {
 
   // UI state
   const [modifierDialogOpen, setModifierDialogOpen] = useState(false);
-  const [isLoadingSharedData, setIsLoadingSharedData] = useState(false);
+  // Note: Removed isLoadingSharedData state - pages are now independent
+
+  // Restore session state
+  const [lastMasterFile, setLastMasterFile] = useState<string | null>(null);
+  const [lastClientFile, setLastClientFile] = useState<string | null>(null);
+  const [lastMasterData, setLastMasterData] = useState<string | null>(null);
+  const [lastClientData, setLastClientData] = useState<string | null>(null);
 
   // Loading states
   const [isLoadingSample, setIsLoadingSample] = useState(false);
@@ -84,85 +91,44 @@ export default function ExcelImportCleanPage() {
   const [editModalTitle, setEditModalTitle] = useState('');
   const [editModalMode, setEditModalMode] = useState<'edit' | 'create-new' | 'duplicate'>('edit');
 
-  // Function to save current state to shared data
-  const saveCurrentStateToShared = useCallback(() => {
-    const sharedData: SharedAppData = {
-      // Master data
-      rowsMaster: fileOps.rowsMaster,
-      columnsMaster: fileOps.columnsMaster,
-      masterSheetData: fileOps.masterSheetData,
-      masterSheetNames: fileOps.masterSheetNames,
-      activeMasterTab: fileOps.activeMasterTab,
-      masterFileMetadata: fileOps.masterFileMetadata,
+  // Note: Removed shared data saving function - pages are now independent
 
-      // Client data
-      rowsClient: fileOps.rowsClient,
-      columnsClient: fileOps.columnsClient,
-      clientSheetData: fileOps.clientSheetData,
-      clientSheetNames: fileOps.clientSheetNames,
-      activeClientTab: fileOps.activeClientTab,
-      clientFileMetadata: fileOps.clientFileMetadata,
+  // Note: Removed shared data loading function - pages are now independent
 
-      // Comparison results
-      mergedRows: comparison.mergedRows,
-      mergedColumns: comparison.mergedColumns,
-      unmatchedClient: comparison.unmatchedClient,
-      dupsClient: comparison.dupsClient,
-      showCompare: comparison.showCompare,
-      comparisonStats: comparison.comparisonStats,
-
-      // Settings
-      modifierCriteria,
-
-      // Metadata
-      lastSaved: new Date().toISOString(),
-      sourceUI: 'clean'
-    };
-
-    saveSharedData(sharedData);
-  }, [fileOps, comparison, modifierCriteria]);
-
-  // Function to load shared data from main UI
-  const loadSharedDataToState = useCallback(() => {
-    const sharedData = loadSharedData();
-    if (sharedData && sharedData.sourceUI === 'main') {
-      console.log('[SHARED DATA] Loading data from main UI...');
-      setIsLoadingSharedData(true);
-
-      // Load file operations data (master/client data)
-      fileOps.loadSharedData(sharedData);
-
-      // Load comparison results
-      comparison.loadSharedData(sharedData);
-
-      // Load settings
-      setModifierCriteria(sharedData.modifierCriteria);
-
-      console.log('[SHARED DATA] Successfully loaded shared data');
-      setIsLoadingSharedData(false);
-      return true;
-    }
-    return false;
-  }, [fileOps, comparison]);
-
-  // Load shared data on component mount (only once)
+  // Load localStorage items for restore session functionality
   useEffect(() => {
-    loadSharedDataToState();
-  }, []); // Empty dependency array to run only once on mount
+    const lastMaster = localStorage.getItem("lastMasterFile");
+    const lastMasterData = localStorage.getItem("lastMasterData");
+    const lastClient = localStorage.getItem("lastClientFile");
+    const lastClientData = localStorage.getItem("lastClientData");
 
-  // Hidden keyboard shortcut to toggle UI (Ctrl+Shift+U)
+    if (lastMaster) {
+      setLastMasterFile(lastMaster);
+    }
+    if (lastMasterData) {
+      setLastMasterData(lastMasterData);
+    }
+    if (lastClient) {
+      setLastClientFile(lastClient);
+    }
+    if (lastClientData) {
+      setLastClientData(lastClientData);
+    }
+  }, []);
+
+  // Hidden keyboard shortcut to toggle UI (Ctrl+Shift+U) - no data transfer
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.shiftKey && event.key === 'U') {
         event.preventDefault();
-        saveCurrentStateToShared();
+        // Note: Removed data saving - pages are now independent
         router.push('/excel-import');
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [router, saveCurrentStateToShared]);
+  }, [router]);
 
 
 
@@ -177,9 +143,9 @@ export default function ExcelImportCleanPage() {
     // No manual re-comparison needed - useEffect will handle it
   }, [fileOps]);
 
-  // Auto-compare when both tables have data OR when data changes (but not during shared data loading)
+  // Auto-compare when both tables have data OR when data changes
   useEffect(() => {
-    if (!isLoadingSharedData && fileOps.rowsMaster.length > 0 && fileOps.rowsClient.length > 0) {
+    if (fileOps.rowsMaster.length > 0 && fileOps.rowsClient.length > 0) {
       console.log('[AUTO-RECOMPARE] Data changed, triggering merge recalculation');
 
       // Perform comparison automatically
@@ -207,7 +173,6 @@ export default function ExcelImportCleanPage() {
       }
     }
   }, [
-    isLoadingSharedData,
     fileOps.rowsMaster, // Watch the actual data arrays, not just lengths
     fileOps.rowsClient,  // This will trigger when content changes
     fileOps.columnsMaster,
@@ -234,7 +199,53 @@ export default function ExcelImportCleanPage() {
     else fileOps.setDragOverClient(false);
     const files = e.dataTransfer.files;
     if (files.length) {
-      fileOps.handleFileUpload(files[0], fileType);
+      handleFileUploadWithStorage(files[0], fileType);
+    }
+  };
+
+  // Enhanced file upload that saves to localStorage for restore functionality
+  const handleFileUploadWithStorage = async (file: File, which: "Master" | "Client") => {
+    try {
+      // Save the file name to localStorage and update state
+      if (which === "Master") {
+        localStorage.setItem("lastMasterFile", file.name);
+        setLastMasterFile(file.name);
+      } else {
+        localStorage.setItem("lastClientFile", file.name);
+        setLastClientFile(file.name);
+      }
+
+      // Convert file to base64 for storage
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const arrayBuffer = evt.target?.result as ArrayBuffer;
+        if (arrayBuffer) {
+          // Convert to base64
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64Data = btoa(binary);
+
+          // Save to localStorage
+          if (which === "Master") {
+            localStorage.setItem("lastMasterData", base64Data);
+            setLastMasterData(base64Data);
+          } else {
+            localStorage.setItem("lastClientData", base64Data);
+            setLastClientData(base64Data);
+          }
+        }
+      };
+      reader.readAsArrayBuffer(file);
+
+      // Use the original file upload handler
+      await fileOps.handleFileUpload(file, which);
+
+    } catch (error) {
+      console.error(`Error uploading ${which} file:`, error);
+      showNotification(`Failed to upload ${which} file. Please try again.`, 'error');
     }
   };
 
@@ -256,7 +267,63 @@ export default function ExcelImportCleanPage() {
   const handleLoadSampleDataWithFeedback = async (sampleSet: number = 1) => {
     setIsLoadingSample(true);
     try {
-      await fileOps.handleLoadSampleData(sampleSet);
+      // Load sample data and also save to localStorage for restore functionality
+      console.log(`[SAMPLE DATA] Starting to load sample data set ${sampleSet}...`);
+
+      // Define sample file paths for each set
+      const sampleSets = {
+        1: {
+          master: '/sample%20sheets/ED%20Master%20CDM%202025.xlsx',
+          client: '/sample%20sheets/Client%20ED%20w%20Hyphens.xlsx',
+          masterName: 'ED Master CDM 2025.xlsx',
+          clientName: 'Client ED w Hyphens.xlsx'
+        },
+        2: {
+          master: '/sample%20sheets%202/ED%20Master%20CDM%202025.xlsx',
+          client: '/sample%20sheets%202/Client%20ED%20-%20no%20Hyphens.xlsx',
+          masterName: 'ED Master CDM 2025.xlsx',
+          clientName: 'Client ED - no Hyphens.xlsx'
+        }
+      };
+
+      const selectedSet = sampleSets[sampleSet as keyof typeof sampleSets];
+      if (!selectedSet) {
+        console.error(`[SAMPLE DATA] Invalid sample set: ${sampleSet}`);
+        throw new Error(`Invalid sample set: ${sampleSet}`);
+      }
+
+      // Load the sample files in parallel
+      const [masterFileResponse, clientFileResponse] = await Promise.all([
+        fetch(selectedSet.master),
+        fetch(selectedSet.client)
+      ]);
+
+      if (!masterFileResponse.ok || !clientFileResponse.ok) {
+        console.error(`[SAMPLE DATA] Failed to fetch sample files for set ${sampleSet}`);
+        throw new Error(`Failed to load sample files for set ${sampleSet}`);
+      }
+
+      const [masterBlob, clientBlob] = await Promise.all([
+        masterFileResponse.blob(),
+        clientFileResponse.blob()
+      ]);
+
+      // Create File objects
+      const masterFile = new File([masterBlob], selectedSet.masterName, {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const clientFile = new File([clientBlob], selectedSet.clientName, {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+
+      console.log(`[SAMPLE DATA] Sample files loaded from set ${sampleSet}, processing both files...`);
+
+      // Process both files using our enhanced upload handler that saves to localStorage
+      await handleFileUploadWithStorage(masterFile, "Master");
+      await handleFileUploadWithStorage(clientFile, "Client");
+
+      console.log('[SAMPLE DATA] File processing initiated...');
+
       showNotification(`Sample data set ${sampleSet} loaded successfully!`, 'success');
     } catch (error) {
       showNotification('Failed to load sample data. Please try again.', 'error');
@@ -307,6 +374,88 @@ export default function ExcelImportCleanPage() {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  // Restore session functionality
+  const restoreFileData = (data: string, which: "Master" | "Client", restoreMetadata = false) => {
+    console.log(`[DEBUG] Starting restoreFileData for ${which}`);
+
+    try {
+      // Convert base64 data back to a File object
+      const binaryString = atob(data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      // Get the original filename from localStorage
+      const filenameKey = which === "Master" ? "lastMasterFile" : "lastClientFile";
+      const originalFilename = localStorage.getItem(filenameKey) || `${which.toLowerCase()}-file.xlsx`;
+
+      // Create a File object
+      const file = new File([bytes], originalFilename, {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+
+      console.log(`[DEBUG] Created File object for ${which}:`, file.name, file.size);
+
+      // Use the existing file upload handler
+      fileOps.handleFileUpload(file, which);
+
+      console.log(`[DEBUG] File upload initiated for ${which}`);
+
+    } catch (error) {
+      console.error(`[DEBUG] Error restoring ${which} file:`, error);
+      throw error;
+    }
+  };
+
+  const handleLoadLastFile = (which: "Master" | "Client") => {
+    if (which === "Master" && lastMasterData && lastMasterFile) {
+      console.log('[DEBUG] Loading last master file');
+      restoreFileData(lastMasterData, "Master");
+      showNotification(`Master file "${lastMasterFile}" restored successfully!`, 'success');
+    } else if (which === "Client" && lastClientData && lastClientFile) {
+      console.log('[DEBUG] Loading last client file');
+      restoreFileData(lastClientData, "Client");
+      showNotification(`Client file "${lastClientFile}" restored successfully!`, 'success');
+    }
+  };
+
+  const handleRestoreSession = () => {
+    if (lastMasterData && lastClientData && lastMasterFile && lastClientFile) {
+      console.log('[DEBUG] Starting restore session');
+
+      // Process file data
+      restoreFileData(lastMasterData, "Master");
+      restoreFileData(lastClientData, "Client");
+
+      showNotification('Session restored successfully!', 'success');
+      console.log('[DEBUG] Session restore completed');
+    }
+  };
+
+  const handleClearAllData = () => {
+    // First do a normal reset
+    handleResetWithFeedback('both');
+
+    // Then clear all localStorage data
+    localStorage.removeItem("lastMasterFile");
+    localStorage.removeItem("lastMasterData");
+    localStorage.removeItem("lastMasterSheet");
+    localStorage.removeItem("lastMasterMetadata");
+    localStorage.removeItem("lastClientFile");
+    localStorage.removeItem("lastClientData");
+    localStorage.removeItem("lastClientSheet");
+    localStorage.removeItem("lastClientMetadata");
+
+    // Clear the state variables too
+    setLastMasterFile(null);
+    setLastMasterData(null);
+    setLastClientFile(null);
+    setLastClientData(null);
+
+    showNotification('All data and session history cleared!', 'info');
   };
 
   // Keyboard shortcuts handler
@@ -538,6 +687,68 @@ export default function ExcelImportCleanPage() {
           hasClientData={fileOps.rowsClient.length > 0}
         />
 
+        {/* Restore Session Buttons */}
+        {(lastMasterData || lastClientData) && (
+          <Box sx={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 2,
+            mb: 2,
+            flexWrap: "wrap",
+            p: 1,
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            borderRadius: 1,
+            border: '1px solid #e0e0e0'
+          }}>
+            {lastMasterData && lastClientData && lastMasterFile && lastClientFile && (
+              <Button
+                variant="contained"
+                color="success"
+                onClick={handleRestoreSession}
+                size="small"
+                sx={{ fontSize: '0.75rem' }}
+              >
+                Restore Last Session
+              </Button>
+            )}
+            <Tooltip title={lastMasterFile ? `Load last master file: ${lastMasterFile}` : "No master file in memory"}>
+              <span>
+                <Button
+                  variant="outlined"
+                  onClick={() => handleLoadLastFile("Master")}
+                  disabled={!lastMasterData || !lastMasterFile}
+                  size="small"
+                  sx={{ fontSize: '0.75rem' }}
+                >
+                  Load Last Master
+                </Button>
+              </span>
+            </Tooltip>
+            <Tooltip title={lastClientFile ? `Load last client file: ${lastClientFile}` : "No client file in memory"}>
+              <span>
+                <Button
+                  variant="outlined"
+                  onClick={() => handleLoadLastFile("Client")}
+                  disabled={!lastClientData || !lastClientFile}
+                  size="small"
+                  sx={{ fontSize: '0.75rem' }}
+                >
+                  Load Last Client
+                </Button>
+              </span>
+            </Tooltip>
+            <Button
+              variant="contained"
+              onClick={handleClearAllData}
+              color="error"
+              size="small"
+              sx={{ fontSize: '0.75rem' }}
+            >
+              Clear All Data
+            </Button>
+          </Box>
+        )}
+
         {/* Master and Client Sections - Horizontal Layout */}
         <Box sx={{
           display: "flex",
@@ -560,7 +771,7 @@ export default function ExcelImportCleanPage() {
                 dragOver={fileOps.dragOverMaster}
                 validationResult={fileOps.validationResults.master}
                 isValidating={fileOps.isValidating.master}
-                onFileUpload={fileOps.handleFileUpload}
+                onFileUpload={handleFileUploadWithStorage}
                 onTabChange={fileOps.handleMasterTabChange}
                 onDragEnter={handleDragEnter("Master")}
                 onDragLeave={handleDragLeave("Master")}
@@ -596,7 +807,7 @@ export default function ExcelImportCleanPage() {
                 dragOver={fileOps.dragOverClient}
                 validationResult={fileOps.validationResults.client}
                 isValidating={fileOps.isValidating.client}
-                onFileUpload={fileOps.handleFileUpload}
+                onFileUpload={handleFileUploadWithStorage}
                 onTabChange={fileOps.handleClientTabChange}
                 onDragEnter={handleDragEnter("Client")}
                 onDragLeave={handleDragLeave("Client")}
@@ -717,24 +928,7 @@ export default function ExcelImportCleanPage() {
           <Typography variant="caption" sx={{ display: 'block', mb: 2 }}>
             Streamlined Excel import, HCPCS code matching, and data merging without AI complexity
           </Typography>
-          <Typography
-            variant="caption"
-            onClick={() => {
-              saveCurrentStateToShared();
-              router.push('/excel-import');
-            }}
-            sx={{
-              color: 'rgba(0,0,0,0.4)',
-              fontSize: '0.7rem',
-              cursor: 'pointer',
-              '&:hover': {
-                color: 'rgba(0,0,0,0.6)',
-                textDecoration: 'underline'
-              }
-            }}
-          >
-            Press Ctrl+Shift+U to switch UI versions
-          </Typography>
+
         </Box>
       </Box>
     </NoSSR>

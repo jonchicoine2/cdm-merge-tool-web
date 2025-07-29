@@ -15,7 +15,7 @@ import AIChat, { AIChatHandle } from "../../components/AIChat";
 import dynamic from 'next/dynamic';
 import { useRouter } from "next/navigation";
 import { filterAndSearchRows, formatHCPCSWithHyphens } from "../../utils/excelOperations";
-import { saveSharedData, loadSharedData, clearSharedData, SharedAppData } from "../../utils/sharedDataPersistence";
+// Note: Removed shared data imports - pages are now independent
 import ImprovedRowEditModal from "../../components/excel-import/ImprovedRowEditModal";
 // Removed cptCacheService import - no longer used
 
@@ -127,48 +127,11 @@ export default function ExcelImportPage() {
 
 
 
-  // Function to load shared data from other UI
-  const loadSharedDataToState = useCallback(() => {
-    const sharedData = loadSharedData();
-    if (sharedData && sharedData.sourceUI === 'clean') {
-      console.log('[SHARED DATA] Loading data from clean UI...');
-
-      // Load master data
-      setRowsMaster(sharedData.rowsMaster);
-      setColumnsMaster(sharedData.columnsMaster);
-      setMasterSheetData(sharedData.masterSheetData);
-      setMasterSheetNames(sharedData.masterSheetNames);
-      setActiveMasterTab(sharedData.activeMasterTab);
-      setMasterFileMetadata(sharedData.masterFileMetadata);
-
-      // Load client data
-      setRowsClient(sharedData.rowsClient);
-      setColumnsClient(sharedData.columnsClient);
-      setClientSheetData(sharedData.clientSheetData);
-      setClientSheetNames(sharedData.clientSheetNames);
-      setActiveClientTab(sharedData.activeClientTab);
-      setClientFileMetadata(sharedData.clientFileMetadata);
-
-      // Load comparison results
-      setMergedRows(sharedData.mergedRows);
-      setMergedColumns(sharedData.mergedColumns);
-      setUnmatchedClient(sharedData.unmatchedClient);
-      setDupsClient(sharedData.dupsClient);
-      setShowCompare(sharedData.showCompare);
-      setComparisonStats(sharedData.comparisonStats);
-
-      // Load settings
-      setModifierCriteria(sharedData.modifierCriteria);
-
-      console.log('[SHARED DATA] Successfully loaded shared data');
-      return true;
-    }
-    return false;
-  }, []);
+  // Note: Removed shared data loading function - pages are now independent
 
   useEffect(() => {
-    // Only try to load shared data from other UI (clean UI), not localStorage
-    loadSharedDataToState();
+    // Note: Removed shared data loading - pages are now independent
+    // loadSharedDataToState();
 
     // Load localStorage items for button state only (don't restore data automatically)
     const lastMaster = localStorage.getItem("lastMasterFile");
@@ -188,7 +151,7 @@ export default function ExcelImportPage() {
     if (lastClientData) {
       setLastClientData(lastClientData);
     }
-  }, [loadSharedDataToState]);
+  }, []); // Note: Removed loadSharedDataToState dependency
 
 
 
@@ -937,62 +900,21 @@ export default function ExcelImportPage() {
     };
   }, [startRowEditModeWithHcpcsFocus]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Function to save current state to shared data
-  const saveCurrentStateToShared = useCallback(() => {
-    const sharedData: SharedAppData = {
-      // Master data
-      rowsMaster,
-      columnsMaster,
-      masterSheetData,
-      masterSheetNames,
-      activeMasterTab,
-      masterFileMetadata,
+  // Note: Removed shared data saving function - pages are now independent
 
-      // Client data
-      rowsClient,
-      columnsClient,
-      clientSheetData,
-      clientSheetNames,
-      activeClientTab,
-      clientFileMetadata,
-
-      // Comparison results
-      mergedRows,
-      mergedColumns,
-      unmatchedClient,
-      dupsClient,
-      showCompare,
-      comparisonStats,
-
-      // Settings
-      modifierCriteria,
-
-      // Metadata
-      lastSaved: new Date().toISOString(),
-      sourceUI: 'main'
-    };
-
-    saveSharedData(sharedData);
-  }, [
-    rowsMaster, columnsMaster, masterSheetData, masterSheetNames, activeMasterTab, masterFileMetadata,
-    rowsClient, columnsClient, clientSheetData, clientSheetNames, activeClientTab, clientFileMetadata,
-    mergedRows, mergedColumns, unmatchedClient, dupsClient, showCompare, comparisonStats,
-    modifierCriteria
-  ]);
-
-  // Hidden keyboard shortcut to toggle UI (Ctrl+Shift+U)
+  // Hidden keyboard shortcut to toggle UI (Ctrl+Shift+U) - no data transfer
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.shiftKey && event.key === 'U') {
         event.preventDefault();
-        saveCurrentStateToShared();
+        // Note: Removed data saving - pages are now independent
         router.push('/excel-import-clean');
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [router, saveCurrentStateToShared]);
+  }, [router]);
 
   // Filtered data for each grid
   const filteredRowsMaster = filterAndSearchRowsLocal(rowsMaster, searchMaster, masterFilters);
@@ -2605,8 +2527,7 @@ export default function ExcelImportPage() {
     localStorage.removeItem("lastClientSheet");
     localStorage.removeItem("lastClientMetadata");
 
-    // Clear shared data (new system)
-    clearSharedData();
+    // Note: Removed shared data clearing - pages are now independent
 
     // Clear the state variables too
     setLastMasterFile(null);
@@ -4645,7 +4566,7 @@ export default function ExcelImportPage() {
         <Typography
           variant="caption"
           onClick={() => {
-            saveCurrentStateToShared();
+            // Note: Removed data saving - pages are now independent
             router.push('/excel-import-clean');
           }}
           sx={{
