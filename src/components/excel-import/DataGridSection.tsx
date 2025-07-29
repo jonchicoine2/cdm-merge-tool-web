@@ -4,6 +4,7 @@ import { colorPalette, statusColors, componentStyles } from '../../theme/designS
 import { DataGridPro, GridToolbar, GridColDef } from '@mui/x-data-grid-pro';
 import { DataGridSectionProps } from './types';
 import { createRowActionsColumn } from './RowActionsColumn';
+import FileInfoCard from './FileInfoCard';
 
 const DataGridSection: React.FC<DataGridSectionProps> = ({
   title,
@@ -241,6 +242,7 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
           rows={rows}
           columns={displayColumns}
           density="compact"
+          showToolbar
           isCellEditable={() => false}
           onCellDoubleClick={(params) => {
             // Only trigger edit for merged grid with actions
@@ -259,13 +261,6 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
             '& .MuiDataGrid-cell:focus-within': {
               outline: 'none',
             },
-          }}
-          isCellEditable={() => false}
-          onCellDoubleClick={(params) => {
-            // Only trigger edit for merged grid with actions
-            if (gridType === 'merged' && onEditRow) {
-              onEditRow(params.row.id, gridType);
-            }
           }}
           slots={{ toolbar: GridToolbar }}
           slotProps={{
