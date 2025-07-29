@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
-import { Button, Box, Typography } from "@mui/material";
+import { Button, Box, Typography, ButtonGroup, Menu, MenuItem, Divider, Tooltip, CircularProgress, Snackbar, Alert } from "@mui/material";
+import { ArrowDropDown as ArrowDropDownIcon } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 
 import dynamic from 'next/dynamic';
@@ -47,6 +48,24 @@ export default function ExcelImportCleanPage() {
   // UI state
   const [modifierDialogOpen, setModifierDialogOpen] = useState(false);
   const [isLoadingSharedData, setIsLoadingSharedData] = useState(false);
+
+  // Loading states
+  const [isLoadingSample, setIsLoadingSample] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isComparing, setIsComparing] = useState(false);
+
+  // Notification state
+  const [notification, setNotification] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'info' | 'warning';
+  }>({
+    open: false,
+    message: '',
+    severity: 'info'
+  });
+  const [resetMenuAnchor, setResetMenuAnchor] = useState<null | HTMLElement>(null);
+  const [settingsMenuAnchor, setSettingsMenuAnchor] = useState<null | HTMLElement>(null);
   const [modifierCriteria, setModifierCriteria] = useState<ModifierCriteria>({
     root00: false,
     root25: false,
@@ -194,14 +213,144 @@ export default function ExcelImportCleanPage() {
     setModifierDialogOpen(false);
   };
 
+  // Notification helper
+  const showNotification = (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setNotification({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  // Enhanced handlers with loading states and notifications
+  const handleLoadSampleDataWithFeedback = async () => {
+    setIsLoadingSample(true);
+    try {
+      await fileOps.handleLoadSampleData();
+      showNotification('Sample data loaded successfully!', 'success');
+    } catch (error) {
+      showNotification('Failed to load sample data. Please try again.', 'error');
+      console.error('Load sample data error:', error);
+    } finally {
+      setIsLoadingSample(false);
+    }
+  };
+
+  const handleResetWithFeedback = (type: 'master' | 'client' | 'both') => {
+    try {
+      switch (type) {
+        case 'master':
+          fileOps.resetMaster();
+          showNotification('Master data reset successfully!', 'info');
+          break;
+        case 'client':
+          fileOps.resetClient();
+          showNotification('Client data reset successfully!', 'info');
+          break;
+        case 'both':
+          fileOps.resetBoth();
+          comparison.resetComparison();
+          showNotification('All data reset successfully!', 'info');
+          break;
+      }
+    } catch (error) {
+      showNotification('Failed to reset data. Please try again.', 'error');
+      console.error('Reset error:', error);
+    }
+  };
+
   // Export handler (unified like original implementation)
   const handleExportData = () => {
-    fileOps.handleExport(
-      comparison.mergedRows,
-      comparison.unmatchedClient,
-      comparison.dupsClient
-    );
+    setIsExporting(true);
+    try {
+      fileOps.handleExport(
+        comparison.mergedRows,
+        comparison.unmatchedClient,
+        comparison.dupsClient
+      );
+      showNotification('Data exported successfully!', 'success');
+    } catch (error) {
+      showNotification('Failed to export data. Please try again.', 'error');
+      console.error('Export error:', error);
+    } finally {
+      setIsExporting(false);
+    }
   };
+
+  // Keyboard shortcuts handler
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check for modifier keys
+      const isCtrl = event.ctrlKey || event.metaKey; // Support both Ctrl and Cmd
+      const isShift = event.shiftKey;
+
+      // Prevent default browser shortcuts when our shortcuts are triggered
+      if (isCtrl) {
+        switch (event.key.toLowerCase()) {
+          case 'l':
+            event.preventDefault();
+            // Load Sample Data
+            handleLoadSampleDataWithFeedback();
+            break;
+          case 'r':
+            if (!isShift) {
+              event.preventDefault();
+              // Reset Both
+              handleResetWithFeedback('both');
+            }
+            break;
+          case 'e':
+            event.preventDefault();
+            // Export Data (only if there's merged data)
+            if (comparison.mergedRows.length > 0) {
+              handleExportData();
+            }
+            break;
+          case '1':
+            event.preventDefault();
+            // Focus Master Grid
+            const masterGrid = document.querySelector('[data-testid="master-grid"]') as HTMLElement;
+            if (masterGrid) {
+              masterGrid.focus();
+              masterGrid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            break;
+          case '2':
+            event.preventDefault();
+            // Focus Client Grid
+            const clientGrid = document.querySelector('[data-testid="client-grid"]') as HTMLElement;
+            if (clientGrid) {
+              clientGrid.focus();
+              clientGrid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            break;
+          case '3':
+            event.preventDefault();
+            // Focus Merged Grid
+            const mergedGrid = document.querySelector('[data-testid="merged-grid"]') as HTMLElement;
+            if (mergedGrid) {
+              mergedGrid.focus();
+              mergedGrid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            break;
+        }
+      }
+
+      // Handle Ctrl+Shift+U (Switch UI) - this is already implemented
+      if (isCtrl && isShift && event.key.toLowerCase() === 'u') {
+        event.preventDefault();
+        router.push('/');
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [fileOps, comparison, router, handleExportData]);
 
   // Row operation handlers for merged grid
   const handleEditRow = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
@@ -281,7 +430,10 @@ export default function ExcelImportCleanPage() {
 
 
         {/* Welcome Section */}
-        <WelcomeSection onLoadSampleData={fileOps.handleLoadSampleData} />
+        <WelcomeSection
+          onLoadSampleData={handleLoadSampleDataWithFeedback}
+          isLoading={isLoadingSample}
+        />
 
         {/* Master and Client Sections - Horizontal Layout */}
         <Box sx={{
@@ -303,6 +455,8 @@ export default function ExcelImportCleanPage() {
                 activeTab={fileOps.activeMasterTab}
                 sheetData={fileOps.masterSheetData}
                 dragOver={fileOps.dragOverMaster}
+                validationResult={fileOps.validationResults.master}
+                isValidating={fileOps.isValidating.master}
                 onFileUpload={fileOps.handleFileUpload}
                 onTabChange={fileOps.handleMasterTabChange}
                 onDragEnter={handleDragEnter("Master")}
@@ -333,6 +487,8 @@ export default function ExcelImportCleanPage() {
                 activeTab={fileOps.activeClientTab}
                 sheetData={fileOps.clientSheetData}
                 dragOver={fileOps.dragOverClient}
+                validationResult={fileOps.validationResults.client}
+                isValidating={fileOps.isValidating.client}
                 onFileUpload={fileOps.handleFileUpload}
                 onTabChange={fileOps.handleClientTabChange}
                 onDragEnter={handleDragEnter("Client")}
@@ -352,65 +508,86 @@ export default function ExcelImportCleanPage() {
           </Box>
         </Box>
 
-        {/* Reset and Compare Buttons - Compact Layout */}
+        {/* Action Button Groups - Consolidated Layout */}
         {(fileOps.rowsMaster.length > 0 || fileOps.rowsClient.length > 0) && (
           <Box sx={{
             display: 'flex',
-            gap: 1,
+            gap: 2,
             justifyContent: 'center',
             flexWrap: 'wrap',
             mb: 1.5,
             alignItems: 'center'
           }}>
-            {fileOps.rowsMaster.length > 0 && (
-              <Button
-                variant="outlined"
-                color="error"
-                size="small"
-                onClick={() => {
-                  fileOps.resetMaster();
-                  comparison.resetComparison();
-                }}
-                sx={{ fontSize: '0.8rem', py: 0.5, px: 1.5 }}
-              >
-                🗑️ Reset Master
-              </Button>
-            )}
-            {fileOps.rowsClient.length > 0 && (
-              <Button
-                variant="outlined"
-                color="error"
-                size="small"
-                onClick={() => {
-                  fileOps.resetClient();
-                  comparison.resetComparison();
-                }}
-                sx={{ fontSize: '0.8rem', py: 0.5, px: 1.5 }}
-              >
-                🗑️ Reset Client
-              </Button>
-            )}
-            <Button
-              variant="outlined"
-              color="secondary"
-              size="small"
-              onClick={() => {
-                fileOps.resetBoth();
-                comparison.resetComparison();
-              }}
-              sx={{ fontSize: '0.8rem', py: 0.5, px: 1.5 }}
+            {/* Reset Actions Group */}
+            <ButtonGroup variant="outlined" size="small">
+              <Tooltip title="Reset Data (Ctrl+R for Reset Both)" arrow>
+                <Button
+                  onClick={(event) => setResetMenuAnchor(event.currentTarget)}
+                  endIcon={<ArrowDropDownIcon />}
+                  sx={{ fontSize: '0.8rem', py: 0.5, px: 1.5 }}
+                  color="error"
+                >
+                  🗑️ Reset
+                </Button>
+              </Tooltip>
+            </ButtonGroup>
+
+            <Menu
+              anchorEl={resetMenuAnchor}
+              open={Boolean(resetMenuAnchor)}
+              onClose={() => setResetMenuAnchor(null)}
             >
-              🔄 Reset Both
-            </Button>
+              {fileOps.rowsMaster.length > 0 && (
+                <MenuItem onClick={() => {
+                  handleResetWithFeedback('master');
+                  setResetMenuAnchor(null);
+                }}>
+                  📄 Reset Master Data
+                </MenuItem>
+              )}
+              {fileOps.rowsClient.length > 0 && (
+                <MenuItem onClick={() => {
+                  handleResetWithFeedback('client');
+                  setResetMenuAnchor(null);
+                }}>
+                  📋 Reset Client Data
+                </MenuItem>
+              )}
+              <Divider />
+              <MenuItem onClick={() => {
+                handleResetWithFeedback('both');
+                setResetMenuAnchor(null);
+              }}>
+                🔄 Reset Both
+              </MenuItem>
+            </Menu>
+
+            {/* Settings Actions Group */}
             {fileOps.rowsMaster.length > 0 && fileOps.rowsClient.length > 0 && (
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => setModifierDialogOpen(true)}
-                sx={{ fontSize: '0.8rem', py: 0.5, px: 1.5 }}
-              >
-                ⚙️ Adjust Modifier Criteria
-              </Button>
+              <>
+                <ButtonGroup variant="outlined" size="small">
+                  <Button
+                    onClick={(event) => setSettingsMenuAnchor(event.currentTarget)}
+                    endIcon={<ArrowDropDownIcon />}
+                    sx={{ fontSize: '0.8rem', py: 0.5, px: 1.5 }}
+                  >
+                    ⚙️ Settings
+                  </Button>
+                </ButtonGroup>
+
+                <Menu
+                  anchorEl={settingsMenuAnchor}
+                  open={Boolean(settingsMenuAnchor)}
+                  onClose={() => setSettingsMenuAnchor(null)}
+                >
+                  <MenuItem onClick={() => {
+                    setModifierDialogOpen(true);
+                    setSettingsMenuAnchor(null);
+                  }}>
+                    🔧 Adjust Modifier Criteria
+                  </MenuItem>
+                </Menu>
+              </>
             )}
           </Box>
         )}
@@ -428,6 +605,7 @@ export default function ExcelImportCleanPage() {
               columnsClient={fileOps.columnsClient}
               comparisonStats={comparison.comparisonStats}
               onExport={handleExportData}
+              isExporting={isExporting}
               enableRowActions={true}
               onEditRow={handleEditRow}
               onDuplicateRow={handleDuplicateRow}
@@ -454,6 +632,23 @@ export default function ExcelImportCleanPage() {
           onClose={handleCloseEditModal}
           onSave={handleSaveEditedRow}
         />
+
+        {/* Notification Snackbar */}
+        <Snackbar
+          open={notification.open}
+          autoHideDuration={4000}
+          onClose={() => setNotification(prev => ({ ...prev, open: false }))}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          <Alert
+            onClose={() => setNotification(prev => ({ ...prev, open: false }))}
+            severity={notification.severity}
+            variant="filled"
+            sx={{ width: '100%' }}
+          >
+            {notification.message}
+          </Alert>
+        </Snackbar>
 
         {/* Footer */}
         <Box sx={{

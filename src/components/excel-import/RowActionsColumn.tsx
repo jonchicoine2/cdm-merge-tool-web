@@ -47,12 +47,20 @@ export const createRowActionsColumn = ({
       };
 
       return (
-        <Box sx={{
-          display: 'flex',
-          gap: 0.5,
-          alignItems: 'center',
-          height: '100%'
-        }}>
+        <Box
+          className="row-actions"
+          sx={{
+            display: 'flex',
+            gap: 0.5,
+            alignItems: 'center',
+            height: '100%',
+            opacity: 0,
+            transition: 'opacity 0.2s ease',
+            '.MuiDataGrid-row:hover &': {
+              opacity: 1
+            }
+          }}
+        >
           <Tooltip title="Edit Row">
             <IconButton
               size="small"

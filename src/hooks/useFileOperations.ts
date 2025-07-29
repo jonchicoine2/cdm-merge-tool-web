@@ -11,6 +11,7 @@ import {
 } from '../utils/excelOperations';
 import { SheetData } from '../components/excel-import/types';
 import { SharedAppData } from '../utils/sharedDataPersistence';
+import { validateCDMFile, ValidationResult, createValidationErrorMessage } from '../utils/fileValidation';
 
 export const useFileOperations = () => {
   // Core data state
@@ -25,10 +26,20 @@ export const useFileOperations = () => {
 
   // Track filenames for export naming (like original implementation)
   const [lastClientFile, setLastClientFile] = useState<string>('');
-  
+
   // Sheet management state
   const [masterSheetData, setMasterSheetData] = useState<{[sheetName: string]: SheetData}>({});
   const [clientSheetData, setClientSheetData] = useState<{[sheetName: string]: SheetData}>({});
+
+  // Validation state
+  const [validationResults, setValidationResults] = useState<{
+    master?: ValidationResult;
+    client?: ValidationResult;
+  }>({});
+  const [isValidating, setIsValidating] = useState<{
+    master: boolean;
+    client: boolean;
+  }>({ master: false, client: false });
   const [activeMasterTab, setActiveMasterTab] = useState<number>(0);
   const [activeClientTab, setActiveClientTab] = useState<number>(0);
   const [masterSheetNames, setMasterSheetNames] = useState<string[]>([]);
@@ -99,34 +110,74 @@ export const useFileOperations = () => {
     return { rows, columns };
   };
 
-  // Handle file upload
-  const handleFileUpload = (file: File, which: "Master" | "Client") => {
-    // Track client filename for export naming (like original implementation)
-    if (which === "Client") {
-      setLastClientFile(file.name);
-    }
+  // Enhanced file upload with validation
+  const handleFileUpload = async (file: File, which: "Master" | "Client") => {
+    const fileType = which.toLowerCase() as 'master' | 'client';
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const data = evt.target?.result;
-      if (!data) return;
-      const arrayBuffer = data as ArrayBuffer;
-      
-      // Process all sheets
-      const workbook = XLSX.read(arrayBuffer, { type: "array" });
-      const sheets = workbook.SheetNames;
-      console.log(`[DEBUG] File ${which} has ${sheets.length} sheets:`, sheets);
-      
-      // Create file metadata
-      const metadata = createFileMetadata(file, workbook);
-      
-      // Process all sheets
-      const sheetData: {[sheetName: string]: SheetData} = {};
-      sheets.forEach(sheetName => {
-        const worksheet = workbook.Sheets[sheetName];
-        const processed = processSheetData(worksheet, true);
-        sheetData[sheetName] = processed;
-      });
+    // Set validation loading state
+    setIsValidating(prev => ({ ...prev, [fileType]: true }));
+
+    try {
+      // Validate file first
+      console.log(`[VALIDATION] Starting validation for ${which} file:`, file.name);
+      const validationResult = await validateCDMFile(file, fileType);
+
+      // Store validation results
+      setValidationResults(prev => ({ ...prev, [fileType]: validationResult }));
+
+      // If validation fails, show error and stop processing
+      if (!validationResult.isValid) {
+        console.error(`[VALIDATION] ${which} file validation failed:`, validationResult.errors);
+        const errorMessage = createValidationErrorMessage(validationResult);
+
+        // You can emit this error to a notification system
+        console.error(`[FILE UPLOAD] ${which} file validation failed:\n${errorMessage}`);
+
+        // Clear validation loading state
+        setIsValidating(prev => ({ ...prev, [fileType]: false }));
+        return { success: false, error: errorMessage, validationResult };
+      }
+
+      // Show warnings if any
+      if (validationResult.warnings.length > 0) {
+        console.warn(`[VALIDATION] ${which} file warnings:`, validationResult.warnings);
+        // You can emit warnings to a notification system here
+      }
+
+      console.log(`[VALIDATION] ${which} file validation passed`, validationResult.fileInfo);
+
+      // Track client filename for export naming (like original implementation)
+      if (which === "Client") {
+        setLastClientFile(file.name);
+      }
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const data = evt.target?.result;
+          if (!data) {
+            console.error(`[FILE UPLOAD] No data received for ${which} file`);
+            setIsValidating(prev => ({ ...prev, [fileType]: false }));
+            return;
+          }
+
+          const arrayBuffer = data as ArrayBuffer;
+
+          // Process all sheets
+          const workbook = XLSX.read(arrayBuffer, { type: "array" });
+          const sheets = workbook.SheetNames;
+          console.log(`[DEBUG] File ${which} has ${sheets.length} sheets:`, sheets);
+
+          // Create file metadata
+          const metadata = createFileMetadata(file, workbook);
+
+          // Process all sheets
+          const sheetData: {[sheetName: string]: SheetData} = {};
+          sheets.forEach(sheetName => {
+            const worksheet = workbook.Sheets[sheetName];
+            const processed = processSheetData(worksheet, true);
+            sheetData[sheetName] = processed;
+          });
       
       if (which === "Master") {
         setMasterSheetData(sheetData);
@@ -159,8 +210,31 @@ export const useFileOperations = () => {
           setColumnsClient(sheetData[firstSheet].columns);
         }
       }
+
+      // Clear validation loading state on success
+      setIsValidating(prev => ({ ...prev, [fileType]: false }));
+
+      } catch (error) {
+        console.error(`[FILE UPLOAD] Error processing ${which} file:`, error);
+        setIsValidating(prev => ({ ...prev, [fileType]: false }));
+      }
     };
+
+    reader.onerror = () => {
+      console.error(`[FILE UPLOAD] Error reading ${which} file`);
+      setIsValidating(prev => ({ ...prev, [fileType]: false }));
+    };
+
     reader.readAsArrayBuffer(file);
+
+    } catch (error) {
+      console.error(`[FILE UPLOAD] Error during ${which} file validation:`, error);
+      setIsValidating(prev => ({ ...prev, [fileType]: false }));
+      return {
+        success: false,
+        error: `Failed to process file: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
   };
 
   // Sample data loading function
@@ -440,6 +514,10 @@ export const useFileOperations = () => {
     searchClient,
     setSearchMaster,
     setSearchClient,
+
+    // Validation state
+    validationResults,
+    isValidating,
 
     // Setters
     setRowsMaster,

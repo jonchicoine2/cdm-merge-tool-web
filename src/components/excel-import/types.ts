@@ -1,5 +1,6 @@
 import { GridColDef, GridApiPro } from "@mui/x-data-grid-pro";
 import { ExcelRow, FileMetadata, ComparisonStats, ModifierCriteria } from "../../utils/excelOperations";
+import { ValidationResult } from "../../utils/fileValidation";
 import { RefObject } from "react";
 
 export interface SheetData {
@@ -16,6 +17,9 @@ export interface FileUploadProps {
   activeTab: number;
   sheetData: { [sheetName: string]: SheetData };
   dragOver: boolean;
+  // Validation props
+  validationResult?: ValidationResult;
+  isValidating?: boolean;
   onFileUpload: (file: File, fileType: "Master" | "Client") => void;
   onTabChange: (newValue: number) => void;
   onDragEnter: () => void;
@@ -39,6 +43,8 @@ export interface DataGridSectionProps {
   onEditRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
   onDuplicateRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
   onDeleteRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
+  // UI options
+  hideHeader?: boolean;
 }
 
 export interface ComparisonResultsProps {
@@ -49,6 +55,7 @@ export interface ComparisonResultsProps {
   columnsClient: GridColDef[];
   comparisonStats: ComparisonStats | null;
   onExport: () => void;
+  isExporting?: boolean;
   // Row operations for merged grid
   enableRowActions?: boolean;
   onEditRow?: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
@@ -66,6 +73,7 @@ export interface ModifierCriteriaDialogProps {
 
 export interface WelcomeSectionProps {
   onLoadSampleData: () => void;
+  isLoading?: boolean;
 }
 
 export interface FileInfoCardProps {

@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Box, Typography, Button, Tabs, Tab } from '@mui/material';
 import { FileUploadProps } from './types';
+import ValidationFeedback from './ValidationFeedback';
 
 const FileUploadArea: React.FC<FileUploadProps> = ({
   fileType,
@@ -11,6 +12,8 @@ const FileUploadArea: React.FC<FileUploadProps> = ({
   activeTab,
   sheetData, // eslint-disable-line @typescript-eslint/no-unused-vars
   dragOver,
+  validationResult,
+  isValidating,
   onFileUpload,
   onTabChange,
   onDragEnter,
@@ -46,7 +49,13 @@ const FileUploadArea: React.FC<FileUploadProps> = ({
       background: 'white'
     }}>
 
-      
+      {/* Validation Feedback */}
+      <ValidationFeedback
+        validationResult={validationResult}
+        isValidating={isValidating}
+        fileType={fileType.toLowerCase() as 'master' | 'client'}
+      />
+
       {rows.length === 0 ? (
         <Box
           sx={{

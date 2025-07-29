@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Box, Typography, Chip } from '@mui/material';
 import { DataGridPro, GridToolbar, GridColDef } from '@mui/x-data-grid-pro';
 import { DataGridSectionProps } from './types';
@@ -19,7 +19,9 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
   onEditRow,
   onDuplicateRow,
   onDeleteRow,
-  enableRowActions = false
+  enableRowActions = false,
+  // UI options
+  hideHeader = false
 }) => {
   // State for hover-based activation
   const [isGridActive, setIsGridActive] = useState(false);
@@ -33,6 +35,45 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
       }
     };
   }, []);
+
+  // Enhanced scroll management
+  const gridContainerRef = useRef<HTMLDivElement>(null);
+  const [hasScrollFocus, setHasScrollFocus] = useState(false);
+
+  // Handle mouse enter - activate grid scroll
+  const handleGridMouseEnter = () => {
+    setHasScrollFocus(true);
+    // Optional: Disable page scroll when grid has focus
+    // document.body.style.overflow = 'hidden';
+  };
+
+  // Handle mouse leave - deactivate grid scroll
+  const handleGridMouseLeave = () => {
+    setHasScrollFocus(false);
+    // Re-enable page scroll
+    document.body.style.overflow = 'auto';
+  };
+
+  // Escape key override to release scroll focus
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && hasScrollFocus) {
+        setHasScrollFocus(false);
+        document.body.style.overflow = 'auto';
+        // Remove focus from grid
+        if (gridContainerRef.current) {
+          gridContainerRef.current.blur();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      // Ensure page scroll is restored on unmount
+      document.body.style.overflow = 'auto';
+    };
+  }, [hasScrollFocus]);
 
   // Only hide if both rows and columns are empty (no file loaded)
   if (rows.length === 0 && columns.length === 0) return null;
@@ -102,82 +143,98 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
         transition: 'all 0.2s ease',
         cursor: isGridActive ? 'default' : 'default'
       }}>
-      <Typography variant="h6" sx={{
-        mb: 2,
-        color: headerColor,
-        fontWeight: 'bold',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-        flexWrap: 'wrap'
-      }}>
-        {title}
-        {comparisonStats ? (
-          // Show comparison stats chips for merged data
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-            ml: 1
-          }}>
-            <Chip size="small" label={`${comparisonStats.matchedRecords.toLocaleString()} matched`}
-                  sx={{ backgroundColor: '#4caf50', color: 'white', fontSize: '0.75rem' }} />
-            <Chip size="small" label={`${comparisonStats.unmatchedRecords.toLocaleString()} unmatched`}
-                  sx={{ backgroundColor: '#f44336', color: 'white', fontSize: '0.75rem' }} />
-            <Chip size="small" label={`${comparisonStats.duplicateRecords.toLocaleString()} duplicates`}
-                  sx={{ backgroundColor: '#ff9800', color: 'white', fontSize: '0.75rem' }} />
-            <Chip size="small" label={`${comparisonStats.matchRate}% match rate`}
-                  sx={{ backgroundColor: '#2196f3', color: 'white', fontSize: '0.75rem' }} />
-            <Chip size="small" label={`${comparisonStats.columnsMatched} columns mapped`}
-                  sx={{ backgroundColor: '#9c27b0', color: 'white', fontSize: '0.75rem' }} />
-          </Box>
-        ) : (
-          // Show file metadata for other grids (no record count)
-          fileMetadata && (
+      {!hideHeader && (
+        <Typography variant="h6" sx={{
+          mb: 2,
+          color: headerColor,
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          flexWrap: 'wrap'
+        }}>
+          {title}
+          {comparisonStats ? (
+            // Show comparison stats chips for merged data
             <Box sx={{
               display: 'flex',
               alignItems: 'center',
               gap: 0.5,
               ml: 1
             }}>
-              <Chip
-                size="small"
-                label={fileMetadata.name}
-                variant="outlined"
-                sx={{
-                  fontSize: '0.7rem',
-                  height: '20px',
-                  '& .MuiChip-label': { px: 1 }
-                }}
-              />
-              <Chip
-                size="small"
-                label={formatFileSize(fileMetadata.size)}
-                sx={{
-                  backgroundColor: '#e3f2fd',
-                  color: '#1976d2',
-                  fontSize: '0.7rem',
-                  height: '20px',
-                  '& .MuiChip-label': { px: 1 }
-                }}
-              />
-              <Chip
-                size="small"
-                label={`${fileMetadata.sheetCount} sheet${fileMetadata.sheetCount !== 1 ? 's' : ''}`}
-                sx={{
-                  backgroundColor: '#e8f5e8',
-                  color: '#2e7d32',
-                  fontSize: '0.7rem',
-                  height: '20px',
-                  '& .MuiChip-label': { px: 1 }
-                }}
-              />
+              <Chip size="small" label={`${comparisonStats.matchedRecords.toLocaleString()} matched`}
+                    sx={{ backgroundColor: '#4caf50', color: 'white', fontSize: '0.75rem' }} />
+              <Chip size="small" label={`${comparisonStats.unmatchedRecords.toLocaleString()} unmatched`}
+                    sx={{ backgroundColor: '#f44336', color: 'white', fontSize: '0.75rem' }} />
+              <Chip size="small" label={`${comparisonStats.duplicateRecords.toLocaleString()} duplicates`}
+                    sx={{ backgroundColor: '#ff9800', color: 'white', fontSize: '0.75rem' }} />
+              <Chip size="small" label={`${comparisonStats.matchRate}% match rate`}
+                    sx={{ backgroundColor: '#2196f3', color: 'white', fontSize: '0.75rem' }} />
+              <Chip size="small" label={`${comparisonStats.columnsMatched} columns mapped`}
+                    sx={{ backgroundColor: '#9c27b0', color: 'white', fontSize: '0.75rem' }} />
             </Box>
-          )
-        )}
-      </Typography>
+          ) : (
+            // Show file metadata for other grids (no record count)
+            fileMetadata && (
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                ml: 1
+              }}>
+                <Chip
+                  size="small"
+                  label={fileMetadata.name}
+                  variant="outlined"
+                  sx={{
+                    fontSize: '0.7rem',
+                    height: '20px',
+                    '& .MuiChip-label': { px: 1 }
+                  }}
+                />
+                <Chip
+                  size="small"
+                  label={formatFileSize(fileMetadata.size)}
+                  sx={{
+                    backgroundColor: '#e3f2fd',
+                    color: '#1976d2',
+                    fontSize: '0.7rem',
+                    height: '20px',
+                    '& .MuiChip-label': { px: 1 }
+                  }}
+                />
+                <Chip
+                  size="small"
+                  label={`${fileMetadata.sheetCount} sheet${fileMetadata.sheetCount !== 1 ? 's' : ''}`}
+                  sx={{
+                    backgroundColor: '#e8f5e8',
+                    color: '#2e7d32',
+                    fontSize: '0.7rem',
+                    height: '20px',
+                    '& .MuiChip-label': { px: 1 }
+                  }}
+                />
+              </Box>
+            )
+          )}
+        </Typography>
+      )}
       
-      <Box sx={{ height: 450, width: '100%' }}>
+      <Box
+        ref={gridContainerRef}
+        onMouseEnter={handleGridMouseEnter}
+        onMouseLeave={handleGridMouseLeave}
+        sx={{
+          height: 450,
+          width: '100%',
+          // Visual indicator when grid has scroll focus
+          border: hasScrollFocus ? '2px solid #1976d2' : '2px solid transparent',
+          borderRadius: 1,
+          transition: 'border-color 0.2s ease-in-out',
+          // Subtle shadow when active
+          boxShadow: hasScrollFocus ? '0 2px 8px rgba(25, 118, 210, 0.15)' : 'none'
+        }}
+      >
         <DataGridPro
           apiRef={apiRef}
           rows={rows}
@@ -188,6 +245,9 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
           density="compact"
           slots={{ toolbar: GridToolbar }}
           slotProps={{
+            root: {
+              'data-testid': `${gridType}-grid`
+            },
             toolbar: {
               showQuickFilter: true,
               quickFilterProps: { debounceMs: 500 },
