@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
-import { Box, Typography, Tooltip, CircularProgress, Snackbar, Alert } from "@mui/material";
+import { Box, Typography, Snackbar, Alert } from "@mui/material";
 import { useRouter } from "next/navigation";
 
 import dynamic from 'next/dynamic';
@@ -54,7 +54,6 @@ export default function ExcelImportCleanPage() {
   // Loading states
   const [isLoadingSample, setIsLoadingSample] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [isComparing, setIsComparing] = useState(false);
 
   // Notification state
   const [notification, setNotification] = useState<{
@@ -165,9 +164,24 @@ export default function ExcelImportCleanPage() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [router, saveCurrentStateToShared]);
 
-  // Auto-compare when both tables have data (but not during shared data loading)
+
+
+  // Simple row update handlers - useEffect will handle re-comparison
+  const handleMasterRowUpdateWithRecompare = useCallback((updatedRow: ExcelRow) => {
+    fileOps.handleMasterRowUpdate(updatedRow);
+    // No manual re-comparison needed - useEffect will handle it
+  }, [fileOps]);
+
+  const handleClientRowUpdateWithRecompare = useCallback((updatedRow: ExcelRow) => {
+    fileOps.handleClientRowUpdate(updatedRow);
+    // No manual re-comparison needed - useEffect will handle it
+  }, [fileOps]);
+
+  // Auto-compare when both tables have data OR when data changes (but not during shared data loading)
   useEffect(() => {
     if (!isLoadingSharedData && fileOps.rowsMaster.length > 0 && fileOps.rowsClient.length > 0) {
+      console.log('[AUTO-RECOMPARE] Data changed, triggering merge recalculation');
+
       // Perform comparison automatically
       comparison.performComparison(
         fileOps.rowsMaster,
@@ -177,18 +191,31 @@ export default function ExcelImportCleanPage() {
         modifierCriteria
       );
 
-      // Scroll to comparison results after a short delay to allow rendering
-      setTimeout(() => {
-        const comparisonElement = document.getElementById('comparison-results');
-        if (comparisonElement) {
-          comparisonElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-          });
-        }
-      }, 300);
+      // Only scroll on initial load (when lengths change, not content)
+      // This prevents scrolling on every edit
+      const isInitialLoad = !comparison.showCompare;
+      if (isInitialLoad) {
+        setTimeout(() => {
+          const comparisonElement = document.getElementById('comparison-results');
+          if (comparisonElement) {
+            comparisonElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+            });
+          }
+        }, 300);
+      }
     }
-  }, [isLoadingSharedData, fileOps.rowsMaster.length, fileOps.rowsClient.length, fileOps.columnsMaster.length, fileOps.columnsClient.length, modifierCriteria, comparison.performComparison]);
+  }, [
+    isLoadingSharedData,
+    fileOps.rowsMaster, // Watch the actual data arrays, not just lengths
+    fileOps.rowsClient,  // This will trigger when content changes
+    fileOps.columnsMaster,
+    fileOps.columnsClient,
+    modifierCriteria,
+    comparison.performComparison,
+    comparison.showCompare
+  ]);
 
   // Drag and drop handlers
   const handleDragEnter = (fileType: "Master" | "Client") => () => {
@@ -430,11 +457,14 @@ export default function ExcelImportCleanPage() {
 
   const handleMasterClientDelete = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
     if (gridType === 'merged') return;
+
     if (gridType === 'master') {
       fileOps.setRowsMaster(fileOps.rowsMaster.filter(row => row.id !== rowId));
     } else {
       fileOps.setRowsClient(fileOps.rowsClient.filter(row => row.id !== rowId));
     }
+
+    // No manual re-comparison needed - useEffect will handle it when state updates
   };
 
   const handleSaveEditedRow = (updatedRow: ExcelRow) => {
@@ -466,6 +496,8 @@ export default function ExcelImportCleanPage() {
       );
       setRows(updatedRows);
     }
+
+    // No manual re-comparison needed - useEffect will handle it when state updates
   };
 
   const handleCloseEditModal = () => {
@@ -541,7 +573,7 @@ export default function ExcelImportCleanPage() {
                 columns={fileOps.columnsMaster}
                 gridType="master"
                 fileMetadata={fileOps.masterFileMetadata}
-                onRowUpdate={fileOps.handleMasterRowUpdate}
+                onRowUpdate={handleMasterRowUpdateWithRecompare}
                 enableRowActions={true}
                 onEditRow={handleMasterClientEdit}
                 onCreateNewFromRow={handleMasterClientCreate}
@@ -577,7 +609,7 @@ export default function ExcelImportCleanPage() {
                 columns={fileOps.columnsClient}
                 gridType="client"
                 fileMetadata={fileOps.clientFileMetadata}
-                onRowUpdate={fileOps.handleClientRowUpdate}
+                onRowUpdate={handleClientRowUpdateWithRecompare}
                 enableRowActions={true}
                 onEditRow={handleMasterClientEdit}
                 onCreateNewFromRow={handleMasterClientCreate}

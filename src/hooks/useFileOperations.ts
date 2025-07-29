@@ -418,6 +418,8 @@ export const useFileOperations = (useNewHyphenAlgorithm: boolean = false) => {
       };
       setMasterSheetData(updatedSheetData);
     }
+
+
   };
 
   const handleClientRowUpdate = (updatedRow: ExcelRow) => {
@@ -438,6 +440,8 @@ export const useFileOperations = (useNewHyphenAlgorithm: boolean = false) => {
       };
       setClientSheetData(updatedSheetData);
     }
+
+
   };
 
   // Reset functions
