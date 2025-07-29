@@ -7,7 +7,6 @@ import ClearIcon from "@mui/icons-material/Clear";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import EditIcon from "@mui/icons-material/Edit";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import * as XLSX from "xlsx";
@@ -2792,11 +2791,9 @@ export default function ExcelImportPage() {
     // Find the record to use as template based on grid type
     let recordToUseAsTemplate: ExcelRow | undefined;
     let currentRows: ExcelRow[];
-    let currentColumns: GridColDef[];
 
     if (gridType === 'master') {
       currentRows = rowsMasterRef.current;
-      currentColumns = columnsMaster;
       const filteredRows = filteredRowsMasterRef.current;
       recordToUseAsTemplate = filteredRows.find(row => String(row.id) === String(rowId)) || currentRows.find(row => String(row.id) === String(rowId));
 
@@ -2815,7 +2812,6 @@ export default function ExcelImportPage() {
       return { success: true, originalRowId: rowId };
     } else if (gridType === 'client') {
       currentRows = rowsClientRef.current;
-      currentColumns = columnsClient;
       const filteredRows = filteredRowsClientRef.current;
       recordToUseAsTemplate = filteredRows.find(row => String(row.id) === String(rowId)) || currentRows.find(row => String(row.id) === String(rowId));
 
@@ -2834,7 +2830,6 @@ export default function ExcelImportPage() {
       return { success: true, originalRowId: rowId };
     } else if (gridType === 'merged') {
       currentRows = mergedRowsRef.current;
-      currentColumns = mergedColumns;
       const filteredRows = filteredMergedRowsRef.current;
       recordToUseAsTemplate = filteredRows.find(row => String(row.id) === String(rowId)) || currentRows.find(row => String(row.id) === String(rowId));
 

@@ -188,8 +188,10 @@ export const componentStyles = {
   }
 };
 
-export default {
+const designSystem = {
   colorPalette,
   statusColors,
   componentStyles
 };
+
+export default designSystem;

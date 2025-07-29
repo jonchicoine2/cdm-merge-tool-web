@@ -1,10 +1,10 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Box, Typography, Chip } from '@mui/material';
-import { colorPalette, statusColors, componentStyles } from '../../theme/designSystem';
-import { DataGridPro, GridToolbar, GridColDef } from '@mui/x-data-grid-pro';
+import { componentStyles } from '../../theme/designSystem';
+import { DataGridPro, GridToolbar } from '@mui/x-data-grid-pro';
 import { DataGridSectionProps } from './types';
 import { createRowActionsColumn } from './RowActionsColumn';
-import FileInfoCard from './FileInfoCard';
+
 
 const DataGridSection: React.FC<DataGridSectionProps> = ({
   title,
@@ -77,9 +77,6 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
     };
   }, [hasScrollFocus]);
 
-  // Only hide if both rows and columns are empty (no file loaded)
-  if (rows.length === 0 && columns.length === 0) return null;
-
   // Create columns with actions column if enabled
   const displayColumns = useMemo(() => {
     if (!enableRowActions || !onEditRow || !onCreateNewFromRow || !onDeleteRow) {
@@ -95,6 +92,9 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
 
     return [actionsColumn, ...columns];
   }, [columns, enableRowActions, gridType, onEditRow, onCreateNewFromRow, onDeleteRow]);
+
+  // Only hide if both rows and columns are empty (no file loaded)
+  if (rows.length === 0 && columns.length === 0) return null;
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -251,7 +251,7 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
               onEditRow(params.row.id, gridType);
             }
           }}
-          onRowClick={(params) => {
+          onRowClick={() => {
             // Row selection happens automatically, this is just for any additional logic
           }}
           slots={{ toolbar: GridToolbar }}

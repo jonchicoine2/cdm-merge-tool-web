@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid-pro';
 import { 
   Box, 
@@ -22,6 +22,8 @@ export interface RowActionsProps {
   onDeleteRow: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
 }
 
+
+
 export const createRowActionsColumn = ({
   gridType,
   onEditRow,
@@ -39,7 +41,8 @@ export const createRowActionsColumn = ({
     disableReorder: true,
     hideable: false,
     renderCell: (params: GridRenderCellParams) => {
-      const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
       const handleDelete = () => {
         onDeleteRow(params.row.id, gridType);

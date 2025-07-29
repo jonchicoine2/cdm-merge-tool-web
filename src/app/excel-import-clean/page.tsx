@@ -203,8 +203,17 @@ export default function ExcelImportCleanPage() {
     }
   };
 
+  // Notification helper
+  const showNotification = useCallback((message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setNotification({
+      open: true,
+      message,
+      severity
+    });
+  }, []);
+
   // Enhanced file upload that saves to localStorage for restore functionality
-  const handleFileUploadWithStorage = async (file: File, which: "Master" | "Client") => {
+  const handleFileUploadWithStorage = useCallback(async (file: File, which: "Master" | "Client") => {
     try {
       // Save the file name to localStorage and update state
       if (which === "Master") {
@@ -247,24 +256,15 @@ export default function ExcelImportCleanPage() {
       console.error(`Error uploading ${which} file:`, error);
       showNotification(`Failed to upload ${which} file. Please try again.`, 'error');
     }
-  };
+  }, [fileOps, showNotification, setLastMasterFile, setLastMasterData, setLastClientFile, setLastClientData]);
 
   // Close dialog handler (comparison happens automatically)
   const handleStartComparison = () => {
     setModifierDialogOpen(false);
   };
 
-  // Notification helper
-  const showNotification = (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'info') => {
-    setNotification({
-      open: true,
-      message,
-      severity
-    });
-  };
-
   // Enhanced handlers with loading states and notifications
-  const handleLoadSampleDataWithFeedback = async (sampleSet: number = 1) => {
+  const handleLoadSampleDataWithFeedback = useCallback(async (sampleSet: number = 1) => {
     setIsLoadingSample(true);
     try {
       // Load sample data and also save to localStorage for restore functionality
@@ -331,9 +331,9 @@ export default function ExcelImportCleanPage() {
     } finally {
       setIsLoadingSample(false);
     }
-  };
+  }, [handleFileUploadWithStorage, showNotification]);
 
-  const handleResetWithFeedback = (type: 'master' | 'client' | 'both') => {
+  const handleResetWithFeedback = useCallback((type: 'master' | 'client' | 'both') => {
     try {
       switch (type) {
         case 'master':
@@ -356,10 +356,10 @@ export default function ExcelImportCleanPage() {
       showNotification('Failed to reset data. Please try again.', 'error');
       console.error('Reset error:', error);
     }
-  };
+  }, [fileOps, comparison, showNotification]);
 
   // Export handler (unified like original implementation)
-  const handleExportData = () => {
+  const handleExportData = useCallback(() => {
     setIsExporting(true);
     try {
       fileOps.handleExport(
@@ -374,10 +374,10 @@ export default function ExcelImportCleanPage() {
     } finally {
       setIsExporting(false);
     }
-  };
+  }, [comparison.mergedRows, comparison.unmatchedClient, comparison.dupsClient, fileOps, showNotification]);
 
   // Restore session functionality
-  const restoreFileData = (data: string, which: "Master" | "Client", restoreMetadata = false) => {
+  const restoreFileData = (data: string, which: "Master" | "Client") => {
     console.log(`[DEBUG] Starting restoreFileData for ${which}`);
 
     try {
@@ -531,7 +531,7 @@ export default function ExcelImportCleanPage() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [fileOps, comparison, router, handleExportData]);
+  }, [fileOps, comparison, router, handleExportData, handleLoadSampleDataWithFeedback, handleResetWithFeedback]);
 
   // Row operation handlers for merged grid
   const handleEditRow = (rowId: number | string, gridType: 'master' | 'client' | 'merged') => {
