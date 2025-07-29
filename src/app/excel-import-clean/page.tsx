@@ -119,7 +119,7 @@ export default function ExcelImportCleanPage() {
   // Load shared data on component mount (only once)
   useEffect(() => {
     loadSharedDataToState();
-  }, [loadSharedDataToState]); // Include loadSharedDataToState in dependencies
+  }, []); // Empty dependency array to run only once on mount
 
   // Hidden keyboard shortcut to toggle UI (Ctrl+Shift+U)
   useEffect(() => {
@@ -158,7 +158,7 @@ export default function ExcelImportCleanPage() {
         }
       }, 300);
     }
-  }, [isLoadingSharedData, fileOps.rowsMaster, fileOps.rowsClient, fileOps.columnsMaster, fileOps.columnsClient, modifierCriteria, comparison]);
+  }, [isLoadingSharedData, fileOps.rowsMaster.length, fileOps.rowsClient.length, fileOps.columnsMaster.length, fileOps.columnsClient.length, modifierCriteria, comparison.performComparison]);
 
   // Drag and drop handlers
   const handleDragEnter = (fileType: "Master" | "Client") => () => {
