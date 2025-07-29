@@ -7,13 +7,14 @@ import {
   createFileMetadata,
   duplicateRecord,
   deleteRecords,
-  filterAndSearchRows
+  filterAndSearchRows,
+  formatHCPCSWithHyphens
 } from '../utils/excelOperations';
 import { SheetData } from '../components/excel-import/types';
 import { SharedAppData } from '../utils/sharedDataPersistence';
 import { validateCDMFile, ValidationResult, createValidationErrorMessage } from '../utils/fileValidation';
 
-export const useFileOperations = () => {
+export const useFileOperations = (useNewHyphenAlgorithm: boolean = false) => {
   // Core data state
   const [rowsMaster, setRowsMaster] = useState<ExcelRow[]>([]);
   const [columnsMaster, setColumnsMaster] = useState<GridColDef[]>([]);
@@ -64,7 +65,9 @@ export const useFileOperations = () => {
 
   // Process sheet data from Excel worksheet
   const processSheetData = (worksheet: XLSX.WorkSheet, isEditable: boolean = true) => {
-    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    // Use raw: false to get formatted strings instead of raw values
+    // This prevents HCPCS codes like "1012050" from being converted to numbers
+    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
     if (json.length === 0) return { rows: [], columns: [] };
 
     const headers = json[0] as string[];
@@ -175,7 +178,17 @@ export const useFileOperations = () => {
           const sheetData: {[sheetName: string]: SheetData} = {};
           sheets.forEach(sheetName => {
             const worksheet = workbook.Sheets[sheetName];
-            const processed = processSheetData(worksheet, true);
+            let processed = processSheetData(worksheet, true);
+            
+            // Apply hyphen formatting to client data only (mirrors old app behavior)
+            if (which === "Client" && processed.rows.length > 0) {
+              console.log(`[HYPHEN FORMAT] Applying hyphen formatting to ${which} data`);
+              processed = {
+                ...processed,
+                rows: formatHCPCSWithHyphens(processed.rows, processed.columns, useNewHyphenAlgorithm)
+              };
+            }
+            
             sheetData[sheetName] = processed;
           });
       
@@ -237,20 +250,43 @@ export const useFileOperations = () => {
     }
   };
 
-  // Sample data loading function
-  const handleLoadSampleData = async () => {
+  // Sample data loading function with support for multiple sample sets
+  const handleLoadSampleData = async (sampleSet: number = 1) => {
     try {
-      console.log('[SAMPLE DATA] Starting to load sample data...');
+      console.log(`[SAMPLE DATA] Starting to load sample data set ${sampleSet}...`);
+      
+      // Define sample file paths for each set
+      const sampleSets = {
+        1: {
+          master: '/sample%20sheets/ED%20Master%20CDM%202025.xlsx',
+          client: '/sample%20sheets/Client%20ED%20w%20Hyphens.xlsx',
+          masterName: 'ED Master CDM 2025.xlsx',
+          clientName: 'Client ED w Hyphens.xlsx'
+        },
+        2: {
+          master: '/sample%20sheets%202/ED%20Master%20CDM%202025.xlsx',
+          client: '/sample%20sheets%202/Client%20ED%20-%20no%20Hyphens.xlsx',
+          masterName: 'ED Master CDM 2025.xlsx',
+          clientName: 'Client ED - no Hyphens.xlsx'
+        }
+      };
+      
+      const selectedSet = sampleSets[sampleSet as keyof typeof sampleSets];
+      if (!selectedSet) {
+        console.error(`[SAMPLE DATA] Invalid sample set: ${sampleSet}`);
+        alert(`Invalid sample set: ${sampleSet}`);
+        return;
+      }
       
       // Load the sample files in parallel
       const [masterFileResponse, clientFileResponse] = await Promise.all([
-        fetch('/sample%20sheets/ED%20Master%20CDM%202025.xlsx'),
-        fetch('/sample%20sheets/Client%20ED%20w%20Hyphens.xlsx')
+        fetch(selectedSet.master),
+        fetch(selectedSet.client)
       ]);
       
       if (!masterFileResponse.ok || !clientFileResponse.ok) {
-        console.error('[SAMPLE DATA] Failed to fetch sample files');
-        alert('Failed to load sample files. Please ensure the sample files are available in the public/sample sheets folder.');
+        console.error(`[SAMPLE DATA] Failed to fetch sample files for set ${sampleSet}`);
+        alert(`Failed to load sample files for set ${sampleSet}. Please ensure the sample files are available.`);
         return;
       }
       
@@ -260,14 +296,14 @@ export const useFileOperations = () => {
       ]);
       
       // Create File objects
-      const masterFile = new File([masterBlob], 'ED Master CDM 2025.xlsx', {
+      const masterFile = new File([masterBlob], selectedSet.masterName, {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
-      const clientFile = new File([clientBlob], 'Client ED w Hyphens.xlsx', {
+      const clientFile = new File([clientBlob], selectedSet.clientName, {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
       
-      console.log('[SAMPLE DATA] Sample files loaded, processing both files...');
+      console.log(`[SAMPLE DATA] Sample files loaded from set ${sampleSet}, processing both files...`);
       
       // Process both files
       handleFileUpload(masterFile, "Master");
@@ -276,8 +312,8 @@ export const useFileOperations = () => {
       console.log('[SAMPLE DATA] File processing initiated...');
       
     } catch (error) {
-      console.error('[SAMPLE DATA] Error loading sample data:', error);
-      alert('Error loading sample data. Please check the console for details.');
+      console.error(`[SAMPLE DATA] Error loading sample data set ${sampleSet}:`, error);
+      alert(`Error loading sample data set ${sampleSet}. Please check the console for details.`);
     }
   };
 
@@ -295,7 +331,13 @@ export const useFileOperations = () => {
     setActiveClientTab(newValue);
     const sheetName = clientSheetNames[newValue];
     if (clientSheetData[sheetName]) {
-      setRowsClient(clientSheetData[sheetName].rows);
+      // Apply hyphen formatting to client data when switching tabs
+      const formattedRows = formatHCPCSWithHyphens(
+        clientSheetData[sheetName].rows, 
+        clientSheetData[sheetName].columns, 
+        useNewHyphenAlgorithm
+      );
+      setRowsClient(formattedRows);
       setColumnsClient(clientSheetData[sheetName].columns);
     }
   };

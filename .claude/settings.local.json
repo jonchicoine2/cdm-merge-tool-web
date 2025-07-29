@@ -22,7 +22,8 @@
       "Bash(npm run:*)",
       "Bash(npx eslint:*)",
       "Bash(rm:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

@@ -19,6 +19,22 @@ const WelcomeSection: React.FC<WelcomeSectionProps> = ({
   hasMasterData = false,
   hasClientData = false
 }) => {
+  const [sampleMenuAnchor, setSampleMenuAnchor] = React.useState<null | HTMLElement>(null);
+  const sampleMenuOpen = Boolean(sampleMenuAnchor);
+  
+  const handleSampleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setSampleMenuAnchor(event.currentTarget);
+  };
+  
+  const handleSampleMenuClose = () => {
+    setSampleMenuAnchor(null);
+  };
+  
+  const handleSampleSelection = (sampleSet: number) => {
+    onLoadSampleData(sampleSet);
+    handleSampleMenuClose();
+  };
+
   return (
     <Box sx={{
       display: 'flex',
@@ -42,17 +58,39 @@ const WelcomeSection: React.FC<WelcomeSectionProps> = ({
 
       {/* Action Toolbar */}
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-        <Tooltip title="Load Sample Data (Ctrl+L)" arrow>
+        {/* Load Sample Data Dropdown */}
+        <ButtonGroup variant="contained" size="small">
+          <Tooltip title="Load Sample Data (Ctrl+L)" arrow>
+            <Button
+              onClick={() => onLoadSampleData(1)}
+              disabled={isLoading}
+              sx={{
+                background: '#ff9800',
+                fontSize: '0.75rem',
+                py: 0.25,
+                px: 1,
+                '&:hover': {
+                  background: '#f57c00'
+                },
+                '&:disabled': {
+                  background: '#ffcc80'
+                }
+              }}
+              startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : undefined}
+            >
+              {isLoading ? 'Loading...' : '📂 Load Sample'}
+            </Button>
+          </Tooltip>
           <Button
-            variant="contained"
-            onClick={onLoadSampleData}
+            onClick={handleSampleMenuClick}
             disabled={isLoading}
             size="small"
             sx={{
               background: '#ff9800',
               fontSize: '0.75rem',
               py: 0.25,
-              px: 1,
+              px: 0.5,
+              minWidth: 'auto',
               '&:hover': {
                 background: '#f57c00'
               },
@@ -60,11 +98,25 @@ const WelcomeSection: React.FC<WelcomeSectionProps> = ({
                 background: '#ffcc80'
               }
             }}
-            startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : undefined}
           >
-            {isLoading ? 'Loading...' : '📂 Load Sample Data'}
+            <ArrowDropDownIcon />
           </Button>
-        </Tooltip>
+        </ButtonGroup>
+        <Menu
+          anchorEl={sampleMenuAnchor}
+          open={sampleMenuOpen}
+          onClose={handleSampleMenuClose}
+          PaperProps={{
+            sx: { minWidth: '200px' }
+          }}
+        >
+          <MenuItem onClick={() => handleSampleSelection(1)}>
+            📁 Sample Set 1 (Emergency Dept)
+          </MenuItem>
+          <MenuItem onClick={() => handleSampleSelection(2)}>
+            📁 Sample Set 2
+          </MenuItem>
+        </Menu>
 
         {/* Action Buttons - Only show when data is loaded */}
         {showActionButtons && (hasMasterData || hasClientData) && (

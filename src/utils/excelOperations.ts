@@ -243,6 +243,71 @@ export function validateForDuplicates(data: ExcelRow[], hcpcsCol: string, modifi
   return duplicates;
 }
 
+// Hyphen formatting functions (mirrors old ChargeMasterMerge behavior)
+export function formatHCPCSWithHyphens(data: ExcelRow[], columns: GridColDef[], useNewAlgorithm: boolean = false): ExcelRow[] {
+  // Find HCPCS/CPT columns
+  const hcpcsColumns = columns.filter(col => 
+    col.field.toLowerCase().includes('hcpcs') || 
+    col.field.toLowerCase().includes('cpt')
+  ).map(col => col.field);
+
+  if (hcpcsColumns.length === 0) {
+    console.log('[HYPHEN FORMAT] No HCPCS/CPT columns found, returning data unchanged');
+    return data;
+  }
+
+  console.log('[HYPHEN FORMAT] Applying hyphen formatting to columns:', hcpcsColumns);
+  console.log('[HYPHEN FORMAT] Using algorithm:', useNewAlgorithm ? 'NEW (pattern validation)' : 'OLD (length only)');
+
+  // Apply formatting to each row
+  return data.map((row, index) => {
+    const formattedRow = { ...row };
+    
+    hcpcsColumns.forEach(colName => {
+      const value = formattedRow[colName];
+      const originalValue = value;
+      
+      if (typeof value === 'string') {
+        const trimmedValue = value.trim();
+        
+        // Log specific value if it contains "1012050"
+        if (trimmedValue.includes('1012050')) {
+          console.log(`[HYPHEN FORMAT] Found 1012050 in row ${index}, column ${colName}:`);
+          console.log(`  - Original value: "${originalValue}"`);
+          console.log(`  - Trimmed value: "${trimmedValue}"`);
+          console.log(`  - Length: ${trimmedValue.length}`);
+          console.log(`  - Type: ${typeof value}`);
+        }
+        
+        if (useNewAlgorithm) {
+          // New algorithm: Check for exactly 7 characters matching CPT+modifier pattern
+          if (trimmedValue.length === 7 &&
+              /^[A-Z0-9]{5}[A-Z0-9]{2}$/i.test(trimmedValue) &&
+              !trimmedValue.includes('-')) {
+            // Insert hyphen between base code and modifier
+            formattedRow[colName] = `${trimmedValue.substring(0, 5)}-${trimmedValue.substring(5)}`;
+            if (trimmedValue.includes('1012050')) {
+              console.log(`  - NEW ALGORITHM: Formatted to: "${formattedRow[colName]}"`);
+            }
+          }
+        } else {
+          // Old algorithm: Simply check length and insert hyphen (matching ChargeMasterMerge behavior)
+          if (trimmedValue.length === 7) {
+            formattedRow[colName] = `${trimmedValue.substring(0, 5)}-${trimmedValue.substring(5)}`;
+            if (trimmedValue.includes('1012050')) {
+              console.log(`  - OLD ALGORITHM: Formatted to: "${formattedRow[colName]}"`);
+            }
+          } else if (trimmedValue.includes('1012050')) {
+            console.log(`  - OLD ALGORITHM: NOT formatted (length != 7)`);
+          }
+        }
+      }
+    });
+    
+    return formattedRow;
+  });
+}
+
 
 
 export function exportToExcel(data: ExcelRow[], filename: string): void {

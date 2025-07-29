@@ -8,7 +8,8 @@ import {
   Typography,
   FormGroup,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  Box
 } from '@mui/material';
 import { ModifierCriteriaDialogProps } from './types';
 
@@ -17,7 +18,9 @@ const ModifierCriteriaDialog: React.FC<ModifierCriteriaDialogProps> = ({
   criteria,
   onClose,
   onCriteriaChange,
-  onStartComparison
+  onStartComparison,
+  useNewHyphenAlgorithm = false,
+  onHyphenAlgorithmChange
 }) => {
   const handleCriteriaChange = (field: keyof typeof criteria) => (event: React.ChangeEvent<HTMLInputElement>) => {
     onCriteriaChange({
@@ -102,6 +105,30 @@ const ModifierCriteriaDialog: React.FC<ModifierCriteriaDialogProps> = ({
             }
             label="Ignore trauma codes in comparison"
           />
+          {onHyphenAlgorithmChange && (
+            <>
+              {/* Divider for visual separation */}
+              <Box sx={{ my: 2, borderTop: '1px solid #e0e0e0' }} />
+              <FormControlLabel
+                control={
+                  <Checkbox 
+                    checked={useNewHyphenAlgorithm} 
+                    onChange={(e) => onHyphenAlgorithmChange(e.target.checked)} 
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography variant="body2">Use New Hyphen Algorithm</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {useNewHyphenAlgorithm 
+                        ? "Pattern validation (XXXXX-YY format required)" 
+                        : "Length-based only (legacy behavior)"}
+                    </Typography>
+                  </Box>
+                }
+              />
+            </>
+          )}
         </FormGroup>
       </DialogContent>
       <DialogActions>

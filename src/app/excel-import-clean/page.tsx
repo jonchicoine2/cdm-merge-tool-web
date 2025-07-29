@@ -39,9 +39,12 @@ const NoSSR = dynamic(() => Promise.resolve(({ children }: { children: React.Rea
 
 export default function ExcelImportCleanPage() {
   const router = useRouter();
+  
+  // Toggle for hyphen insertion algorithm (false = old algorithm, true = new algorithm)
+  const [useNewHyphenAlgorithm, setUseNewHyphenAlgorithm] = useState(false);
 
   // Use custom hooks for data management
-  const fileOps = useFileOperations();
+  const fileOps = useFileOperations(useNewHyphenAlgorithm);
   const comparison = useComparison();
 
   // UI state
@@ -223,11 +226,11 @@ export default function ExcelImportCleanPage() {
   };
 
   // Enhanced handlers with loading states and notifications
-  const handleLoadSampleDataWithFeedback = async () => {
+  const handleLoadSampleDataWithFeedback = async (sampleSet: number = 1) => {
     setIsLoadingSample(true);
     try {
-      await fileOps.handleLoadSampleData();
-      showNotification('Sample data loaded successfully!', 'success');
+      await fileOps.handleLoadSampleData(sampleSet);
+      showNotification(`Sample data set ${sampleSet} loaded successfully!`, 'success');
     } catch (error) {
       showNotification('Failed to load sample data. Please try again.', 'error');
       console.error('Load sample data error:', error);
@@ -553,6 +556,8 @@ export default function ExcelImportCleanPage() {
           onClose={() => setModifierDialogOpen(false)}
           onCriteriaChange={setModifierCriteria}
           onStartComparison={handleStartComparison}
+          useNewHyphenAlgorithm={useNewHyphenAlgorithm}
+          onHyphenAlgorithmChange={setUseNewHyphenAlgorithm}
         />
 
         {/* Row Edit Modal */}

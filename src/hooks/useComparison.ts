@@ -95,28 +95,7 @@ export const useComparison = () => {
       }
     });
 
-    // Format HCPCS codes in merged data to ensure proper format (XXXXX-XX)
-    const formattedMatched = matched.map(row => {
-      const formattedRow = { ...row };
-      Object.keys(formattedRow).forEach(key => {
-        // Only target specifically HCPCS/CPT columns (more restrictive)
-        if (key.toLowerCase().includes('hcpcs') || key.toLowerCase().includes('cpt')) {
-          const value = formattedRow[key];
-          if (typeof value === 'string') {
-            const trimmedValue = value.trim();
-            // Check for exactly 7 characters matching CPT+modifier pattern
-            if (trimmedValue.length === 7 &&
-                /^[A-Z0-9]{5}[A-Z0-9]{2}$/i.test(trimmedValue) &&
-                !trimmedValue.includes('-')) {
-              // Insert hyphen between base code and modifier
-              formattedRow[key] = `${trimmedValue.substring(0, 5)}-${trimmedValue.substring(5)}`;
-            }
-            // Leave everything else unchanged
-          }
-        }
-      });
-      return formattedRow;
-    });
+    // No formatting needed - client data already has hyphens from file loading
 
     // Find duplicates in client data
     const duplicates = validateForDuplicates(rowsClient, clientHcpcsCol, clientModifierCol);
@@ -126,10 +105,10 @@ export const useComparison = () => {
     const stats: ComparisonStats = {
       totalMasterRecords: rowsMaster.length,
       totalClientRecords: rowsClient.length,
-      matchedRecords: formattedMatched.length,
+      matchedRecords: matched.length,
       unmatchedRecords: unmatched.length,
       duplicateRecords: duplicates.length,
-      matchRate: Math.round((formattedMatched.length / rowsClient.length) * 100),
+      matchRate: Math.round((matched.length / rowsClient.length) * 100),
       processingTime,
       columnsMatched: Object.keys(columnMapping).length,
       totalMasterColumns: columnsMaster.length,
@@ -139,7 +118,7 @@ export const useComparison = () => {
     console.log('[COMPARISON] Comparison complete:', stats);
 
     // Update state
-    setMergedRows(formattedMatched);
+    setMergedRows(matched);
     setMergedColumns(columnsMaster); // Use master columns for merged data
     setUnmatchedClient(unmatched);
     setDupsClient(duplicates);

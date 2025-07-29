@@ -13,7 +13,7 @@ import * as XLSX from "xlsx";
 import AIChat, { AIChatHandle } from "../../components/AIChat";
 import dynamic from 'next/dynamic';
 import { useRouter } from "next/navigation";
-import { filterAndSearchRows } from "../../utils/excelOperations";
+import { filterAndSearchRows, formatHCPCSWithHyphens } from "../../utils/excelOperations";
 import { saveSharedData, loadSharedData, SharedAppData } from "../../utils/sharedDataPersistence";
 // Removed cptCacheService import - no longer used
 
@@ -2141,11 +2141,8 @@ export default function ExcelImportPage() {
           const value = formattedRow[key];
           if (typeof value === 'string') {
             const trimmedValue = value.trim();
-            // Check for exactly 7 characters matching CPT+modifier pattern
-            if (trimmedValue.length === 7 &&
-                /^[A-Z0-9]{5}[A-Z0-9]{2}$/i.test(trimmedValue) &&
-                !trimmedValue.includes('-')) {
-              // Insert hyphen between base code and modifier
+            // Old algorithm: Simply check length and insert hyphen (matching ChargeMasterMerge behavior)
+            if (trimmedValue.length === 7) {
               formattedRow[key] = `${trimmedValue.substring(0, 5)}-${trimmedValue.substring(5)}`;
             }
             // Leave everything else unchanged
@@ -2333,7 +2330,18 @@ export default function ExcelImportPage() {
     
     sheetNames.forEach(sheetName => {
       const worksheet = workbook.Sheets[sheetName];
-      const processed = processSheetData(worksheet, isEditable);
+      let processed = processSheetData(worksheet, isEditable);
+      
+      // Apply hyphen formatting to client data only (mirrors old app behavior)
+      // Always use old algorithm (false) in main page
+      if (which === "Client" && processed.rows.length > 0) {
+        console.log(`[HYPHEN FORMAT] Applying hyphen formatting to ${which} data`);
+        processed = {
+          ...processed,
+          rows: formatHCPCSWithHyphens(processed.rows, processed.columns, false)
+        };
+      }
+      
       sheetData[sheetName] = processed;
     });
     
@@ -2371,7 +2379,9 @@ export default function ExcelImportPage() {
   };
   
   const processSheetData = (worksheet: XLSX.WorkSheet, isEditable = false) => {
-    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    // Use raw: false to get formatted strings instead of raw values
+    // This prevents HCPCS codes like "1012050" from being converted to numbers
+    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
     if (json.length === 0) return { rows: [], columns: [] };
     
     const headers = json[0] as string[];
@@ -2480,11 +2490,13 @@ export default function ExcelImportPage() {
     const sheetName = clientSheetNames[newValue];
     const sheetData = clientSheetData[sheetName];
     if (sheetData) {
-      setRowsClient(sheetData.rows);
+      // Apply hyphen formatting to client data when switching tabs
+      const formattedRows = formatHCPCSWithHyphens(sheetData.rows, sheetData.columns, false);
+      setRowsClient(formattedRows);
       setColumnsClient(sheetData.columns);
       localStorage.setItem("lastClientSheet", sheetName);
-      // Save original data for cancel functionality
-      setOriginalClientData([...sheetData.rows]);
+      // Save original data for cancel functionality (with formatting applied)
+      setOriginalClientData([...formattedRows]);
       setHasUnsavedChanges(false);
       // Set HCPCS sorting after tab change
       setTimeout(() => setHcpcsDefaultSorting(), 100);

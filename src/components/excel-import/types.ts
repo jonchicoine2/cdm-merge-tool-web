@@ -69,10 +69,12 @@ export interface ModifierCriteriaDialogProps {
   onClose: () => void;
   onCriteriaChange: (criteria: ModifierCriteria) => void;
   onStartComparison: () => void;
+  useNewHyphenAlgorithm?: boolean;
+  onHyphenAlgorithmChange?: (useNew: boolean) => void;
 }
 
 export interface WelcomeSectionProps {
-  onLoadSampleData: () => void;
+  onLoadSampleData: (sampleSet?: number) => void;
   isLoading?: boolean;
   // Action button props
   showActionButtons?: boolean;
