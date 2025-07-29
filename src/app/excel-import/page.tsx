@@ -15,7 +15,7 @@ import AIChat, { AIChatHandle } from "../../components/AIChat";
 import dynamic from 'next/dynamic';
 import { useRouter } from "next/navigation";
 import { filterAndSearchRows, formatHCPCSWithHyphens } from "../../utils/excelOperations";
-import { saveSharedData, loadSharedData, SharedAppData } from "../../utils/sharedDataPersistence";
+import { saveSharedData, loadSharedData, clearSharedData, SharedAppData } from "../../utils/sharedDataPersistence";
 import ImprovedRowEditModal from "../../components/excel-import/ImprovedRowEditModal";
 // Removed cptCacheService import - no longer used
 

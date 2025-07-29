@@ -25,7 +25,11 @@
       "Bash(mkdir:*)",
       "Bash(mv:*)",
       "WebFetch(domain:mui.com)",
-      "WebFetch(domain:mui.com)"
+      "WebFetch(domain:mui.com)",
+      "Bash(npm cache clean:*)",
+      "Bash(rd:*)",
+      "Bash(powershell:*)",
+      "Bash(taskkill:*)"
     ],
     "deny": []
   }
