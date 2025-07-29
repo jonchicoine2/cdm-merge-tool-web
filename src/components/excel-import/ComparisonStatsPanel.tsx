@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography, Chip } from '@mui/material';
 import { ComparisonStatsPanelProps } from './types';
+import { colorPalette, statusColors, componentStyles } from '../../theme/designSystem';
 
 const ComparisonStatsPanel: React.FC<ComparisonStatsPanelProps> = ({ stats }) => {
   if (!stats) return null;
@@ -9,15 +10,15 @@ const ComparisonStatsPanel: React.FC<ComparisonStatsPanelProps> = ({ stats }) =>
     <Box sx={{
       mb: 2,
       p: 2,
-      backgroundColor: '#f8fbff',
-      border: '2px solid #4caf50',
+      backgroundColor: statusColors.processing.light,
+      border: `2px solid ${statusColors.matched.main}`,
       borderRadius: 1,
       display: 'flex',
       alignItems: 'center',
       gap: 3,
       flexWrap: 'wrap'
     }}>
-      <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#2e7d32' }}>
+      <Typography variant="body2" sx={{ fontWeight: 'bold', color: statusColors.matched.main }}>
         📊 Results:
       </Typography>
       

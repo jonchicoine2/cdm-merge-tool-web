@@ -1,5 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Box, Typography, Chip } from '@mui/material';
+import { colorPalette, statusColors, componentStyles } from '../../theme/designSystem';
 import { DataGridPro, GridToolbar, GridColDef } from '@mui/x-data-grid-pro';
 import { DataGridSectionProps } from './types';
 import { createRowActionsColumn } from './RowActionsColumn';
@@ -228,21 +229,44 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
           height: 450,
           width: '100%',
           // Visual indicator when grid has scroll focus
-          border: hasScrollFocus ? '2px solid #1976d2' : '2px solid transparent',
+          border: hasScrollFocus ? componentStyles.dataGrid.focusBorder : '2px solid transparent',
           borderRadius: 1,
           transition: 'border-color 0.2s ease-in-out',
           // Subtle shadow when active
-          boxShadow: hasScrollFocus ? '0 2px 8px rgba(25, 118, 210, 0.15)' : 'none'
+          boxShadow: hasScrollFocus ? componentStyles.dataGrid.focusShadow : 'none'
         }}
       >
         <DataGridPro
           apiRef={apiRef}
           rows={rows}
           columns={displayColumns}
-          checkboxSelection
-          disableRowSelectionOnClick
-          editMode="row"
           density="compact"
+          isCellEditable={() => false}
+          onCellDoubleClick={(params) => {
+            // Only trigger edit for merged grid with actions
+            if (gridType === 'merged' && onEditRow) {
+              onEditRow(params.row.id, gridType);
+            }
+          }}
+          onRowClick={(params) => {
+            // Row selection happens automatically, this is just for any additional logic
+          }}
+          sx={{
+            // Hide cell focus outline - we want row selection only
+            '& .MuiDataGrid-cell:focus': {
+              outline: 'none',
+            },
+            '& .MuiDataGrid-cell:focus-within': {
+              outline: 'none',
+            },
+          }}
+          isCellEditable={() => false}
+          onCellDoubleClick={(params) => {
+            // Only trigger edit for merged grid with actions
+            if (gridType === 'merged' && onEditRow) {
+              onEditRow(params.row.id, gridType);
+            }
+          }}
           slots={{ toolbar: GridToolbar }}
           slotProps={{
             root: {
@@ -313,9 +337,7 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
             '& .MuiDataGrid-row': {
               pointerEvents: isGridActive ? 'auto' : 'none',
             },
-            '& .MuiCheckbox-root': {
-              pointerEvents: isGridActive ? 'auto' : 'none', // Only when active
-            },
+
             '& .MuiDataGrid-columnHeaders': {
               backgroundColor: backgroundColor,
               borderBottom: `2px solid ${headerColor}`,

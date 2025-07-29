@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
-import { Button, Box, Typography, ButtonGroup, Menu, MenuItem, Divider, Tooltip, CircularProgress, Snackbar, Alert } from "@mui/material";
-import { ArrowDropDown as ArrowDropDownIcon } from "@mui/icons-material";
+import { Box, Typography, Tooltip, CircularProgress, Snackbar, Alert } from "@mui/material";
 import { useRouter } from "next/navigation";
 
 import dynamic from 'next/dynamic';
@@ -16,7 +15,7 @@ import {
   ComparisonResults,
   ModifierCriteriaDialog
 } from "../../components/excel-import";
-import RowEditModal from "../../components/excel-import/RowEditModal";
+import ImprovedRowEditModal from "../../components/excel-import/ImprovedRowEditModal";
 import { ExcelRow } from "../../utils/excelOperations";
 
 // Create a NoSSR wrapper component to disable server-side rendering
@@ -81,6 +80,7 @@ export default function ExcelImportCleanPage() {
   const [editingRow, setEditingRow] = useState<ExcelRow | null>(null);
   const [editingGridType, setEditingGridType] = useState<'master' | 'client'>('master');
   const [editModalTitle, setEditModalTitle] = useState('');
+  const [editModalMode, setEditModalMode] = useState<'edit' | 'duplicate'>('edit');
 
   // Function to save current state to shared data
   const saveCurrentStateToShared = useCallback(() => {
@@ -362,6 +362,7 @@ export default function ExcelImportCleanPage() {
       setEditingRow(rowToEdit);
       setEditingGridType('master'); // Use master columns for editing merged data
       setEditModalTitle('Edit Merged Row');
+      setEditModalMode('edit');
       setEditModalOpen(true);
     }
   };
@@ -371,16 +372,11 @@ export default function ExcelImportCleanPage() {
 
     const rowToDuplicate = comparison.mergedRows.find(row => row.id === rowId);
     if (rowToDuplicate) {
-      // Create a duplicate with a new ID
-      const duplicatedRow = {
-        ...rowToDuplicate,
-        id: Date.now() // Simple ID generation
-      };
-
-      // Open edit modal for the duplicated row
-      setEditingRow(duplicatedRow);
+      // For duplicate mode, we pass the original row and let the modal handle the duplication
+      setEditingRow(rowToDuplicate);
       setEditingGridType('master'); // Use master columns for editing
-      setEditModalTitle('Edit Duplicated Merged Row');
+      setEditModalTitle('Duplicate Merged Row');
+      setEditModalMode('duplicate');
       setEditModalOpen(true);
     }
   };
@@ -398,19 +394,20 @@ export default function ExcelImportCleanPage() {
 
   const handleSaveEditedRow = (updatedRow: ExcelRow) => {
     if (editingGridType === 'master') {
-      // For merged data editing, update the merged rows directly
-      const updatedMergedRows = comparison.mergedRows.map(row =>
-        row.id === updatedRow.id ? updatedRow : row
-      );
-
-      // Check if this is a new row (from duplication)
-      const existingRow = comparison.mergedRows.find(row => row.id === updatedRow.id);
-      if (!existingRow) {
-        // Add the new row to merged data
-        updatedMergedRows.push(updatedRow);
+      if (editModalMode === 'duplicate') {
+        // For duplicate mode, create a new row with a new ID
+        const newRow = {
+          ...updatedRow,
+          id: Date.now() // Generate new ID for duplicate
+        };
+        comparison.setMergedRows([...comparison.mergedRows, newRow]);
+      } else {
+        // For edit mode, update the existing row
+        const updatedMergedRows = comparison.mergedRows.map(row =>
+          row.id === updatedRow.id ? updatedRow : row
+        );
+        comparison.setMergedRows(updatedMergedRows);
       }
-
-      comparison.setMergedRows(updatedMergedRows);
     }
   };
 
@@ -433,6 +430,23 @@ export default function ExcelImportCleanPage() {
         <WelcomeSection
           onLoadSampleData={handleLoadSampleDataWithFeedback}
           isLoading={isLoadingSample}
+          showActionButtons={true}
+          resetMenuAnchor={resetMenuAnchor}
+          settingsMenuAnchor={settingsMenuAnchor}
+          onResetMenuClick={(event) => setResetMenuAnchor(event.currentTarget)}
+          onResetMenuClose={() => setResetMenuAnchor(null)}
+          onSettingsMenuClick={(event) => setSettingsMenuAnchor(event.currentTarget)}
+          onSettingsMenuClose={() => setSettingsMenuAnchor(null)}
+          onResetAction={(type) => {
+            handleResetWithFeedback(type);
+            setResetMenuAnchor(null);
+          }}
+          onModifierSettings={() => {
+            setModifierDialogOpen(true);
+            setSettingsMenuAnchor(null);
+          }}
+          hasMasterData={fileOps.rowsMaster.length > 0}
+          hasClientData={fileOps.rowsClient.length > 0}
         />
 
         {/* Master and Client Sections - Horizontal Layout */}
@@ -508,89 +522,7 @@ export default function ExcelImportCleanPage() {
           </Box>
         </Box>
 
-        {/* Action Button Groups - Consolidated Layout */}
-        {(fileOps.rowsMaster.length > 0 || fileOps.rowsClient.length > 0) && (
-          <Box sx={{
-            display: 'flex',
-            gap: 2,
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            mb: 1.5,
-            alignItems: 'center'
-          }}>
-            {/* Reset Actions Group */}
-            <ButtonGroup variant="outlined" size="small">
-              <Tooltip title="Reset Data (Ctrl+R for Reset Both)" arrow>
-                <Button
-                  onClick={(event) => setResetMenuAnchor(event.currentTarget)}
-                  endIcon={<ArrowDropDownIcon />}
-                  sx={{ fontSize: '0.8rem', py: 0.5, px: 1.5 }}
-                  color="error"
-                >
-                  🗑️ Reset
-                </Button>
-              </Tooltip>
-            </ButtonGroup>
 
-            <Menu
-              anchorEl={resetMenuAnchor}
-              open={Boolean(resetMenuAnchor)}
-              onClose={() => setResetMenuAnchor(null)}
-            >
-              {fileOps.rowsMaster.length > 0 && (
-                <MenuItem onClick={() => {
-                  handleResetWithFeedback('master');
-                  setResetMenuAnchor(null);
-                }}>
-                  📄 Reset Master Data
-                </MenuItem>
-              )}
-              {fileOps.rowsClient.length > 0 && (
-                <MenuItem onClick={() => {
-                  handleResetWithFeedback('client');
-                  setResetMenuAnchor(null);
-                }}>
-                  📋 Reset Client Data
-                </MenuItem>
-              )}
-              <Divider />
-              <MenuItem onClick={() => {
-                handleResetWithFeedback('both');
-                setResetMenuAnchor(null);
-              }}>
-                🔄 Reset Both
-              </MenuItem>
-            </Menu>
-
-            {/* Settings Actions Group */}
-            {fileOps.rowsMaster.length > 0 && fileOps.rowsClient.length > 0 && (
-              <>
-                <ButtonGroup variant="outlined" size="small">
-                  <Button
-                    onClick={(event) => setSettingsMenuAnchor(event.currentTarget)}
-                    endIcon={<ArrowDropDownIcon />}
-                    sx={{ fontSize: '0.8rem', py: 0.5, px: 1.5 }}
-                  >
-                    ⚙️ Settings
-                  </Button>
-                </ButtonGroup>
-
-                <Menu
-                  anchorEl={settingsMenuAnchor}
-                  open={Boolean(settingsMenuAnchor)}
-                  onClose={() => setSettingsMenuAnchor(null)}
-                >
-                  <MenuItem onClick={() => {
-                    setModifierDialogOpen(true);
-                    setSettingsMenuAnchor(null);
-                  }}>
-                    🔧 Adjust Modifier Criteria
-                  </MenuItem>
-                </Menu>
-              </>
-            )}
-          </Box>
-        )}
 
 
 
@@ -624,10 +556,11 @@ export default function ExcelImportCleanPage() {
         />
 
         {/* Row Edit Modal */}
-        <RowEditModal
+        <ImprovedRowEditModal
           open={editModalOpen}
           row={editingRow}
           columns={comparison.mergedColumns.length > 0 ? comparison.mergedColumns : fileOps.columnsMaster}
+          mode={editModalMode}
           title={editModalTitle}
           onClose={handleCloseEditModal}
           onSave={handleSaveEditedRow}

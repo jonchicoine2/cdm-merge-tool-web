@@ -3,6 +3,7 @@ import { Box, Typography, Button, IconButton, Collapse, Tooltip, CircularProgres
 import { ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
 import { useGridApiRef } from '@mui/x-data-grid-pro';
 import { ComparisonResultsProps } from './types';
+import { colorPalette, statusColors, componentStyles } from '../../theme/designSystem';
 import DataGridSection from './DataGridSection';
 
 const ComparisonResults: React.FC<ComparisonResultsProps> = ({
@@ -34,7 +35,7 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
         gap: 2
       }}>
         <Typography variant="h6" sx={{
-          color: '#1976d2',
+          color: colorPalette.primary.main,
           fontWeight: 'bold',
           display: 'flex',
           alignItems: 'center',
@@ -78,12 +79,12 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
             alignItems: 'center',
             mb: 1,
             p: 1,
-            backgroundColor: '#e8f5e8',
+            backgroundColor: statusColors.matched.light,
             borderRadius: 1,
-            border: '1px solid #c8e6c9'
+            border: `1px solid ${statusColors.matched.main}`
           }}>
             <Typography variant="h6" sx={{
-              color: '#2e7d32',
+              color: statusColors.matched.main,
               fontWeight: 'bold',
               flexGrow: 1,
               display: 'flex',
@@ -94,8 +95,8 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
               {comparisonStats && (
                 <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                   <Box sx={{
-                    backgroundColor: '#4caf50',
-                    color: 'white',
+                    backgroundColor: statusColors.matched.main,
+                    color: statusColors.matched.contrastText,
                     px: 1,
                     py: 0.25,
                     borderRadius: 1,
@@ -105,8 +106,8 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
                     {comparisonStats.matched} matched
                   </Box>
                   <Box sx={{
-                    backgroundColor: '#ff9800',
-                    color: 'white',
+                    backgroundColor: statusColors.unmatched.main,
+                    color: statusColors.unmatched.contrastText,
                     px: 1,
                     py: 0.25,
                     borderRadius: 1,
@@ -116,8 +117,8 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
                     {comparisonStats.unmatched} unmatched
                   </Box>
                   <Box sx={{
-                    backgroundColor: '#f44336',
-                    color: 'white',
+                    backgroundColor: statusColors.duplicates.main,
+                    color: statusColors.duplicates.contrastText,
                     px: 1,
                     py: 0.25,
                     borderRadius: 1,
@@ -127,8 +128,8 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
                     {comparisonStats.duplicates} duplicates
                   </Box>
                   <Box sx={{
-                    backgroundColor: '#2196f3',
-                    color: 'white',
+                    backgroundColor: statusColors.processing.main,
+                    color: statusColors.processing.contrastText,
                     px: 1,
                     py: 0.25,
                     borderRadius: 1,
@@ -138,8 +139,8 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
                     {comparisonStats.matchRate}% match rate
                   </Box>
                   <Box sx={{
-                    backgroundColor: '#9c27b0',
-                    color: 'white',
+                    backgroundColor: statusColors.neutral.main,
+                    color: statusColors.neutral.contrastText,
                     px: 1,
                     py: 0.25,
                     borderRadius: 1,
@@ -204,8 +205,8 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
               rows={unmatchedClient}
               columns={columnsClient}
               gridType="client"
-              headerColor="#d32f2f"
-              backgroundColor="#ffebee"
+              headerColor={statusColors.unmatched.main}
+              backgroundColor={statusColors.unmatched.light}
             />
           ) : (
             <Box sx={{
@@ -221,7 +222,7 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
             }}>
               <Typography variant="h6" sx={{
                 mb: 2,
-                color: '#d32f2f',
+                color: statusColors.unmatched.main,
                 fontWeight: 'bold',
                 display: 'flex',
                 alignItems: 'center',
@@ -255,8 +256,8 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
               rows={dupsClient}
               columns={columnsClient}
               gridType="client"
-              headerColor="#f57c00"
-              backgroundColor="#fff3e0"
+              headerColor={statusColors.duplicates.main}
+              backgroundColor={statusColors.duplicates.light}
             />
           ) : (
             <Box sx={{
@@ -272,7 +273,7 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
             }}>
               <Typography variant="h6" sx={{
                 mb: 2,
-                color: '#f57c00',
+                color: statusColors.duplicates.main,
                 fontWeight: 'bold',
                 display: 'flex',
                 alignItems: 'center',
