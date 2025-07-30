@@ -76,7 +76,7 @@ npm run dev
 ### Components Added
 - `/src/app/api/ai/chat/route.ts` - AI service endpoint
 - `/src/components/AIChat.tsx` - Chat interface component
-- Updated `/src/app/excel-import/page.tsx` - Main page with AI integration
+- Updated `/src/app/excel-import-clean/page.tsx` - Main page with AI integration
 
 ### How It Works
 1. User types a query in the chat interface

@@ -116,19 +116,7 @@ export default function ExcelImportCleanPage() {
     }
   }, []);
 
-  // Hidden keyboard shortcut to toggle UI (Ctrl+Shift+U) - no data transfer
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey && event.shiftKey && event.key === 'U') {
-        event.preventDefault();
-        // Note: Removed data saving - pages are now independent
-        router.push('/excel-import');
-      }
-    };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [router]);
 
 
 

@@ -46,7 +46,7 @@ This is a CDM (Charge Description Master) merge tool for comparing and merging h
 - Console logging minimized in render paths
 
 ## Key Files
-- Main page: `src/app/excel-import/page.tsx` (3000+ lines)
+- Main page: `src/app/excel-import-clean/page.tsx`
 - AI Chat: `src/components/AIChat.tsx`
 - Excel operations: `src/utils/excelOperations.ts`
 

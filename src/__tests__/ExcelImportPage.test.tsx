@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import ExcelImportPage from '../app/excel-import/page';
+import ExcelImportPage from '../app/excel-import-clean/page';
 import React from 'react';
 
 // Mock the AIChat component to avoid complex dependencies
