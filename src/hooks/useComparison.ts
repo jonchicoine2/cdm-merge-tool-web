@@ -13,7 +13,6 @@ import {
   applyMultiplierQuantityLogic,
   validateForDuplicates
 } from '../utils/excelOperations';
-import { SharedAppData } from '../utils/sharedDataPersistence';
 
 export const useComparison = () => {
   const [mergedRows, setMergedRows] = useState<ExcelRow[]>([]);
@@ -214,16 +213,6 @@ export const useComparison = () => {
     setShowCompare(false);
   };
 
-  const loadSharedData = (sharedData: SharedAppData) => {
-    setMergedRows(sharedData.mergedRows || []);
-    // Ensure merged columns have proper widths for full screen display
-    const mergedCols = sharedData.mergedColumns || [];
-    setMergedColumns(mergedCols.length > 0 ? createMergedGridColumns(mergedCols) : []);
-    setUnmatchedClient(sharedData.unmatchedClient || []);
-    setDupsClient(sharedData.dupsClient || []);
-    setComparisonStats(sharedData.comparisonStats);
-    setShowCompare(sharedData.showCompare || false);
-  };
 
   return {
     mergedRows,
@@ -236,7 +225,6 @@ export const useComparison = () => {
     resetComparison,
     setMergedRows,
     setUnmatchedClient,
-    setDupsClient,
-    loadSharedData
+    setDupsClient
   };
 };

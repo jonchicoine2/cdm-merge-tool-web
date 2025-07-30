@@ -7,8 +7,6 @@ import dynamic from 'next/dynamic';
 import { ModifierCriteria } from "../../utils/excelOperations";
 import { useFileOperations } from "../../hooks/useFileOperations";
 import { useComparison } from "../../hooks/useComparison";
-// Note: Removed shared data imports - pages are now independent
-// import { saveSharedData, loadSharedData, SharedAppData } from "../../utils/sharedDataPersistence";
 import {
   WelcomeSection,
   FileUploadArea,

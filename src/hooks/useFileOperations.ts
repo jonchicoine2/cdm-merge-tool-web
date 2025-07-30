@@ -11,7 +11,6 @@ import {
   formatHCPCSWithHyphens
 } from '../utils/excelOperations';
 import { SheetData } from '../components/excel-import/types';
-import { SharedAppData } from '../utils/sharedDataPersistence';
 import { validateCDMFile, ValidationResult, createValidationErrorMessage } from '../utils/fileValidation';
 
 export const useFileOperations = (useNewHyphenAlgorithm: boolean = false) => {
@@ -470,26 +469,6 @@ export const useFileOperations = (useNewHyphenAlgorithm: boolean = false) => {
     resetClient();
   };
 
-  // Load shared data function
-  const loadSharedData = (sharedData: SharedAppData) => {
-    // Load master data
-    setRowsMaster(sharedData.rowsMaster || []);
-    setColumnsMaster(sharedData.columnsMaster || []);
-    setMasterSheetData(sharedData.masterSheetData || {});
-    setMasterSheetNames(sharedData.masterSheetNames || []);
-    setActiveMasterTab(sharedData.activeMasterTab || 0);
-    setMasterFileMetadata(sharedData.masterFileMetadata);
-
-    // Load client data
-    setRowsClient(sharedData.rowsClient || []);
-    setColumnsClient(sharedData.columnsClient || []);
-    setClientSheetData(sharedData.clientSheetData || {});
-    setClientSheetNames(sharedData.clientSheetNames || []);
-    setActiveClientTab(sharedData.activeClientTab || 0);
-    setClientFileMetadata(sharedData.clientFileMetadata);
-    setLastClientFile(sharedData.clientFileMetadata?.name || '');
-  };
-
   // Export functions
   // Export function matching original implementation
   const handleExport = (mergedRows: ExcelRow[], unmatchedClient: ExcelRow[], dupsClient: ExcelRow[]) => {
@@ -588,7 +567,6 @@ export const useFileOperations = (useNewHyphenAlgorithm: boolean = false) => {
     resetMaster,
     resetClient,
     resetBoth,
-    loadSharedData,
 
     // Modal-based row operations for clean UI
     updateRowInGrid,

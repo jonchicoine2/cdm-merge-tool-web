@@ -2,13 +2,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ExcelImportPage from '../app/excel-import-clean/page';
 import React from 'react';
 
-// Mock the AIChat component to avoid complex dependencies
-jest.mock('../../components/AIChat', () => {
-  return {
-    __esModule: true,
-    default: React.forwardRef(() => <div data-testid="mock-ai-chat">AI Chat</div>),
-  };
-});
 
 // Mock the dynamic import NoSSR wrapper
 jest.mock('next/dynamic', () => {
@@ -27,16 +20,13 @@ jest.mock('xlsx', () => ({
 }));
 
 // Mock file operations utilities
-jest.mock('../../utils/excelOperations', () => ({
+jest.mock('../utils/excelOperations', () => ({
   filterAndSearchRows: jest.fn((rows) => rows),
   formatHCPCSWithHyphens: jest.fn((code) => code),
+  ModifierCriteria: {},
+  ExcelRow: {},
 }));
 
-// Mock shared data persistence
-jest.mock('../../utils/sharedDataPersistence', () => ({
-  saveSharedData: jest.fn(),
-  loadSharedData: jest.fn().mockReturnValue(null),
-}));
 
 describe('ExcelImportPage Component Tests', () => {
   beforeEach(() => {
@@ -93,23 +83,6 @@ describe('ExcelImportPage Component Tests', () => {
     }, { timeout: 3000 });
   });
 
-  test('AI chat toggle functionality works', async () => {
-    render(<ExcelImportPage />);
-    
-    await waitFor(() => {
-      // Look for AI chat toggle button
-      const aiButtons = screen.getAllByRole('button');
-      const aiToggleButton = aiButtons.find(button => 
-        button.textContent?.includes('AI') || 
-        button.getAttribute('aria-label')?.includes('AI')
-      );
-      
-      if (aiToggleButton) {
-        expect(aiToggleButton).toBeInTheDocument();
-        fireEvent.click(aiToggleButton);
-      }
-    });
-  });
 
   test('tab navigation works correctly', async () => {
     render(<ExcelImportPage />);

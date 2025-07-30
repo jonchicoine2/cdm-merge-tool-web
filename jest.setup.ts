@@ -1,10 +1,15 @@
 import '@testing-library/jest-dom';
 import { configure } from '@testing-library/react';
+import { TextEncoder, TextDecoder } from 'util';
 
 // Configure testing library for better error messages
 configure({
   throwSuggestions: true,
 });
+
+// Polyfill TextEncoder and TextDecoder for Node.js
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({

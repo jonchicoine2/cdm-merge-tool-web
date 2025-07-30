@@ -14,14 +14,12 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@google/generative-ai": "^0.24.1",
     "@mui/icons-material": "^7.1.2",
     "@mui/material": "^7.1.2",
     "@mui/x-data-grid": "^8.6.0",
     "@mui/x-data-grid-pro": "^8.9.1",
     "@mui/x-license": "^8.9.0",
     "next": "15.3.4",
-    "openai": "^5.8.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "xlsx": "^0.18.5"
@@ -40,6 +38,8 @@
     "jest": "^30.0.5",
     "jest-environment-jsdom": "^30.0.5",
     "playwright": "^1.54.1",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.2",
     "ts-prune": "^0.10.3",
     "typescript": "^5",
     "unimported": "^1.31.0"
