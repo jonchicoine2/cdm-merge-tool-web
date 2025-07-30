@@ -82,44 +82,56 @@ export const useComparison = () => {
     const columnMapping = createColumnMapping(columnsMaster, columnsClient);
     console.log('[COMPARISON] Column mapping:', columnMapping);
     
-    // Create master lookup map
-    const masterLookup = new Map<string, ExcelRow>();
-    rowsMaster.forEach(row => {
-      const key = getCompareKey(row, masterHcpcsCol, masterModifierCol, modifierCriteria);
+    // Create client lookup map for efficient matching
+    const clientLookup = new Map<string, ExcelRow>();
+    rowsClient.forEach(row => {
+      const key = getCompareKey(row, clientHcpcsCol, clientModifierCol, modifierCriteria);
       if (key) {
-        masterLookup.set(key, row);
+        clientLookup.set(key, row);
       }
     });
-    
-    console.log('[COMPARISON] Master lookup created with', masterLookup.size, 'entries');
-    
-    // Process client data
+
+    console.log('[COMPARISON] Client lookup created with', clientLookup.size, 'entries');
+
+    // Process master data (master-driven approach)
     const matched: ExcelRow[] = [];
     const unmatched: ExcelRow[] = [];
-    
-    rowsClient.forEach(clientRow => {
-      const clientKey = getCompareKey(clientRow, clientHcpcsCol, clientModifierCol, modifierCriteria);
-      
-      if (clientKey && masterLookup.has(clientKey)) {
-        const masterRow = masterLookup.get(clientKey)!;
-        
-        // Create merged row using master columns as base
-        const mergedRow: ExcelRow = { id: clientRow.id };
-        
-        // Copy all master data first
-        columnsMaster.forEach(col => {
-          mergedRow[col.field] = masterRow[col.field];
-        });
-        
-        // Override with client data where columns match
+
+    // Start with all master records
+    rowsMaster.forEach(masterRow => {
+      const masterKey = getCompareKey(masterRow, masterHcpcsCol, masterModifierCol, modifierCriteria);
+      const clientRow = clientLookup.get(masterKey);
+
+      // Create merged row using master columns as base
+      const mergedRow: ExcelRow = { id: masterRow.id };
+
+      // Copy all master data first
+      columnsMaster.forEach(col => {
+        mergedRow[col.field] = masterRow[col.field];
+      });
+
+      // Override with client data where columns match (if client data exists)
+      if (clientRow) {
         Object.entries(columnMapping).forEach(([masterField, clientField]) => {
           if (clientRow[clientField] !== undefined && clientRow[clientField] !== '') {
             mergedRow[masterField] = clientRow[clientField];
           }
         });
-        
-        matched.push(mergedRow);
-      } else {
+      }
+
+      matched.push(mergedRow);
+    });
+
+    // Find unmatched client records
+    rowsClient.forEach(clientRow => {
+      const clientKey = getCompareKey(clientRow, clientHcpcsCol, clientModifierCol, modifierCriteria);
+      // Check if this client record has a corresponding master record
+      const hasMasterMatch = rowsMaster.some(masterRow => {
+        const masterKey = getCompareKey(masterRow, masterHcpcsCol, masterModifierCol, modifierCriteria);
+        return masterKey === clientKey;
+      });
+
+      if (!hasMasterMatch) {
         unmatched.push(clientRow);
       }
     });
@@ -131,13 +143,22 @@ export const useComparison = () => {
     
     // Calculate statistics
     const processingTime = Date.now() - startTime;
+
+    // Count how many master records actually have matching client data
+    const masterRecordsWithMatches = rowsMaster.filter(masterRow => {
+      const masterKey = getCompareKey(masterRow, masterHcpcsCol, masterModifierCol, modifierCriteria);
+      return clientLookup.has(masterKey);
+    }).length;
+
+    const matchRate = rowsClient.length > 0 ? Math.round((masterRecordsWithMatches / rowsClient.length) * 100) : 0;
+
     const stats: ComparisonStats = {
       totalMasterRecords: rowsMaster.length,
       totalClientRecords: rowsClient.length,
-      matchedRecords: matched.length,
+      matchedRecords: masterRecordsWithMatches, // Master records that have client matches
       unmatchedRecords: unmatched.length,
       duplicateRecords: duplicates.length,
-      matchRate: Math.round((matched.length / rowsClient.length) * 100),
+      matchRate,
       processingTime,
       columnsMatched: Object.keys(columnMapping).length,
       totalMasterColumns: columnsMaster.length,

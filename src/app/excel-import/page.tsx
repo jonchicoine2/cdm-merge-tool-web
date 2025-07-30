@@ -2034,38 +2034,37 @@ export default function ExcelImportPage() {
     // Diagnostics: log map keys
     console.log("[DIAG] mapMaster keys:", Array.from(mapMaster.keys()).slice(0, 10));
     console.log("[DIAG] mapClient keys:", Array.from(mapClient.keys()).slice(0, 10));
-    // Only include records from Master that have a match in Client
-    const matchedKeys = Array.from(mapClient.keys()).filter((key: string) => mapMaster.has(key));
-    console.log(`[DIAG] matchedKeys count: ${matchedKeys.length}`);
-    
     // Create column mapping and merged columns
     const columnMapping = createColumnMapping(columnsMaster, columnsClient);
-    
+
     // The merged result should ALWAYS use ALL master columns as the structure
     // This ensures no duplicate columns and maintains master sheet structure
     // Use wider columns for merged grid to utilize full screen space
     const mergedColumns = createMergedGridColumns(columnsMaster);
     console.log(`[MERGE] Setting mergedColumns with ${mergedColumns.length} columns:`, mergedColumns.map(col => `${col.field}(${col.width}px)`));
     setMergedColumns(mergedColumns);
-    // Build merged rows: for each match, populate master columns with client data where possible
-    const merged: ExcelRow[] = matchedKeys.map((key: string, idx: number) => {
-      const rowMaster = mapMaster.get(key);
-      const rowClient = mapClient.get(key);
-      const mergedRow: ExcelRow = { id: rowMaster?.id ?? idx };
-      
+
+    // Build merged rows: START WITH ALL MASTER RECORDS (master-driven approach)
+    const merged: ExcelRow[] = filteredMaster.map((masterRow, idx) => {
+      const masterKey = getCompareKey(masterRow, hcpcsColMaster, modifierColMaster);
+      const clientRow = mapClient.get(masterKey);
+      const mergedRow: ExcelRow = { id: masterRow.id ?? idx };
+
       // For each master column, populate with client data if mapping exists, otherwise use master data
       mergedColumns.forEach((col) => {
-        if (columnMapping[col.field]) {
-          // This master column has a mapped client column - use client data
+        if (columnMapping[col.field] && clientRow) {
+          // This master column has a mapped client column and we have client data - use client data
           const clientField = columnMapping[col.field];
-          mergedRow[col.field] = rowClient?.[clientField] ?? rowMaster?.[col.field] ?? "";
+          mergedRow[col.field] = clientRow[clientField] ?? masterRow[col.field] ?? "";
         } else {
-          // No mapping found - use master data
-          mergedRow[col.field] = rowMaster?.[col.field] ?? "";
+          // No mapping found or no client data - use master data
+          mergedRow[col.field] = masterRow[col.field] ?? "";
         }
       });
       return mergedRow;
     });
+
+    console.log(`[MERGE] Created ${merged.length} merged records from ${filteredMaster.length} master records`);
 
     // Format HCPCS codes in merged data to ensure proper format (XXXXX-XX)
     const formattedMerged = merged.map(row => {
@@ -2117,12 +2116,19 @@ export default function ExcelImportPage() {
     // Calculate comparison statistics
     const endTime = performance.now();
     const processingTime = startTime ? endTime - startTime : 0;
-    const matchRate = filteredMaster.length > 0 ? (merged.length / filteredMaster.length) * 100 : 0;
-    
+
+    // Count how many master records actually have matching client data
+    const masterRecordsWithMatches = filteredMaster.filter(masterRow => {
+      const masterKey = getCompareKey(masterRow, hcpcsColMaster, modifierColMaster);
+      return mapClient.has(masterKey);
+    }).length;
+
+    const matchRate = filteredClient.length > 0 ? (masterRecordsWithMatches / filteredClient.length) * 100 : 0;
+
     const stats: ComparisonStats = {
       totalMasterRecords: filteredMaster.length,
       totalClientRecords: filteredClient.length,
-      matchedRecords: merged.length,
+      matchedRecords: masterRecordsWithMatches, // Master records that have client matches
       unmatchedRecords: unmatchedClient.length,
       duplicateRecords: dupsClient.length,
       matchRate: Math.round(matchRate * 100) / 100,
