@@ -49,6 +49,10 @@ export const useComparison = () => {
     });
   };
 
+
+
+
+
   const performComparison = useCallback((
     rowsMaster: ExcelRow[],
     columnsMaster: GridColDef[],

@@ -2025,6 +2025,10 @@ export default function ExcelImportPage() {
       });
     }
 
+
+
+
+
     const filteredMaster = filterTrauma(rowsMaster, descColMaster, hcpcsColMaster);
     const filteredClient = filterTrauma(rowsClient, descColClient, hcpcsColClient);
     // Diagnostics: log filtered counts
@@ -2044,27 +2048,37 @@ export default function ExcelImportPage() {
     console.log(`[MERGE] Setting mergedColumns with ${mergedColumns.length} columns:`, mergedColumns.map(col => `${col.field}(${col.width}px)`));
     setMergedColumns(mergedColumns);
 
+
+
     // Build merged rows: START WITH ALL MASTER RECORDS (master-driven approach)
-    const merged: ExcelRow[] = filteredMaster.map((masterRow, idx) => {
+    const merged: ExcelRow[] = [];
+    const processedMasterIds = new Set<number | string>();
+
+    // Process all master records
+    filteredMaster.forEach((masterRow, idx) => {
+      if (processedMasterIds.has(masterRow.id)) return; // Skip if already processed
+
       const masterKey = getCompareKey(masterRow, hcpcsColMaster, modifierColMaster);
       const clientRow = mapClient.get(masterKey);
       const mergedRow: ExcelRow = { id: masterRow.id ?? idx };
 
-      // For each master column, populate with client data if mapping exists, otherwise use master data
+      // For each master column, populate with client data if exact match exists
       mergedColumns.forEach((col) => {
         if (columnMapping[col.field] && clientRow) {
-          // This master column has a mapped client column and we have client data - use client data
+          // This master column has a mapped client column and we have exact client match
           const clientField = columnMapping[col.field];
           mergedRow[col.field] = clientRow[clientField] ?? masterRow[col.field] ?? "";
         } else {
-          // No mapping found or no client data - use master data
+          // No mapping found or no matching client data - use master data
           mergedRow[col.field] = masterRow[col.field] ?? "";
         }
       });
-      return mergedRow;
+
+      merged.push(mergedRow);
+      processedMasterIds.add(masterRow.id);
     });
 
-    console.log(`[MERGE] Created ${merged.length} merged records from ${filteredMaster.length} master records`);
+    console.log(`[MERGE] Created ${merged.length} merged records (${processedMasterIds.size} processed) from ${filteredMaster.length} master records`);
 
     // Format HCPCS codes in merged data to ensure proper format (XXXXX-XX)
     const formattedMerged = merged.map(row => {
@@ -2153,13 +2167,13 @@ export default function ExcelImportPage() {
     if (dupsClient.length > 0) console.log("[DIAG] Sample duplicate Client record:", dupsClient[0]);
   }, [rowsMaster, rowsClient, columnsMaster, columnsClient, masterSheetNames, clientSheetNames, activeMasterTab, activeClientTab, modifierCriteria, createColumnMapping, getHCPCSColumnClient, getHCPCSColumnMaster, getModifierColumnClient, getModifierColumnMaster, getDescriptionCol, setHcpcsDefaultSorting]);
 
-  // Auto-trigger comparison when both files are loaded
+  // Auto-trigger comparison when both files are loaded OR when data changes
   useEffect(() => {
-    if (rowsMaster.length > 0 && rowsClient.length > 0 && !showCompare) {
-      console.log('[DEBUG] Auto-triggering comparison - rowsMaster:', rowsMaster.length, 'rowsClient:', rowsClient.length);
+    if (rowsMaster.length > 0 && rowsClient.length > 0) {
+      console.log('[AUTO-RECOMPARE] Data changed, triggering merge recalculation - rowsMaster:', rowsMaster.length, 'rowsClient:', rowsClient.length);
       handleMerge();
     }
-  }, [rowsMaster.length, rowsClient.length, showCompare, handleMerge]);
+  }, [rowsMaster, rowsClient, modifierCriteria, handleMerge]); // Watch actual data arrays, not just lengths
 
   // Apply HCPCS sorting when merged data is initially loaded (not on row additions/deletions)
   useEffect(() => {

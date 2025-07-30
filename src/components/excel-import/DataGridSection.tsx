@@ -242,7 +242,7 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
           rows={rows}
           columns={displayColumns}
           density="compact"
-          disableColumnResize={true}
+          disableColumnResize={false}
           showToolbar
           isCellEditable={() => false}
           onCellDoubleClick={(params) => {
