@@ -59,6 +59,29 @@ export function parseHCPCS(row: ExcelRow, hcpcsCol: string, modifierCol: string 
   return { root: hcpcs, modifier };
 }
 
+export function parseMultiplierCode(hcpcsCode: string): { baseCode: string, multiplier: number | null, hasMultiplier: boolean } {
+  const cleanCode = String(hcpcsCode || "").toUpperCase().trim();
+
+  // Look for pattern like "J1234x10", "12345x05", etc.
+  const multiplierMatch = cleanCode.match(/^(.+)x(\d+)$/);
+
+  if (multiplierMatch) {
+    const baseCode = multiplierMatch[1];
+    const multiplierValue = parseInt(multiplierMatch[2], 10);
+    return {
+      baseCode,
+      multiplier: multiplierValue,
+      hasMultiplier: true
+    };
+  }
+
+  return {
+    baseCode: cleanCode,
+    multiplier: null,
+    hasMultiplier: false
+  };
+}
+
 export function findMatchingColumn(masterField: string, clientColumns: GridColDef[]): string | null {
   const clientFields = clientColumns.map(col => col.field);
   
@@ -143,7 +166,10 @@ export function createColumnMapping(masterColumns: GridColDef[], clientColumns: 
 
 export function getCompareKey(row: ExcelRow, hcpcsCol: string, modifierCol: string | null, criteria: ModifierCriteria): string {
   const { root, modifier } = parseHCPCS(row, hcpcsCol, modifierCol);
-  
+
+  // Check for multiplier pattern and extract base code for matching
+  const { baseCode } = parseMultiplierCode(root);
+
   // Apply modifier criteria
   let effectiveModifier = modifier;
   if (criteria.root00 && (modifier === "" || modifier === "00")) {
@@ -164,8 +190,9 @@ export function getCompareKey(row: ExcelRow, hcpcsCol: string, modifierCol: stri
   if (criteria.root76 && modifier === "76") {
     effectiveModifier = "";
   }
-  
-  return effectiveModifier ? `${root}-${effectiveModifier}` : root;
+
+  // Use base code for matching (so J1234x10 matches with J1234)
+  return effectiveModifier ? `${baseCode}-${effectiveModifier}` : baseCode;
 }
 
 export function filterTrauma(row: ExcelRow, descriptionCol: string | null): boolean {
@@ -205,15 +232,49 @@ export function getModifierColumn(columns: GridColDef[]): string | null {
 
 export function getDescriptionColumn(columns: GridColDef[]): string | null {
   const descKeywords = ['description', 'desc', 'procedure_desc', 'proc_desc', 'name', 'procedure_name'];
-  
+
   for (const col of columns) {
     const fieldLower = col.field.toLowerCase();
     if (descKeywords.some(keyword => fieldLower.includes(keyword))) {
       return col.field;
     }
   }
-  
+
   return null;
+}
+
+export function getQuantityColumn(columns: GridColDef[]): string | null {
+  const qtyKeywords = ['quantity', 'qty', 'units', 'unit', 'count'];
+
+  for (const col of columns) {
+    const fieldLower = col.field.toLowerCase();
+    if (qtyKeywords.some(keyword => fieldLower.includes(keyword))) {
+      return col.field;
+    }
+  }
+
+  return null;
+}
+
+export function applyMultiplierQuantityLogic(
+  masterHcpcs: string,
+  clientQty: string | number | undefined,
+  multiplierValue: number
+): string | number {
+  // Convert client quantity to number, treating empty/null/undefined as 0
+  const clientQtyNum = clientQty ? parseFloat(String(clientQty)) : 0;
+
+  // Apply multiplier logic:
+  // - If client QTY >= multiplier value → Use client QTY
+  // - If client QTY < multiplier value → Use multiplier value
+  // - If client QTY is empty → Use multiplier value
+  if (clientQtyNum >= multiplierValue) {
+    console.log(`[MULTIPLIER] ${masterHcpcs}: Client QTY (${clientQtyNum}) >= multiplier (${multiplierValue}), using client QTY`);
+    return clientQtyNum;
+  } else {
+    console.log(`[MULTIPLIER] ${masterHcpcs}: Client QTY (${clientQtyNum}) < multiplier (${multiplierValue}), using multiplier value`);
+    return multiplierValue;
+  }
 }
 
 export function validateForDuplicates(data: ExcelRow[], hcpcsCol: string, modifierCol: string | null): ExcelRow[] {

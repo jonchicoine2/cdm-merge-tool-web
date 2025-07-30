@@ -6,8 +6,11 @@ import {
   ModifierCriteria,
   getHCPCSColumn,
   getModifierColumn,
+  getQuantityColumn,
   createColumnMapping,
   getCompareKey,
+  parseMultiplierCode,
+  applyMultiplierQuantityLogic,
   validateForDuplicates
 } from '../utils/excelOperations';
 import { SharedAppData } from '../utils/sharedDataPersistence';
@@ -75,13 +78,19 @@ export const useComparison = () => {
       return;
     }
     
+    // Find quantity columns for multiplier logic
+    const masterQtyCol = getQuantityColumn(columnsMaster);
+    const clientQtyCol = getQuantityColumn(columnsClient);
+
     console.log('[COMPARISON] Found columns:', {
       masterHcpcs: masterHcpcsCol,
       masterModifier: masterModifierCol,
       clientHcpcs: clientHcpcsCol,
-      clientModifier: clientModifierCol
+      clientModifier: clientModifierCol,
+      masterQty: masterQtyCol,
+      clientQty: clientQtyCol
     });
-    
+
     // Create column mapping
     const columnMapping = createColumnMapping(columnsMaster, columnsClient);
     console.log('[COMPARISON] Column mapping:', columnMapping);
@@ -118,7 +127,23 @@ export const useComparison = () => {
       if (clientRow) {
         Object.entries(columnMapping).forEach(([masterField, clientField]) => {
           if (clientRow[clientField] !== undefined && clientRow[clientField] !== '') {
-            mergedRow[masterField] = clientRow[clientField];
+            // Special handling for quantity fields with multiplier logic
+            if (masterField === masterQtyCol && masterQtyCol && clientQtyCol) {
+              const masterHcpcs = String(masterRow[masterHcpcsCol] || "");
+              const { hasMultiplier, multiplier } = parseMultiplierCode(masterHcpcs);
+
+              if (hasMultiplier && multiplier !== null) {
+                // Apply multiplier quantity logic
+                const processedQty = applyMultiplierQuantityLogic(masterHcpcs, clientRow[clientField], multiplier);
+                mergedRow[masterField] = processedQty;
+              } else {
+                // No multiplier, use client quantity as-is
+                mergedRow[masterField] = clientRow[clientField];
+              }
+            } else {
+              // Standard field override
+              mergedRow[masterField] = clientRow[clientField];
+            }
           }
         });
       }
