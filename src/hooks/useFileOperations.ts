@@ -82,15 +82,17 @@ export const useFileOperations = (useNewHyphenAlgorithm: boolean = false) => {
       let width = 150; // default width
 
       if (fieldLower.includes('hcpcs') || fieldLower.includes('hcpc')) {
-        width = 100; // HCPCS codes are typically 5 characters
+        width = 100;
       } else if (fieldLower.includes('cdm') || fieldLower.includes('code')) {
-        width = 90; // CDM codes are numeric, more compact
+        width = 90;
       } else if (fieldLower.includes('description') || fieldLower.includes('desc')) {
-        width = 800; // Descriptions need much more space - significantly wider
+        width = 200; // Further reduced width for description
       } else if (['quantity', 'qty', 'units', 'unit', 'count'].some(term => fieldLower.includes(term))) {
-        width = 80; // Quantity columns are narrow
+        width = 60; // Reduced width for quantity
       } else if (fieldLower.includes('modifier') || fieldLower.includes('mod')) {
-        width = 90; // Modifiers are short codes
+        width = 90;
+      } else {
+        width = 110; // Reduced default width for other columns
       }
 
       return {
@@ -416,6 +418,8 @@ export const useFileOperations = (useNewHyphenAlgorithm: boolean = false) => {
       };
       setMasterSheetData(updatedSheetData);
     }
+
+
   };
 
   const handleClientRowUpdate = (updatedRow: ExcelRow) => {
@@ -436,6 +440,8 @@ export const useFileOperations = (useNewHyphenAlgorithm: boolean = false) => {
       };
       setClientSheetData(updatedSheetData);
     }
+
+
   };
 
   // Reset functions
@@ -446,6 +452,7 @@ export const useFileOperations = (useNewHyphenAlgorithm: boolean = false) => {
     setMasterSheetData({});
     setMasterSheetNames([]);
     setActiveMasterTab(0);
+    setValidationResults(prev => ({ ...prev, master: undefined }));
   };
 
   const resetClient = () => {
@@ -455,6 +462,7 @@ export const useFileOperations = (useNewHyphenAlgorithm: boolean = false) => {
     setClientSheetData({});
     setClientSheetNames([]);
     setActiveClientTab(0);
+    setValidationResults(prev => ({ ...prev, client: undefined }));
   };
 
   const resetBoth = () => {

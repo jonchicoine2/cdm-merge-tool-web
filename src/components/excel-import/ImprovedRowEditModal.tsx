@@ -17,8 +17,7 @@ import {
   Close as CloseIcon,
   Edit as EditIcon,
   Save as SaveIcon,
-  Cancel as CancelIcon,
-  Info as InfoIcon
+  Cancel as CancelIcon
 } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid-pro';
 import { ExcelRow } from '../../utils/excelOperations';
@@ -43,7 +42,6 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
   row,
   columns,
   mode,
-  title,
   existingRows = [],
   hcpcsColumn,
   modifierColumn
@@ -63,7 +61,8 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
     if (row && open) {
       if (mode === 'create-new') {
         // For create-new, copy data but remove ID to create new record
-        const { id, ...newRecordData } = row;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id: _id, ...newRecordData } = row;
         setFormData(newRecordData as ExcelRow);
       } else {
         setFormData({ ...row });

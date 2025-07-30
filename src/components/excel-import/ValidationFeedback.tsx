@@ -33,8 +33,7 @@ interface ValidationFeedbackProps {
 export const ValidationFeedback: React.FC<ValidationFeedbackProps> = ({
   validationResult,
   isValidating = false,
-  fileType,
-  onRetry
+  fileType
 }) => {
   const [expanded, setExpanded] = React.useState(false);
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid-pro';
 import { 
   Box, 
@@ -22,6 +22,8 @@ export interface RowActionsProps {
   onDeleteRow: (rowId: number | string, gridType: 'master' | 'client' | 'merged') => void;
 }
 
+
+
 export const createRowActionsColumn = ({
   gridType,
   onEditRow,
@@ -31,7 +33,7 @@ export const createRowActionsColumn = ({
   return {
     field: 'actions',
     headerName: 'Actions',
-    width: 200,
+    width: 100,
     editable: false,
     sortable: false,
     filterable: false,
@@ -39,7 +41,8 @@ export const createRowActionsColumn = ({
     disableReorder: true,
     hideable: false,
     renderCell: (params: GridRenderCellParams) => {
-      const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
       const handleDelete = () => {
         onDeleteRow(params.row.id, gridType);
@@ -51,14 +54,10 @@ export const createRowActionsColumn = ({
           className="row-actions"
           sx={{
             display: 'flex',
-            gap: 0.5,
             alignItems: 'center',
             height: '100%',
-            opacity: 0,
-            transition: 'opacity 0.2s ease',
-            '.MuiDataGrid-row:hover &': {
-              opacity: 1
-            }
+            opacity: 1, // Always show action buttons
+            gap: 0.5 // Add some spacing between buttons
           }}
         >
           <Tooltip title="Edit Row">
@@ -70,6 +69,7 @@ export const createRowActionsColumn = ({
               }}
               sx={{
                 color: '#1976d2',
+                padding: '2px',
                 '&:hover': {
                   backgroundColor: 'rgba(25, 118, 210, 0.04)'
                 }
@@ -88,6 +88,7 @@ export const createRowActionsColumn = ({
               }}
               sx={{
                 color: '#4caf50',
+                padding: '2px',
                 '&:hover': {
                   backgroundColor: 'rgba(76, 175, 80, 0.04)'
                 }
@@ -106,6 +107,7 @@ export const createRowActionsColumn = ({
               }}
               sx={{
                 color: '#d32f2f',
+                padding: '2px',
                 '&:hover': {
                   backgroundColor: 'rgba(211, 47, 47, 0.04)'
                 }

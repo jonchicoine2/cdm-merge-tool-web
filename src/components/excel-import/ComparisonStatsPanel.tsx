@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, Chip } from '@mui/material';
 import { ComparisonStatsPanelProps } from './types';
-import { colorPalette, statusColors, componentStyles } from '../../theme/designSystem';
+import { statusColors } from '../../theme/designSystem';
 
 const ComparisonStatsPanel: React.FC<ComparisonStatsPanelProps> = ({ stats }) => {
   if (!stats) return null;

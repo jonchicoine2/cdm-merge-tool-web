@@ -1,10 +1,10 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Box, Typography, Chip } from '@mui/material';
-import { colorPalette, statusColors, componentStyles } from '../../theme/designSystem';
-import { DataGridPro, GridToolbar, GridColDef } from '@mui/x-data-grid-pro';
+import { componentStyles } from '../../theme/designSystem';
+import { DataGridPro, GridToolbar } from '@mui/x-data-grid-pro';
 import { DataGridSectionProps } from './types';
 import { createRowActionsColumn } from './RowActionsColumn';
-import FileInfoCard from './FileInfoCard';
+
 
 const DataGridSection: React.FC<DataGridSectionProps> = ({
   title,
@@ -77,9 +77,6 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
     };
   }, [hasScrollFocus]);
 
-  // Only hide if both rows and columns are empty (no file loaded)
-  if (rows.length === 0 && columns.length === 0) return null;
-
   // Create columns with actions column if enabled
   const displayColumns = useMemo(() => {
     if (!enableRowActions || !onEditRow || !onCreateNewFromRow || !onDeleteRow) {
@@ -93,8 +90,11 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
       onDeleteRow
     });
 
-    return [...columns, actionsColumn];
+    return [actionsColumn, ...columns];
   }, [columns, enableRowActions, gridType, onEditRow, onCreateNewFromRow, onDeleteRow]);
+
+  // Only hide if both rows and columns are empty (no file loaded)
+  if (rows.length === 0 && columns.length === 0) return null;
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -242,25 +242,17 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
           rows={rows}
           columns={displayColumns}
           density="compact"
+          disableColumnResize={true}
           showToolbar
           isCellEditable={() => false}
           onCellDoubleClick={(params) => {
-            // Only trigger edit for merged grid with actions
-            if (gridType === 'merged' && onEditRow) {
+            // Trigger edit dialog for any grid type when onEditRow is provided
+            if (onEditRow) {
               onEditRow(params.row.id, gridType);
             }
           }}
-          onRowClick={(params) => {
+          onRowClick={() => {
             // Row selection happens automatically, this is just for any additional logic
-          }}
-          sx={{
-            // Hide cell focus outline - we want row selection only
-            '& .MuiDataGrid-cell:focus': {
-              outline: 'none',
-            },
-            '& .MuiDataGrid-cell:focus-within': {
-              outline: 'none',
-            },
           }}
           slots={{ toolbar: GridToolbar }}
           slotProps={{
@@ -301,6 +293,13 @@ const DataGridSection: React.FC<DataGridSectionProps> = ({
             console.error('Row update error:', error);
           }}
           sx={{
+            // Hide cell focus outline - we want row selection only
+            '& .MuiDataGrid-cell:focus': {
+              outline: 'none',
+            },
+            '& .MuiDataGrid-cell:focus-within': {
+              outline: 'none',
+            },
             // Hover-based scroll control - completely disable interaction until active
             pointerEvents: isGridActive ? 'auto' : 'none',
             '& .MuiDataGrid-virtualScroller': {

@@ -88,7 +88,7 @@ export const validateFile = async (
 
     // Analyze first sheet for detailed validation
     const firstSheet = workbook.Sheets[sheetNames[0]];
-    const sheetData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as any[][];
+    const sheetData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as (string | number | boolean)[][];
     
     let totalRows = 0;
     let totalColumns = 0;
@@ -97,7 +97,7 @@ export const validateFile = async (
     // Count all sheets' data
     for (const sheetName of sheetNames.slice(0, opts.maxSheets)) {
       const sheet = workbook.Sheets[sheetName];
-      const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+      const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as (string | number | boolean)[][];
       
       if (data.length > 0) {
         hasData = true;
@@ -231,7 +231,7 @@ function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-function findEmptyColumns(dataRows: any[][]): number[] {
+function findEmptyColumns(dataRows: (string | number | boolean)[][]): number[] {
   if (dataRows.length === 0) return [];
   
   const maxColumns = Math.max(...dataRows.map(row => row.length));

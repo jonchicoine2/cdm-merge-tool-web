@@ -7,22 +7,9 @@ import {
   Button,
   TextField,
   Box,
-  Typography,
-  Grid,
-  Paper,
-  Chip,
-  Divider,
-  IconButton,
-  Fade,
-  Alert
+  Typography
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-  Edit as EditIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon,
-  Info as InfoIcon
-} from '@mui/icons-material';
+
 import { GridColDef } from '@mui/x-data-grid-pro';
 import { ExcelRow } from '../../utils/excelOperations';
 
@@ -135,39 +122,42 @@ const RowEditModal: React.FC<RowEditModalProps> = ({
       
       <DialogContent dividers>
         <Box sx={{ mt: 1 }}>
-          <Grid container spacing={2}>
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+            gap: 2
+          }}>
             {editableColumns.map((column) => {
               const fieldValue = formData[column.field] || '';
               const hasError = !!errors[column.field];
-              
+
               return (
-                <Grid item xs={12} sm={6} key={column.field}>
-                  <TextField
-                    fullWidth
-                    label={column.headerName || column.field}
-                    value={fieldValue}
-                    onChange={(e) => handleFieldChange(column.field, e.target.value)}
-                    error={hasError}
-                    helperText={errors[column.field]}
-                    variant="outlined"
-                    size="small"
-                    type={column.type === 'number' ? 'number' : 'text'}
-                    multiline={column.field.toLowerCase().includes('description') || 
-                             column.field.toLowerCase().includes('note')}
-                    rows={column.field.toLowerCase().includes('description') || 
-                          column.field.toLowerCase().includes('note') ? 2 : 1}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        '&:hover fieldset': {
-                          borderColor: hasError ? 'error.main' : 'primary.main',
-                        },
+                <TextField
+                  key={column.field}
+                  fullWidth
+                  label={column.headerName || column.field}
+                  value={fieldValue}
+                  onChange={(e) => handleFieldChange(column.field, e.target.value)}
+                  error={hasError}
+                  helperText={errors[column.field]}
+                  variant="outlined"
+                  size="small"
+                  type={column.type === 'number' ? 'number' : 'text'}
+                  multiline={column.field.toLowerCase().includes('description') ||
+                           column.field.toLowerCase().includes('note')}
+                  rows={column.field.toLowerCase().includes('description') ||
+                        column.field.toLowerCase().includes('note') ? 2 : 1}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: hasError ? 'error.main' : 'primary.main',
                       },
-                    }}
-                  />
-                </Grid>
+                    },
+                  }}
+                />
               );
             })}
-          </Grid>
+          </Box>
           
           {Object.keys(errors).length > 0 && (
             <Box sx={{ mt: 2, p: 2, bgcolor: 'error.light', borderRadius: 1 }}>

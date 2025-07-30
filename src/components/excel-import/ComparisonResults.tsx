@@ -3,7 +3,7 @@ import { Box, Typography, Button, IconButton, Collapse, Tooltip, CircularProgres
 import { ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
 import { useGridApiRef } from '@mui/x-data-grid-pro';
 import { ComparisonResultsProps } from './types';
-import { colorPalette, statusColors, componentStyles } from '../../theme/designSystem';
+import { colorPalette, statusColors } from '../../theme/designSystem';
 import DataGridSection from './DataGridSection';
 
 const ComparisonResults: React.FC<ComparisonResultsProps> = ({
@@ -103,7 +103,7 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
                     fontSize: '0.75rem',
                     fontWeight: 'bold'
                   }}>
-                    {comparisonStats.matched} matched
+                    {comparisonStats.matchedRecords} matched
                   </Box>
                   <Box sx={{
                     backgroundColor: statusColors.unmatched.main,
@@ -114,7 +114,7 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
                     fontSize: '0.75rem',
                     fontWeight: 'bold'
                   }}>
-                    {comparisonStats.unmatched} unmatched
+                    {comparisonStats.unmatchedRecords} unmatched
                   </Box>
                   <Box sx={{
                     backgroundColor: statusColors.duplicates.main,
@@ -125,7 +125,7 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
                     fontSize: '0.75rem',
                     fontWeight: 'bold'
                   }}>
-                    {comparisonStats.duplicates} duplicates
+                    {comparisonStats.duplicateRecords} duplicates
                   </Box>
                   <Box sx={{
                     backgroundColor: statusColors.processing.main,
@@ -147,7 +147,7 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
                     fontSize: '0.75rem',
                     fontWeight: 'bold'
                   }}>
-                    {comparisonStats.columnsMapped} columns mapped
+                    {comparisonStats.columnsMatched} columns mapped
                   </Box>
                 </Box>
               )}

@@ -7,7 +7,6 @@ import ClearIcon from "@mui/icons-material/Clear";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import EditIcon from "@mui/icons-material/Edit";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import * as XLSX from "xlsx";
@@ -15,7 +14,7 @@ import AIChat, { AIChatHandle } from "../../components/AIChat";
 import dynamic from 'next/dynamic';
 import { useRouter } from "next/navigation";
 import { filterAndSearchRows, formatHCPCSWithHyphens } from "../../utils/excelOperations";
-import { saveSharedData, loadSharedData, clearSharedData, SharedAppData } from "../../utils/sharedDataPersistence";
+// Note: Removed shared data imports - pages are now independent
 import ImprovedRowEditModal from "../../components/excel-import/ImprovedRowEditModal";
 // Removed cptCacheService import - no longer used
 
@@ -127,48 +126,11 @@ export default function ExcelImportPage() {
 
 
 
-  // Function to load shared data from other UI
-  const loadSharedDataToState = useCallback(() => {
-    const sharedData = loadSharedData();
-    if (sharedData && sharedData.sourceUI === 'clean') {
-      console.log('[SHARED DATA] Loading data from clean UI...');
-
-      // Load master data
-      setRowsMaster(sharedData.rowsMaster);
-      setColumnsMaster(sharedData.columnsMaster);
-      setMasterSheetData(sharedData.masterSheetData);
-      setMasterSheetNames(sharedData.masterSheetNames);
-      setActiveMasterTab(sharedData.activeMasterTab);
-      setMasterFileMetadata(sharedData.masterFileMetadata);
-
-      // Load client data
-      setRowsClient(sharedData.rowsClient);
-      setColumnsClient(sharedData.columnsClient);
-      setClientSheetData(sharedData.clientSheetData);
-      setClientSheetNames(sharedData.clientSheetNames);
-      setActiveClientTab(sharedData.activeClientTab);
-      setClientFileMetadata(sharedData.clientFileMetadata);
-
-      // Load comparison results
-      setMergedRows(sharedData.mergedRows);
-      setMergedColumns(sharedData.mergedColumns);
-      setUnmatchedClient(sharedData.unmatchedClient);
-      setDupsClient(sharedData.dupsClient);
-      setShowCompare(sharedData.showCompare);
-      setComparisonStats(sharedData.comparisonStats);
-
-      // Load settings
-      setModifierCriteria(sharedData.modifierCriteria);
-
-      console.log('[SHARED DATA] Successfully loaded shared data');
-      return true;
-    }
-    return false;
-  }, []);
+  // Note: Removed shared data loading function - pages are now independent
 
   useEffect(() => {
-    // Only try to load shared data from other UI (clean UI), not localStorage
-    loadSharedDataToState();
+    // Note: Removed shared data loading - pages are now independent
+    // loadSharedDataToState();
 
     // Load localStorage items for button state only (don't restore data automatically)
     const lastMaster = localStorage.getItem("lastMasterFile");
@@ -188,7 +150,7 @@ export default function ExcelImportPage() {
     if (lastClientData) {
       setLastClientData(lastClientData);
     }
-  }, [loadSharedDataToState]);
+  }, []); // Note: Removed loadSharedDataToState dependency
 
 
 
@@ -937,62 +899,21 @@ export default function ExcelImportPage() {
     };
   }, [startRowEditModeWithHcpcsFocus]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Function to save current state to shared data
-  const saveCurrentStateToShared = useCallback(() => {
-    const sharedData: SharedAppData = {
-      // Master data
-      rowsMaster,
-      columnsMaster,
-      masterSheetData,
-      masterSheetNames,
-      activeMasterTab,
-      masterFileMetadata,
+  // Note: Removed shared data saving function - pages are now independent
 
-      // Client data
-      rowsClient,
-      columnsClient,
-      clientSheetData,
-      clientSheetNames,
-      activeClientTab,
-      clientFileMetadata,
-
-      // Comparison results
-      mergedRows,
-      mergedColumns,
-      unmatchedClient,
-      dupsClient,
-      showCompare,
-      comparisonStats,
-
-      // Settings
-      modifierCriteria,
-
-      // Metadata
-      lastSaved: new Date().toISOString(),
-      sourceUI: 'main'
-    };
-
-    saveSharedData(sharedData);
-  }, [
-    rowsMaster, columnsMaster, masterSheetData, masterSheetNames, activeMasterTab, masterFileMetadata,
-    rowsClient, columnsClient, clientSheetData, clientSheetNames, activeClientTab, clientFileMetadata,
-    mergedRows, mergedColumns, unmatchedClient, dupsClient, showCompare, comparisonStats,
-    modifierCriteria
-  ]);
-
-  // Hidden keyboard shortcut to toggle UI (Ctrl+Shift+U)
+  // Hidden keyboard shortcut to toggle UI (Ctrl+Shift+U) - no data transfer
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.shiftKey && event.key === 'U') {
         event.preventDefault();
-        saveCurrentStateToShared();
+        // Note: Removed data saving - pages are now independent
         router.push('/excel-import-clean');
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [router, saveCurrentStateToShared]);
+  }, [router]);
 
   // Filtered data for each grid
   const filteredRowsMaster = filterAndSearchRowsLocal(rowsMaster, searchMaster, masterFilters);
@@ -1008,12 +929,12 @@ export default function ExcelImportPage() {
 
   // Enhanced columns with actions for each grid
   const enhancedMasterColumns = useMemo(() => {
-    return [...columnsMaster, createActionsColumn('master')];
+    return [createActionsColumn('master'), ...columnsMaster];
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnsMaster]);
 
   const enhancedClientColumns = useMemo(() => {
-    return [...columnsClient, createActionsColumn('client')];
+    return [createActionsColumn('client'), ...columnsClient];
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnsClient]);
 
@@ -1053,7 +974,7 @@ export default function ExcelImportPage() {
     };
 
     // Add Actions column first, then Ask AI column at the very end
-    return [...enhancedMergedColumns, createActionsColumn('merged'), askAIColumn];
+    return [createActionsColumn('merged'), ...enhancedMergedColumns, askAIColumn];
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enhancedMergedColumns, mergedColumns]);
 
@@ -1955,17 +1876,46 @@ export default function ExcelImportPage() {
     return null;
   }
   
+  // Create wider columns for merged grid to utilize full screen space
+  const createMergedGridColumns = useCallback((masterColumns: GridColDef[]): GridColDef[] => {
+    return masterColumns.map(col => {
+      const fieldLower = col.field.toLowerCase();
+      let width = 150; // default width for merged grid
+
+      // Generous widths for merged grid that has full screen space
+      if (fieldLower.includes('hcpcs') || fieldLower.includes('hcpc')) {
+        width = 120; // More breathing room for HCPCS codes
+      } else if (fieldLower.includes('cdm') || fieldLower.includes('code')) {
+        width = 110; // Slightly wider for codes
+      } else if (fieldLower.includes('description') || fieldLower.includes('desc')) {
+        width = 400; // Much wider for descriptions - they need the space
+      } else if (['quantity', 'qty', 'units', 'unit', 'count'].some(term => fieldLower.includes(term))) {
+        width = 80; // A bit more room for quantities
+      } else if (fieldLower.includes('modifier') || fieldLower.includes('mod')) {
+        width = 110; // More space for modifiers
+      } else {
+        width = 150; // Generous default for other columns
+      }
+
+      return {
+        ...col,
+        width,
+        editable: true
+      };
+    });
+  }, []);
+
   // Create column mapping between master and client
   const createColumnMapping = useCallback((masterColumns: GridColDef[], clientColumns: GridColDef[]): {[masterField: string]: string} => {
     const mapping: {[masterField: string]: string} = {};
-    
+
     masterColumns.forEach(masterCol => {
       const matchingClientField = findMatchingColumn(masterCol.field, clientColumns);
       if (matchingClientField) {
         mapping[masterCol.field] = matchingClientField;
       }
     });
-    
+
     console.log('[COLUMN MAPPING] Final mapping:', mapping);
     return mapping;
   }, []);
@@ -2084,37 +2034,37 @@ export default function ExcelImportPage() {
     // Diagnostics: log map keys
     console.log("[DIAG] mapMaster keys:", Array.from(mapMaster.keys()).slice(0, 10));
     console.log("[DIAG] mapClient keys:", Array.from(mapClient.keys()).slice(0, 10));
-    // Only include records from Master that have a match in Client
-    const matchedKeys = Array.from(mapClient.keys()).filter((key: string) => mapMaster.has(key));
-    console.log(`[DIAG] matchedKeys count: ${matchedKeys.length}`);
-    
     // Create column mapping and merged columns
     const columnMapping = createColumnMapping(columnsMaster, columnsClient);
-    
+
     // The merged result should ALWAYS use ALL master columns as the structure
     // This ensures no duplicate columns and maintains master sheet structure
-    const mergedColumns = columnsMaster.map(col => ({ ...col, editable: true }));
-    console.log(`[MERGE] Setting mergedColumns with ${mergedColumns.length} columns:`, mergedColumns.map(col => col.field));
+    // Use wider columns for merged grid to utilize full screen space
+    const mergedColumns = createMergedGridColumns(columnsMaster);
+    console.log(`[MERGE] Setting mergedColumns with ${mergedColumns.length} columns:`, mergedColumns.map(col => `${col.field}(${col.width}px)`));
     setMergedColumns(mergedColumns);
-    // Build merged rows: for each match, populate master columns with client data where possible
-    const merged: ExcelRow[] = matchedKeys.map((key: string, idx: number) => {
-      const rowMaster = mapMaster.get(key);
-      const rowClient = mapClient.get(key);
-      const mergedRow: ExcelRow = { id: rowMaster?.id ?? idx };
-      
+
+    // Build merged rows: START WITH ALL MASTER RECORDS (master-driven approach)
+    const merged: ExcelRow[] = filteredMaster.map((masterRow, idx) => {
+      const masterKey = getCompareKey(masterRow, hcpcsColMaster, modifierColMaster);
+      const clientRow = mapClient.get(masterKey);
+      const mergedRow: ExcelRow = { id: masterRow.id ?? idx };
+
       // For each master column, populate with client data if mapping exists, otherwise use master data
       mergedColumns.forEach((col) => {
-        if (columnMapping[col.field]) {
-          // This master column has a mapped client column - use client data
+        if (columnMapping[col.field] && clientRow) {
+          // This master column has a mapped client column and we have client data - use client data
           const clientField = columnMapping[col.field];
-          mergedRow[col.field] = rowClient?.[clientField] ?? rowMaster?.[col.field] ?? "";
+          mergedRow[col.field] = clientRow[clientField] ?? masterRow[col.field] ?? "";
         } else {
-          // No mapping found - use master data
-          mergedRow[col.field] = rowMaster?.[col.field] ?? "";
+          // No mapping found or no client data - use master data
+          mergedRow[col.field] = masterRow[col.field] ?? "";
         }
       });
       return mergedRow;
     });
+
+    console.log(`[MERGE] Created ${merged.length} merged records from ${filteredMaster.length} master records`);
 
     // Format HCPCS codes in merged data to ensure proper format (XXXXX-XX)
     const formattedMerged = merged.map(row => {
@@ -2166,12 +2116,19 @@ export default function ExcelImportPage() {
     // Calculate comparison statistics
     const endTime = performance.now();
     const processingTime = startTime ? endTime - startTime : 0;
-    const matchRate = filteredMaster.length > 0 ? (merged.length / filteredMaster.length) * 100 : 0;
-    
+
+    // Count how many master records actually have matching client data
+    const masterRecordsWithMatches = filteredMaster.filter(masterRow => {
+      const masterKey = getCompareKey(masterRow, hcpcsColMaster, modifierColMaster);
+      return mapClient.has(masterKey);
+    }).length;
+
+    const matchRate = filteredClient.length > 0 ? (masterRecordsWithMatches / filteredClient.length) * 100 : 0;
+
     const stats: ComparisonStats = {
       totalMasterRecords: filteredMaster.length,
       totalClientRecords: filteredClient.length,
-      matchedRecords: merged.length,
+      matchedRecords: masterRecordsWithMatches, // Master records that have client matches
       unmatchedRecords: unmatchedClient.length,
       duplicateRecords: dupsClient.length,
       matchRate: Math.round(matchRate * 100) / 100,
@@ -2575,8 +2532,7 @@ export default function ExcelImportPage() {
     localStorage.removeItem("lastClientSheet");
     localStorage.removeItem("lastClientMetadata");
 
-    // Clear shared data (new system)
-    clearSharedData();
+    // Note: Removed shared data clearing - pages are now independent
 
     // Clear the state variables too
     setLastMasterFile(null);
@@ -2841,11 +2797,9 @@ export default function ExcelImportPage() {
     // Find the record to use as template based on grid type
     let recordToUseAsTemplate: ExcelRow | undefined;
     let currentRows: ExcelRow[];
-    let currentColumns: GridColDef[];
 
     if (gridType === 'master') {
       currentRows = rowsMasterRef.current;
-      currentColumns = columnsMaster;
       const filteredRows = filteredRowsMasterRef.current;
       recordToUseAsTemplate = filteredRows.find(row => String(row.id) === String(rowId)) || currentRows.find(row => String(row.id) === String(rowId));
 
@@ -2864,7 +2818,6 @@ export default function ExcelImportPage() {
       return { success: true, originalRowId: rowId };
     } else if (gridType === 'client') {
       currentRows = rowsClientRef.current;
-      currentColumns = columnsClient;
       const filteredRows = filteredRowsClientRef.current;
       recordToUseAsTemplate = filteredRows.find(row => String(row.id) === String(rowId)) || currentRows.find(row => String(row.id) === String(rowId));
 
@@ -2883,7 +2836,6 @@ export default function ExcelImportPage() {
       return { success: true, originalRowId: rowId };
     } else if (gridType === 'merged') {
       currentRows = mergedRowsRef.current;
-      currentColumns = mergedColumns;
       const filteredRows = filteredMergedRowsRef.current;
       recordToUseAsTemplate = filteredRows.find(row => String(row.id) === String(rowId)) || currentRows.find(row => String(row.id) === String(rowId));
 
@@ -4615,7 +4567,7 @@ export default function ExcelImportPage() {
         <Typography
           variant="caption"
           onClick={() => {
-            saveCurrentStateToShared();
+            // Note: Removed data saving - pages are now independent
             router.push('/excel-import-clean');
           }}
           sx={{
