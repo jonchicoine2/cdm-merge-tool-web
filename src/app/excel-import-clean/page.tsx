@@ -2,49 +2,47 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Box, Typography, Snackbar, Alert, Button, Tooltip } from "@mui/material";
 import { useRouter } from "next/navigation";
-
 import dynamic from 'next/dynamic';
+
 import { ModifierCriteria } from "../../utils/excelOperations";
 import { useFileOperations } from "../../hooks/useFileOperations";
 import { useComparison } from "../../hooks/useComparison";
-import {
-  WelcomeSection,
-  FileUploadArea,
-  DataGridSection,
-  ComparisonResults,
-  ModifierCriteriaDialog
-} from "../../components/excel-import";
-import ImprovedRowEditModal from "../../components/excel-import/ImprovedRowEditModal";
 import { ExcelRow } from "../../utils/excelOperations";
 
-// Create a NoSSR wrapper component to disable server-side rendering
-const NoSSR = dynamic(() => Promise.resolve(({ children }: { children: React.ReactNode }) => <>{children}</>), {
-  ssr: false,
-  loading: () => (
-    <Box sx={{ 
-      p: 4, 
-      background: 'linear-gradient(135deg, #f8fbff 0%, #e3f2fd 50%, #f0f8ff 100%)',
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      <Typography variant="h4" sx={{ color: '#1976d2' }}>
-        Loading Excel Import Tool...
-      </Typography>
-    </Box>
-  )
+// Lazy load heavy components
+const WelcomeSection = dynamic(() => import("../../components/excel-import/WelcomeSection"), {
+  loading: () => <Box sx={{ p: 2 }}><Typography>Loading...</Typography></Box>
 });
+const FileUploadArea = dynamic(() => import("../../components/excel-import/FileUploadArea"), {
+  loading: () => <Box sx={{ p: 2 }}><Typography>Loading...</Typography></Box>
+});
+const DataGridSection = dynamic(() => import("../../components/excel-import/DataGridSection"), {
+  loading: () => <Box sx={{ p: 2 }}><Typography>Loading...</Typography></Box>
+});
+const ComparisonResults = dynamic(() => import("../../components/excel-import/ComparisonResults"), {
+  loading: () => <Box sx={{ p: 2 }}><Typography>Loading...</Typography></Box>
+});
+const ModifierCriteriaDialog = dynamic(() => import("../../components/excel-import/ModifierCriteriaDialog"));
+const ImprovedRowEditModal = dynamic(() => import("../../components/excel-import/ImprovedRowEditModal"));
 
 export default function ExcelImportCleanPage() {
   const router = useRouter();
-  
+
+  // Simple loading state to defer heavy components
+  const [isLoaded, setIsLoaded] = useState(false);
+
   // Toggle for hyphen insertion algorithm (false = old algorithm, true = new algorithm)
   const [useNewHyphenAlgorithm, setUseNewHyphenAlgorithm] = useState(false);
 
   // Use custom hooks for data management
   const fileOps = useFileOperations(useNewHyphenAlgorithm);
   const comparison = useComparison();
+
+  // Defer loading heavy components
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoaded(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // UI state
   const [modifierDialogOpen, setModifierDialogOpen] = useState(false);
@@ -164,8 +162,8 @@ export default function ExcelImportCleanPage() {
     fileOps.columnsMaster,
     fileOps.columnsClient,
     modifierCriteria,
-    comparison.performComparison,
-    comparison.showCompare
+    comparison.showCompare,
+    comparison
   ]);
 
   // Drag and drop handlers
@@ -641,13 +639,29 @@ export default function ExcelImportCleanPage() {
     setEditModalTitle('');
   };
 
-  return (
-    <NoSSR>
+  if (!isLoaded) {
+    return (
       <Box sx={{
         p: 2,
         background: 'linear-gradient(135deg, #f8fbff 0%, #e3f2fd 50%, #f0f8ff 100%)',
-        minHeight: '100vh'
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}>
+        <Typography variant="h4" sx={{ color: '#1976d2' }}>
+          🔧 VIC CDM MERGE TOOL
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{
+      p: 2,
+      background: 'linear-gradient(135deg, #f8fbff 0%, #e3f2fd 50%, #f0f8ff 100%)',
+      minHeight: '100vh'
+    }}>
 
 
         {/* Welcome Section */}
@@ -917,6 +931,5 @@ export default function ExcelImportCleanPage() {
 
         </Box>
       </Box>
-    </NoSSR>
   );
 }

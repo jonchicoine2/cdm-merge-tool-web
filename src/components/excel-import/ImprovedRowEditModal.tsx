@@ -205,7 +205,7 @@ const ImprovedRowEditModal: React.FC<ImprovedRowEditModalProps> = ({
 
       return () => clearTimeout(timer);
     }
-  }, [open, mode, formData, hcpcsColumn, existingRows?.length]);
+  }, [open, mode, formData, hcpcsColumn, existingRows?.length, validateForm]);
 
   const handleFieldChange = (field: string, value: string) => {
     const updatedFormData = {
