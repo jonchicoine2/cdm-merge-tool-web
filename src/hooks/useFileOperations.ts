@@ -469,46 +469,75 @@ export const useFileOperations = (useNewHyphenAlgorithm: boolean = false) => {
     resetClient();
   };
 
-  // Export functions
-  // Export function matching original implementation
-  const handleExport = (mergedRows: ExcelRow[], unmatchedClient: ExcelRow[], dupsClient: ExcelRow[]) => {
+  // Export helpers
+  const cleanRows = (rows: ExcelRow[]) => rows.map(row => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, ...rest } = row;
+    return rest;
+  });
+
+  const getExportFilename = () => {
+    const clientName = lastClientFile ? lastClientFile.replace(/\.xlsx?$/i, '') : 'merged_data';
+    return `Combined ${clientName}.xlsx`;
+  };
+
+  const isEmptyRow = (row: ExcelRow): boolean => {
+    const cdmVal = String(row['CDM'] ?? row['cdm'] ?? '').trim();
+    const physVal = String(row['PhysicianCDM'] ?? row['Physician CDM'] ?? row['physiciancdm'] ?? '').trim();
+    return cdmVal === '' && physVal === '';
+  };
+
+  // Export mode 1: "Successes and Master" — single sheet with all merged rows
+  const handleExportSuccessesAndMaster = (mergedRows: ExcelRow[]) => {
     if (mergedRows.length === 0) {
       alert('No merged data to export');
       return;
     }
 
-    // Use client filename, add datetime suffix (matching original logic)
-    const clientName = lastClientFile ? lastClientFile.replace('.xlsx', '').replace('.xls', '') : 'merged_data';
-    const clientSheetCount = clientFileMetadata?.sheetCount || 1;
-    const timestamp = new Date().toISOString().slice(0, 16).replace('T', '_').replace(/:/g, '');
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(cleanRows(mergedRows));
+    XLSX.utils.book_append_sheet(wb, ws, 'SourceMaster');
+    XLSX.writeFile(wb, getExportFilename());
+  };
 
-    let filename = `${clientName}_${timestamp}.xlsx`;
-    if (clientSheetCount > 1) {
-      // For multi-sheet files, we could add sheet info if needed
-      // For now, keep it simple like the original when no specific sheet info
-      filename = `${clientName}_${timestamp}.xlsx`;
+  // Export mode 2: "All Worksheets" — 4 sheets matching WinForms
+  const handleExportAll = (mergedRows: ExcelRow[], unmatchedClient: ExcelRow[], dupsClient: ExcelRow[]) => {
+    if (mergedRows.length === 0) {
+      alert('No merged data to export');
+      return;
     }
 
+    const emptyRows = mergedRows.filter(row => isEmptyRow(row));
+
     const wb = XLSX.utils.book_new();
-    const clean = (rows: ExcelRow[]) => rows.map(row => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { id, ...rest } = row;
-      return rest;
-    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanRows(mergedRows)), 'SourceMaster');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanRows(unmatchedClient)), 'Errors');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanRows(emptyRows)), 'Empty');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanRows(dupsClient)), 'Dups');
+    XLSX.writeFile(wb, getExportFilename());
+  };
 
-    // Add merged data sheet
-    const ws = XLSX.utils.json_to_sheet(clean(mergedRows));
-    XLSX.utils.book_append_sheet(wb, ws, "Merged");
+  // Export mode 3: "Successes Without Masters" — 4 sheets, SourceMaster filtered to only rows with data
+  const handleExportSuccessesOnly = (mergedRows: ExcelRow[], unmatchedClient: ExcelRow[], dupsClient: ExcelRow[]) => {
+    if (mergedRows.length === 0) {
+      alert('No merged data to export');
+      return;
+    }
 
-    // Always include Unmatched_Client sheet, even if empty (matching original)
-    const wsErrors = XLSX.utils.json_to_sheet(clean(unmatchedClient));
-    XLSX.utils.book_append_sheet(wb, wsErrors, "Unmatched_Client");
+    const successRows = mergedRows.filter(row => !isEmptyRow(row));
+    const emptyRows = mergedRows.filter(row => isEmptyRow(row));
 
-    // Always include Duplicate_Client sheet, even if empty (matching original)
-    const wsDups = XLSX.utils.json_to_sheet(clean(dupsClient));
-    XLSX.utils.book_append_sheet(wb, wsDups, "Duplicate_Client");
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanRows(successRows)), 'Successes');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanRows(unmatchedClient)), 'Errors');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanRows(emptyRows)), 'Empty');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanRows(dupsClient)), 'Dups');
+    XLSX.writeFile(wb, getExportFilename());
+  };
 
-    XLSX.writeFile(wb, filename);
+  // Default export — "All Worksheets" mode for backwards compatibility
+  const handleExport = (mergedRows: ExcelRow[], unmatchedClient: ExcelRow[], dupsClient: ExcelRow[]) => {
+    handleExportAll(mergedRows, unmatchedClient, dupsClient);
   };
 
 
@@ -564,6 +593,9 @@ export const useFileOperations = (useNewHyphenAlgorithm: boolean = false) => {
     handleMasterRowUpdate,
     handleClientRowUpdate,
     handleExport,
+    handleExportSuccessesAndMaster,
+    handleExportAll,
+    handleExportSuccessesOnly,
     resetMaster,
     resetClient,
     resetBoth,

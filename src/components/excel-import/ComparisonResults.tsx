@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Box, Typography, Button, IconButton, Collapse, Tooltip, CircularProgress } from '@mui/material';
-import { ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
+import { Box, Typography, Button, ButtonGroup, IconButton, Collapse, Tooltip, CircularProgress, Menu, MenuItem, ListItemText } from '@mui/material';
+import { ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon, ArrowDropDown as ArrowDropDownIcon } from '@mui/icons-material';
 import { useGridApiRef } from '@mui/x-data-grid-pro';
-import { ComparisonResultsProps } from './types';
+import { ComparisonResultsProps, ExportMode } from './types';
 import { colorPalette, statusColors } from '../../theme/designSystem';
 import DataGridSection from './DataGridSection';
 
@@ -22,6 +22,22 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
 }) => {
   const mergedApiRef = useGridApiRef();
   const [mergedDataExpanded, setMergedDataExpanded] = useState(true);
+  const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
+
+  const exportOptions: { mode: ExportMode; label: string; description: string }[] = [
+    { mode: 'all', label: 'All Worksheets', description: 'SourceMaster + Errors + Empty + Dups' },
+    { mode: 'successesAndMaster', label: 'Successes and Master', description: 'Single sheet with all merged rows' },
+    { mode: 'successesOnly', label: 'Successes Without Masters', description: 'Only rows with CDM/PhysicianCDM data' },
+  ];
+
+  const handleExportClick = () => {
+    onExport('all');
+  };
+
+  const handleExportMenuSelect = (mode: ExportMode) => {
+    setExportMenuAnchor(null);
+    onExport(mode);
+  };
 
   return (
     <Box sx={{ mb: 2 }}>
@@ -44,30 +60,54 @@ const ComparisonResults: React.FC<ComparisonResultsProps> = ({
           🔄 Comparison Results
         </Typography>
 
-        <Tooltip title="Export Merged Data (Ctrl+E)" arrow>
-          <span>
-            <Button
-              variant="contained"
-              onClick={onExport}
-              disabled={mergedRows.length === 0 || isExporting}
-              size="small"
-              sx={{
-                background: 'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)',
-                color: 'white',
-                fontWeight: 'bold',
-                fontSize: '0.8rem',
-                px: 2,
-                py: 0.5,
-                '&:disabled': {
-                  background: '#c8e6c9'
-                }
-              }}
-              startIcon={isExporting ? <CircularProgress size={16} color="inherit" /> : undefined}
-            >
-              {isExporting ? 'Exporting...' : '📁 Export Merged Data'}
-            </Button>
-          </span>
-        </Tooltip>
+        <ButtonGroup
+          variant="contained"
+          size="small"
+          disabled={mergedRows.length === 0 || isExporting}
+          sx={{
+            '& .MuiButton-root': {
+              background: 'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)',
+              color: 'white',
+              fontWeight: 'bold',
+              fontSize: '0.8rem',
+              '&:disabled': {
+                background: '#c8e6c9'
+              }
+            }
+          }}
+        >
+          <Tooltip title="Export All Worksheets (Ctrl+E)" arrow>
+            <span>
+              <Button
+                onClick={handleExportClick}
+                disabled={mergedRows.length === 0 || isExporting}
+                startIcon={isExporting ? <CircularProgress size={16} color="inherit" /> : undefined}
+                sx={{ px: 2, py: 0.5 }}
+              >
+                {isExporting ? 'Exporting...' : 'Export'}
+              </Button>
+            </span>
+          </Tooltip>
+          <Button
+            size="small"
+            onClick={(e) => setExportMenuAnchor(e.currentTarget)}
+            disabled={mergedRows.length === 0 || isExporting}
+            sx={{ px: 0.5, minWidth: 'auto' }}
+          >
+            <ArrowDropDownIcon />
+          </Button>
+        </ButtonGroup>
+        <Menu
+          anchorEl={exportMenuAnchor}
+          open={Boolean(exportMenuAnchor)}
+          onClose={() => setExportMenuAnchor(null)}
+        >
+          {exportOptions.map(opt => (
+            <MenuItem key={opt.mode} onClick={() => handleExportMenuSelect(opt.mode)}>
+              <ListItemText primary={opt.label} secondary={opt.description} />
+            </MenuItem>
+          ))}
+        </Menu>
       </Box>
 
       {/* Merged Data Grid - Collapsible */}

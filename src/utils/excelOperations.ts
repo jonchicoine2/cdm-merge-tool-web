@@ -38,32 +38,72 @@ export interface ModifierCriteria {
   root76: boolean;
 }
 
-export function parseHCPCS(row: ExcelRow, hcpcsCol: string, modifierCol: string | null): { root: string, modifier: string } {
-  let hcpcs = String(row[hcpcsCol] || "").toUpperCase().trim();
-  let modifier = "";
-  if (modifierCol && row[modifierCol]) {
-    modifier = String(row[modifierCol]).toUpperCase().trim();
-  } else if (hcpcs.length === 8 && hcpcs[5] === '-') {
-    // Format: XXXXX-YY
-    modifier = hcpcs.substring(6, 8);
-    hcpcs = hcpcs.substring(0, 5);
-  } else if (hcpcs.length === 7) {
-    // Format: XXXXXYY (no dash)
-    modifier = hcpcs.substring(5, 7);
-    hcpcs = hcpcs.substring(0, 5);
-  } else if (hcpcs.length > 5) {
-    // Fallback: try to extract modifier
-    modifier = hcpcs.substring(5);
-    hcpcs = hcpcs.substring(0, 5);
+const parseStructuredHcpcs = (
+  hcpcsValue: string | number | undefined,
+  modifierValue?: string | number | undefined
+): { root: string; modifier: string; codeWithoutMultiplier: string } => {
+  const cleanCode = String(hcpcsValue || '').toUpperCase().trim();
+  const overrideModifier = String(modifierValue || '').toUpperCase().trim();
+  const multiplierMatch = cleanCode.match(/^(.*?)[xX](\d+)$/);
+  const codeWithoutMultiplier = multiplierMatch ? multiplierMatch[1] : cleanCode;
+
+  if (!codeWithoutMultiplier) {
+    return { root: '', modifier: '', codeWithoutMultiplier: '' };
   }
-  return { root: hcpcs, modifier };
+
+  if (overrideModifier) {
+    return {
+      root: codeWithoutMultiplier.substring(0, 5),
+      modifier: overrideModifier,
+      codeWithoutMultiplier
+    };
+  }
+
+  if (codeWithoutMultiplier.length === 8 && codeWithoutMultiplier[5] === '-') {
+    return {
+      root: codeWithoutMultiplier.substring(0, 5),
+      modifier: codeWithoutMultiplier.substring(6, 8),
+      codeWithoutMultiplier
+    };
+  }
+
+  if (codeWithoutMultiplier.length === 7) {
+    return {
+      root: codeWithoutMultiplier.substring(0, 5),
+      modifier: codeWithoutMultiplier.substring(5, 7),
+      codeWithoutMultiplier
+    };
+  }
+
+  if (codeWithoutMultiplier.length > 5) {
+    return {
+      root: codeWithoutMultiplier.substring(0, 5),
+      modifier: codeWithoutMultiplier.substring(5).replace(/^-/, ''),
+      codeWithoutMultiplier
+    };
+  }
+
+  return {
+    root: codeWithoutMultiplier,
+    modifier: '',
+    codeWithoutMultiplier
+  };
+};
+
+export function parseHCPCS(row: ExcelRow, hcpcsCol: string, modifierCol: string | null): { root: string, modifier: string } {
+  const { root, modifier } = parseStructuredHcpcs(
+    row[hcpcsCol],
+    modifierCol ? row[modifierCol] : undefined
+  );
+
+  return { root, modifier };
 }
 
 export function parseMultiplierCode(hcpcsCode: string): { baseCode: string, multiplier: number | null, hasMultiplier: boolean } {
   const cleanCode = String(hcpcsCode || "").toUpperCase().trim();
 
-  // Look for pattern like "J1234x10", "12345x05", etc.
-  const multiplierMatch = cleanCode.match(/^(.+)x(\d+)$/);
+  // Look for pattern like "J1234X10", "12345X05", or "12345-59X10".
+  const multiplierMatch = cleanCode.match(/^(.*?)[xX](\d+)$/);
 
   if (multiplierMatch) {
     const baseCode = multiplierMatch[1];

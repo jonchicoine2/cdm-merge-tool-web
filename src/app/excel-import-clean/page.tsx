@@ -8,6 +8,7 @@ import { ModifierCriteria } from "../../utils/excelOperations";
 import { useFileOperations } from "../../hooks/useFileOperations";
 import { useComparison } from "../../hooks/useComparison";
 import { ExcelRow } from "../../utils/excelOperations";
+import { ExportMode } from "../../components/excel-import/types";
 
 // Lazy load heavy components
 const WelcomeSection = dynamic(() => import("../../components/excel-import/WelcomeSection"), {
@@ -342,15 +343,30 @@ export default function ExcelImportCleanPage() {
     }
   }, [fileOps, comparison, showNotification]);
 
-  // Export handler (unified like original implementation)
-  const handleExportData = useCallback(() => {
+  // Export handler with WinForms-style export modes
+  const handleExportData = useCallback((mode: ExportMode = 'all') => {
     setIsExporting(true);
     try {
-      fileOps.handleExport(
-        comparison.mergedRows,
-        comparison.unmatchedClient,
-        comparison.dupsClient
-      );
+      switch (mode) {
+        case 'successesAndMaster':
+          fileOps.handleExportSuccessesAndMaster(comparison.mergedRows);
+          break;
+        case 'successesOnly':
+          fileOps.handleExportSuccessesOnly(
+            comparison.mergedRows,
+            comparison.unmatchedClient,
+            comparison.dupsClient
+          );
+          break;
+        case 'all':
+        default:
+          fileOps.handleExportAll(
+            comparison.mergedRows,
+            comparison.unmatchedClient,
+            comparison.dupsClient
+          );
+          break;
+      }
       showNotification('Data exported successfully!', 'success');
     } catch (error) {
       showNotification('Failed to export data. Please try again.', 'error');

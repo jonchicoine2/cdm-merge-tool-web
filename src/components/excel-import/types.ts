@@ -47,6 +47,8 @@ export interface DataGridSectionProps {
   hideHeader?: boolean;
 }
 
+export type ExportMode = 'successesAndMaster' | 'all' | 'successesOnly';
+
 export interface ComparisonResultsProps {
   mergedRows: ExcelRow[];
   mergedColumns: GridColDef[];
@@ -54,7 +56,7 @@ export interface ComparisonResultsProps {
   dupsClient: ExcelRow[];
   columnsClient: GridColDef[];
   comparisonStats: ComparisonStats | null;
-  onExport: () => void;
+  onExport: (mode: ExportMode) => void;
   isExporting?: boolean;
   // Row operations for merged grid
   enableRowActions?: boolean;
